@@ -442,6 +442,9 @@ void print_char(chanend c) {
  * if bitcount > 32 goto l1
  * goto l3
  *
+ *
+ * more than 8T zero means end also more than 8T 1
+ *
  */
 
 void IRDA_TERRATEC(in port p, chanend c) {
@@ -452,18 +455,13 @@ void IRDA_TERRATEC(in port p, chanend c) {
     int ts, te = 0;
     for (;;) {
         // wait 0
-        p when pinseq(0) :> void;
-        // wait 0 to 1
-        p when pinseq(1) :> void;
-        tm :> ts;
-        // wait 1 to 0 or timeout
-        select {
+        select
+        {
             case tm when timerafter(ts + freq_tick * 10) :> void:
-            if (bitcount != 0)
-            {
-                c <: number;
-                bitcount = 0;
-            }
+            // long 1 mean clear
+            bitcount = 0;
+            p when pinseq(0) :> void;       // wait for 0 and mark time
+            tm :> ts;
             break;
             case p when pinseq(0) :> void:
             tm :> te;
@@ -472,17 +470,29 @@ void IRDA_TERRATEC(in port p, chanend c) {
             if (ts > 3)
             {
                 number = 0;
-                bitcount = 1;       // start signal received
+                bitcount = 1; // start signal received
             }
             else
             {
-                if (bitcount == 0) // not start received
-                    break;
                 bitcount++;
                 // rotate and set 1
                 number = number *2;
                 if (ts >= 2) number++;
             }
+            ts = te;
+            break;
+        }
+        // wait 1 or timeout
+        select {
+            case tm when timerafter(ts + freq_tick * 8) :> void:
+            // zero is to long it means end.
+            if (bitcount != 0)
+            {
+                c <: number;
+                bitcount = 0;
+            }
+            break;
+            case p when pinseq(1) :> void:
             break;
         }
     }
