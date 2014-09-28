@@ -333,6 +333,17 @@ void print_u(chanend c) {
         printf("%u\n", t1);
     }
 }
+void print_b(chanend c) {
+    unsigned t1;
+    while (1) {
+        c :> t1;
+        do {
+            printf("%d", t1 % 2);
+            t1 /= 2;
+        } while (t1);
+        printf("\n");
+    }
+}
 
 void print_h(chanend c) {
     unsigned t1;
@@ -346,10 +357,9 @@ void print_char(chanend c) {
     char t1;
     while (1) {
         c :> t1;
-        if (t1 == 'T')
+        if (t1 == 'E' || t1 == 'S')
             printf("\n");
-        else
-            printf("%c", t1);
+        printf("%c", t1);
 
     }
 }
@@ -416,31 +426,15 @@ void print_char(chanend c) {
  * bit 1 is received as >2T <5T
  * if pin got high for more than 8T means end of value
  *
- * wait for 1 as normal state
- * wait 0 -1 transition and analyze timing
+* wait 0 -1 transition and analyze timing
  *
  * source code
- * l1:
- * wait 1
  * wait for 0.
- * l3:
+ * if length > 10 then frame end
+ * if length > 4 then start new frame
+ * if length > 2 then push 1 else push 0
  * wait for 1
- * wait for 0 or 8T
- * if 8T
- * send number if bitcount neq 0
- * goto l1
- * l2:
- * if >= 4T
- * number = 0
- * bitcount = 0
- * goto l3
- * if >= 2T
- * push 1
- * else
- * push 0
- * bitcount++;
- * if bitcount > 32 goto l1
- * goto l3
+ * if lenght > 8T then end frame
  *
  *
  * more than 8T zero means end also more than 8T 1
@@ -458,22 +452,30 @@ void IRDA_TERRATEC(in port p, chanend c) {
         select
         {
             case tm when timerafter(ts + freq_tick * 10) :> void:
-            // long 1 mean clear
-            bitcount = 0;
-            p when pinseq(0) :> void;       // wait for 0 and mark time
+            // long 1 mean end frame or new one
+            if (bitcount != 0)
+           {
+               c <: number;
+               bitcount = 0;
+               number = 0;
+           }
+            p when pinseq(0) :> void; // wait for 0 and mark time
             tm :> ts;
+//            c <: 'L';
             break;
             case p when pinseq(0) :> void:
             tm :> te;
             // check length of 1
             ts = (te - ts) / freq_tick;
-            if (ts > 3)
+            if (ts > 3) // new frame
             {
                 number = 0;
-                bitcount = 1; // start signal received
+                bitcount = 0; // start signal received
+//                c <: 'S';
             }
             else
             {
+//                c <: 'D';
                 bitcount++;
                 // rotate and set 1
                 number = number *2;
@@ -484,15 +486,15 @@ void IRDA_TERRATEC(in port p, chanend c) {
         }
         // wait 1 or timeout
         select {
-            case tm when timerafter(ts + freq_tick * 8) :> void:
-            // zero is to long it means end.
-            if (bitcount != 0)
-            {
-                c <: number;
-                bitcount = 0;
-            }
+            case tm when timerafter(ts + freq_tick * 4) :> void:
+//            c <: 'E';
+            // zero to long it means holding button
+            bitcount = 0;
+            p when pinseq(1) :> void;
+            tm :> ts;
             break;
             case p when pinseq(1) :> void:
+            tm :> ts;
             break;
         }
     }
@@ -503,7 +505,7 @@ int main() {
     par
     {
         IRDA_TERRATEC(irda, c);
-        print_u(c);
+        print_b(c);
     }
     //    par
     //    {
