@@ -368,54 +368,54 @@ void print_char(chanend c) {
  * Hardware:
  * TERRATEC Remote Control.
  * Buttons
- * Home       ;101111100100000111101011000101
- * Power      ;111111100000000111101011000101
- * DVD Menu   ;101111010100001011101011000101
- * Subtitles  ;101111000100001111101011000101
- * Teletext   ;101110110100010011101011000101
- * Delete     ;101110100100010111101011000101
- * AV         ;111101000000101111101011000101
- * A-B        ;111100100000110111101011000101
- * 1          ;111111010000001011101011000101
- * 2          ;111111000000001111101011000101
- * 3          ;111110110000010011101011000101
- * 4          ;111110100000010111101011000101
- * 5          ;111110010000011011101011000101
- * 6          ;111110000000011111101011000101
- * 7          ;111101110000100011101011000101
- * 8          ;111101100000100111101011000101
- * 9          ;111101010000101011101011000101
- * 0          ;111100110000110011101011000101
- * TV         ;101110010100011011101011000101
- * DVD        ;101110000100011111101011000101
- * VIDEO      ;101101100100100111101011000101
- * Music      ;101101010100101011101011000101
- * PIC        ;101101000100101111101011000101
- * UP         ;111011110001000011101011000101
- * DOWN       ;111010110001010011101011000101
- * RIGHT      ;111011000001001111101011000101
- * LEFT       ;111011100001000111101011000101
- * OK         ;111011010001001011101011000101
- * GUIDE      ;111100000000111111101011000101
- * INFO       ;111010010001011011101011000101
- * BACK       ;101100100100110111101011000101
- * VOL+       ;111000110001110011101011000101
- * VOL-       ;111000010001111011101011000101
- * CH+        ;111001000001101111101011000101
- * CH-        ;111000000001111111101011000101
- * Play       ;101100110100110011101011000101
- * Mute       ;111000100001110111101011000101
- * red        ;111010000001011111101011000101
- * green      ;111001110001100011101011000101
- * yellow     ;111001100001100111101011000101
- * blue       ;111001010001101011101011000101
- * REC        ;101001110101100011101011000101
- * STOP       ;101101110100100011101011000101
- * PAUSE      ;101111110100000011101011000101
- * LAST       ;101010110101010011101011000101
- * FR         ;101100010100111011101011000101
- * FF         ;101100000100111111101011000101
- * NEXT       ;101000110101110011101011000101
+ * Home       ;101111100100000111101011000101; 0x28d7827d
+ * Power      ;111111100000000111101011000101; 0x28d7807f
+ * DVD Menu   ;101111010100001011101011000101; 0x28d742bd
+ * Subtitles  ;101111000100001111101011000101; 0x28d7c23d
+ * Teletext   ;101110110100010011101011000101; 0x28d722dd
+ * Delete     ;101110100100010111101011000101; 0x28d7a25d
+ * AV         ;111101000000101111101011000101; 0x28d7d02f
+ * A-B        ;111100100000110111101011000101; 0x28d7b04f
+ * 1          ;111111010000001011101011000101; 0x28d740bf
+ * 2          ;111111000000001111101011000101; 0x28d7c03f
+ * 3          ;111110110000010011101011000101; 0x28d720df
+ * 4          ;111110100000010111101011000101; 0x28d7a05f
+ * 5          ;111110010000011011101011000101; 0x28d7609f
+ * 6          ;111110000000011111101011000101; 0x28d7e01f
+ * 7          ;111101110000100011101011000101; 0x28d710ef
+ * 8          ;111101100000100111101011000101; 0x28d7906f
+ * 9          ;111101010000101011101011000101; 0x28d750af
+ * 0          ;111100110000110011101011000101; 0x28d730cf
+ * TV         ;101110010100011011101011000101; 0x
+ * DVD        ;101110000100011111101011000101; 0x
+ * VIDEO      ;101101100100100111101011000101; 0x
+ * Music      ;101101010100101011101011000101; 0x
+ * PIC        ;101101000100101111101011000101; 0x
+ * UP         ;111011110001000011101011000101; 0x
+ * DOWN       ;111010110001010011101011000101; 0x
+ * RIGHT      ;111011000001001111101011000101; 0x
+ * LEFT       ;111011100001000111101011000101; 0x
+ * OK         ;111011010001001011101011000101; 0x
+ * GUIDE      ;111100000000111111101011000101; 0x
+ * INFO       ;111010010001011011101011000101; 0x
+ * BACK       ;101100100100110111101011000101; 0x
+ * VOL+       ;111000110001110011101011000101; 0x
+ * VOL-       ;111000010001111011101011000101; 0x
+ * CH+        ;111001000001101111101011000101; 0x
+ * CH-        ;111000000001111111101011000101; 0x
+ * Play       ;101100110100110011101011000101; 0x
+ * Mute       ;111000100001110111101011000101; 0x
+ * red        ;111010000001011111101011000101; 0x
+ * green      ;111001110001100011101011000101; 0x
+ * yellow     ;111001100001100111101011000101; 0x
+ * blue       ;111001010001101011101011000101; 0x
+ * REC        ;101001110101100011101011000101; 0x
+ * STOP       ;101101110100100011101011000101; 0x
+ * PAUSE      ;101111110100000011101011000101; 0x
+ * LAST       ;101010110101010011101011000101; 0x
+ * FR         ;101100010100111011101011000101; 0x
+ * FF         ;101100000100111111101011000101; 0x
+ * NEXT       ;101000110101110011101011000101; 0x
  *
  * pulse has a base Time T of 600us usingh a 100Mhz clock that means 60 000 cycles * 0.001us
  *
@@ -426,7 +426,7 @@ void print_char(chanend c) {
  * bit 1 is received as >2T <5T
  * if pin got high for more than 8T means end of value
  *
-* wait 0 -1 transition and analyze timing
+ * wait 0 -1 transition and analyze timing
  *
  * source code
  * wait for 0.
@@ -447,6 +447,7 @@ void IRDA_TERRATEC(in port p, chanend c) {
     unsigned number = 0;
     timer tm;
     int ts, te = 0;
+    tm :> ts;
     for (;;) {
         // wait 0
         select
@@ -454,14 +455,13 @@ void IRDA_TERRATEC(in port p, chanend c) {
             case tm when timerafter(ts + freq_tick * 10) :> void:
             // long 1 mean end frame or new one
             if (bitcount != 0)
-           {
-               c <: number;
-               bitcount = 0;
-               number = 0;
-           }
-            p when pinseq(0) :> void; // wait for 0 and mark time
+            {
+                c <: number;
+                bitcount = 0;
+                number = 0;
+            }
+            p when pinseq(0) :> void; // wait for 0
             tm :> ts;
-//            c <: 'L';
             break;
             case p when pinseq(0) :> void:
             tm :> te;
@@ -471,11 +471,9 @@ void IRDA_TERRATEC(in port p, chanend c) {
             {
                 number = 0;
                 bitcount = 0; // start signal received
-//                c <: 'S';
             }
             else
             {
-//                c <: 'D';
                 bitcount++;
                 // rotate and set 1
                 number = number *2;
@@ -487,7 +485,6 @@ void IRDA_TERRATEC(in port p, chanend c) {
         // wait 1 or timeout
         select {
             case tm when timerafter(ts + freq_tick * 4) :> void:
-//            c <: 'E';
             // zero to long it means holding button
             bitcount = 0;
             p when pinseq(1) :> void;
@@ -500,12 +497,68 @@ void IRDA_TERRATEC(in port p, chanend c) {
     }
 }
 
+/**
+ * Sony remote control
+ * pin go down to 0 for 3.9T start frame
+ * and go up to 1 for 1T
+ * 2T in 0 means 1
+ * 1T in 0 means 0
+ *
+ * pin high for more tan 5T is end of frame
+ */
+
+void irda_sony(in port p, chanend c) {
+    const unsigned freq_tick = 60 * 1000;
+    char bitcount = 0;
+    unsigned number = 0;
+    timer tm;
+    int ts, te = 0;
+    tm :> ts;
+    for (;;) {
+        // wait 0
+        select
+        {
+            case tm when timerafter(ts + freq_tick * 6) :> void:
+            // long 1 mean end frame
+            if (bitcount != 0)
+            {
+                c <: number;
+                bitcount = 0;
+                number = 0;
+            }
+            p when pinseq(0) :> void; // wait for 0
+            tm :> ts;
+            break;
+            case p when pinseq(0) :> void:
+            tm :> ts;
+            break;
+        }
+        // wait 1
+        p when pinseq(1) :> void;
+        tm :> te;
+        // check length of 1
+        ts = (te - ts);// / freq_tick;
+        if (ts >= freq_tick * 3) // new frame
+        {
+            number = 0;
+            bitcount = 0; // start signal received
+        } else {
+            bitcount++;
+            // rotate and set 1
+            number = number * 2;
+            if (ts >= (freq_tick + freq_tick/2))
+                number++;
+        }
+        ts = te;
+    }
+}
+
 int main() {
     chan c;
     par
     {
-        IRDA_TERRATEC(irda, c);
-        print_h(c);
+        irda_sony(irda, c);
+        print_u(c);
     }
     //    par
     //    {
