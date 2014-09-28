@@ -336,6 +336,60 @@ void print_char(chanend c) {
 
     }
 }
+/**
+ * IRDA receiver project.
+ * Hardware:
+ * TERRATEC Remote Control.
+ * Buttons
+ * Home
+ * Power
+ * DVD Menu
+ * Subtitles
+ * Teletext
+ * Delete
+ * AV
+ * A-B
+ * 1
+ * 2
+ * 3
+ * 4
+ * 5
+ * 6
+ * 7
+ * 8
+ * 9
+ * 0
+ * TV
+ * DVD
+ * VIDEO
+ * Music
+ * PIC
+ * UP
+ * DOWN
+ * RIGHT
+ * LEFT
+ * OK
+ * GUIDE
+ * INFO
+ * BACK
+ * VOL+
+ * VOL-
+ * CH+
+ * CH-
+ * Play
+ * Mute
+ * red
+ * green
+ * yellow
+ * blue
+ * REC
+ * STOP
+ * PAUSE
+ * LAST
+ * FR
+ * FF
+ * NEXT
+ */
 
 int main() {
     chan c;
