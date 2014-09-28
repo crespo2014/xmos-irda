@@ -466,8 +466,8 @@ void IRDA_TERRATEC(in port p, chanend c) {
             case p when pinseq(0) :> void:
             tm :> te;
             // check length of 1
-            ts = (te - ts) / freq_tick;
-            if (ts > 3) // new frame
+            ts = (te - ts);
+            if (ts > 3 * freq_tick) // new frame
             {
                 number = 0;
                 bitcount = 0; // start signal received
@@ -477,7 +477,7 @@ void IRDA_TERRATEC(in port p, chanend c) {
                 bitcount++;
                 // rotate and set 1
                 number = number *2;
-                if (ts >= 2) number++;
+                if (ts >= 2*freq_tick) number++;
             }
             ts = te;
             break;
@@ -505,6 +505,47 @@ void IRDA_TERRATEC(in port p, chanend c) {
  * 1T in 0 means 0
  *
  * pin high for more tan 5T is end of frame
+ *
+ * remote control Sony RMT-D198P
+ * EJECT             ;0x68b92
+ * TV IN             ;0xa50
+ * TV POWER          ;0xa90
+ * POWER             ;0xa8b92
+ * 1                 ;0xb92
+ * 2                 ;0x80b92
+ * 3                 ;0x40b92
+ * 4                 ;0xc0b92
+ * 5                 ;0x20b92
+ * 6                 ;0xa0b92
+ * 7                 ;0x60b92
+ * 8                 ;0xe0b92
+ * 9                 ;0x10b92
+ * 0                 ;0x90b92
+ * VOL +             ;0x490
+ * VOL -             ;0xc90
+ * PICTURE NAVI      ;0xab92
+ * CLEAR             ;0xf0b92
+ * AUDIO             ;0x26b92
+ * SUBTITLE          ;0xc6b92
+ * TIME/TEXT         ;0x14b92
+ * MENU              ;0xd8b92
+ * UP                ;0x9eb92
+ * DOWN              ;0x5eb92
+ * RIGHT             ;0x3eb92
+ * LEFT              ;0xdeb92
+ * CENTER            ;0xd0b92
+ * RETURN            ;0x70b92
+ * DISPLAY           ;0x2ab92
+ * |<< REV           ;0xcb92
+ * <<| FREV          ;0x3ab92
+ * |>> FORWARD       ;0x28b46
+ * >>| FF            ;0x8cb92
+ * <<                ;0x44b92
+ * PLAY              ;0x4cb92
+ * >>                ;0xc4b92
+ * FAST/SLOW PLAY    ;0xdcb46
+ * PAUSE             ;0x9cb92
+ * STOP              ;0x1cb92
  */
 
 void irda_sony(in port p, chanend c) {
@@ -558,7 +599,7 @@ int main() {
     par
     {
         irda_sony(irda, c);
-        print_u(c);
+        print_h(c);
     }
     //    par
     //    {
