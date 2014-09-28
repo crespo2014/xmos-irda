@@ -325,6 +325,23 @@ void print_i(chanend c) {
         printf("%d\n", t1);
     }
 }
+
+void print_u(chanend c) {
+    unsigned t1;
+    while (1) {
+        c :> t1;
+        printf("%u\n", t1);
+    }
+}
+
+void print_h(chanend c) {
+    unsigned t1;
+    while (1) {
+        c :> t1;
+        printf("%x\n", t1);
+    }
+}
+
 void print_char(chanend c) {
     char t1;
     while (1) {
@@ -332,7 +349,7 @@ void print_char(chanend c) {
         if (t1 == 'T')
             printf("\n");
         else
-        printf("%c", t1);
+            printf("%c", t1);
 
     }
 }
@@ -389,14 +406,94 @@ void print_char(chanend c) {
  * FR
  * FF
  * NEXT
+ *
+ * pulse has a base Time T of 600us usingh a 100Mhz clock that means 60 000 cycles * 0.001us
+ *
+ * When a button is pressed
+ * a 0 pulse of 15T is send. it means clear status.
+ * a 1 pulse between 4T-7T that means start
+ * bit as 0 is send as < 2T
+ * bit 1 is received as >2T <5T
+ * if pin got high for more than 8T means end of value
+ *
+ * wait for 1 as normal state
+ * wait 0 -1 transition and analyze timing
+ *
+ * source code
+ * l1:
+ * wait 1
+ * wait for 0.
+ * l3:
+ * wait for 1
+ * wait for 0 or 8T
+ * if 8T
+ * send number if bitcount neq 0
+ * goto l1
+ * l2:
+ * if >= 4T
+ * number = 0
+ * bitcount = 0
+ * goto l3
+ * if >= 2T
+ * push 1
+ * else
+ * push 0
+ * bitcount++;
+ * if bitcount > 32 goto l1
+ * goto l3
+ *
  */
+
+void IRDA_TERRATEC(in port p, chanend c) {
+    const unsigned freq_tick = 60 * 1000;
+    char bitcount = 0;
+    unsigned number = 0;
+    timer tm;
+    int ts, te = 0;
+    for (;;) {
+        // wait 0
+        p when pinseq(0) :> void;
+        // wait 0 to 1
+        p when pinseq(1) :> void;
+        tm :> ts;
+        // wait 1 to 0 or timeout
+        select {
+            case tm when timerafter(ts + freq_tick * 10) :> void:
+            if (bitcount != 0)
+            {
+                c <: number;
+                bitcount = 0;
+            }
+            break;
+            case p when pinseq(0) :> void:
+            tm :> te;
+            // check length of 1
+            ts = (te - ts) / freq_tick;
+            if (ts > 3)
+            {
+                number = 0;
+                bitcount = 1;       // start signal received
+            }
+            else
+            {
+                if (bitcount == 0) // not start received
+                    break;
+                bitcount++;
+                // rotate and set 1
+                number = number *2;
+                if (ts >= 2) number++;
+            }
+            break;
+        }
+    }
+}
 
 int main() {
     chan c;
     par
     {
-        IRDA_base_freq(irda, c);
-        print_char(c);
+        IRDA_TERRATEC(irda, c);
+        print_u(c);
     }
     //    par
     //    {
