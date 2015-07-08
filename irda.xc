@@ -29,6 +29,72 @@
 #define HIGH 0
 #define LOW  1
 
+/*
+ * wait for ping go H.
+ * wait for timeout or pin go LOW (take time)
+ *
+ * wait for ping go H or timeout
+ */
+void irda_rd_v1(in port p, chanend c) {
+    int pv; // port value
+    timer tm;
+    char bitcount = 70;      // how many bits have been received invalid if > 64
+    unsigned val = 0;       // storing bits
+    const unsigned T = 60 * 1000;
+    int ts;     // start time of data
+    int te;     // time end of transation
+
+    p :> pv;     // initial status
+    tm :> ts;
+    for (;;)
+    {
+        if (pv == LOW)
+        {
+            p when pinseq(HIGH) :> pv;
+            tm :> ts;
+        }
+        // wait for pin go LOW
+        select
+        {
+            case tm when timerafter(ts+T*2.5) :> void: // timeout or Start condition
+            bitcount = 0;
+            val = 0;
+            break;
+            case p when pinseq(LOW) :> pv:// for t < 1.5 is 0 otherwise is 1
+            tm :> te;
+            if (bitcount < 64)      // not start received
+            {
+                val = val*2;
+                if (te - ts > T*1.5) ++val;
+                bitcount++;
+                if (bitcount == 32)
+                {
+                    bitcount = 0;
+                    c <: val;
+                }
+            }
+            ts = te;
+            break;
+        }
+        if(pv == HIGH)
+        {
+            p when pinseq(LOW) :> pv;// wait for low
+            tm :> ts;
+        }
+        // wait for pin go high
+        select
+        {
+            case tm when timerafter(ts+T*2) :> void:           // too long 0 it is the end
+            if (bitcount < 64 &&  bitcount != 0) c <: val;     // send any capture data
+            bitcount = 70;                                     // ignore any data without start
+            break;
+            case p when pinseq(HIGH) :> pv:
+            tm :> ts;
+            break;
+        }
+    }
+}
+
 
 void irda_rd(in port p, chanend c)
 {
