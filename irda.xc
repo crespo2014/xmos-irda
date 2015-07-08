@@ -35,15 +35,13 @@ void irda_rd(in port p, chanend c)
     int pv; // port value
     timer tm;
     char bitcount = 0;
+    unsigned val = 0;
     const unsigned T = 60 * 1000;
     int st;     // start time of data
     // wait for 1 at the start. after we need to measure the length of zero at the end
     p :> pv;
     tm :> st;
-    if (pv == HIGH)
-        c<: 'H';
-    else
-        c <: 'L';
+    c <: pv;
     for (;;)
     {
         // wait for pin go high
@@ -59,7 +57,7 @@ void irda_rd(in port p, chanend c)
                 break;
             case p when pinseq(LOW) :> pv:
                 tm :> st;
-                c <: '0';
+                val *= 2;       // shift a 0
                 bitcount++;
                 break;
         }
@@ -71,7 +69,7 @@ void irda_rd(in port p, chanend c)
                     break;
                 case p when pinseq(LOW) :> pv:
                     tm :> st;
-                    c <: '1';
+                    val = val*2+1;      // shift a 1
                     bitcount++;
                     break;
             }
@@ -80,18 +78,28 @@ void irda_rd(in port p, chanend c)
         {
             c <: 'S';
             bitcount = 0;
+            val  = 0;
             p when pinseq(LOW) :> pv; // wait for 0
             tm :> st;
+        }
+        else
+        {
+            if (bitcount == 8)
+            {
+                c <: val;
+                bitcount = 0;
+                val = 0;
+            }
         }
         // test length of zero
         select
         {
-            case tm when timerafter(st+T*1.5) :> void:      // too long 0 it is the end
-                c <: 'E';
-                break;
+            case tm when timerafter(st+T*1.5) :> void: // too long 0 it is the end
+            if (bitcount != 0) c <: val;               // send any capture data
+            break;
             case p when pinseq(HIGH) :> pv:
-                tm :> st;
-                break;
+            tm :> st;
+            break;
         }
 
     }

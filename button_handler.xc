@@ -596,13 +596,36 @@ void irda_sony(in port p, chanend c) {
     }
 }
 
+void gen_clock(out port txd) {
+    const unsigned T = 60 * 1000;
+    unsigned time;
+
+    // Output start bit
+    txd <: 0 @ time; // Endpoint 0
+    for (;;)
+    {
+        time += T;
+        txd @ time <: 1; // Endpoint B
+        time += T;
+        txd @ time <: 0;// Endpoint B
+    }
+}
+
+out port gpio_clock = XS1_PORT_1I;
+/*
+on stdcore[0] : out port tx      = XS1_PORT_1A;
+on stdcore[0] : in  port rx      = XS1_PORT_1B;
+*/
+
 int main() {
     chan c;
     par
     {
         irda_rd(irda, c);
-        print_char(c);
+        print_h(c);
+        gen_clock(gpio_clock);
     }
+
     //    par
     //    {
     //        IRDA_freq_mul(irda,c);
