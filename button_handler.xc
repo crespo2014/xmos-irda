@@ -4,6 +4,8 @@
 #include <xscope.h>
 #include <platform.h>
 
+extern void irda_rd(in port p, chanend c);
+
 /*
 
  //interface to task comunication
@@ -598,8 +600,8 @@ int main() {
     chan c;
     par
     {
-        irda_sony(irda, c);
-        print_h(c);
+        irda_rd(irda, c);
+        print_char(c);
     }
     //    par
     //    {
