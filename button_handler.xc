@@ -598,6 +598,10 @@ void irda_sony(in port p, chanend c) {
     }
 }
 
+
+#define HIGH 0
+#define LOW  1
+
 void gen_clock(out port txd) {
     const unsigned T = 60 * 1000;
     unsigned time;
@@ -607,16 +611,16 @@ void gen_clock(out port txd) {
     for (;;)
     {
         time += 4*T;
-        txd @ time <: 1; // Endpoint B
+        txd @ time <: 0; // Endpoint B
         time += 4*T;
-        txd @ time <: 0;// Endpoint B
+        txd @ time <: 1;// Endpoint B
 
         for (char i =0;i<12;++i)
         {
-        time += T;
-        txd @ time <: 1; // Endpoint B
-        time += T;
-        txd @ time <: 0;// Endpoint B
+        time += 1.5*T;
+        txd @ time <: 0; // Endpoint B
+        time += 1.5*T;
+        txd @ time <: 1;// Endpoint B
         }
     }
 }
