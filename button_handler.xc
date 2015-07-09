@@ -5,6 +5,8 @@
 #include <platform.h>
 
 extern void irda_rd(in port p, chanend c);
+extern void irda_rd_v1(in port p, chanend c);
+extern void irda_rd_v3(in port p, chanend c);
 
 /*
 
@@ -604,10 +606,18 @@ void gen_clock(out port txd) {
     txd <: 0 @ time; // Endpoint 0
     for (;;)
     {
+        time += 4*T;
+        txd @ time <: 1; // Endpoint B
+        time += 4*T;
+        txd @ time <: 0;// Endpoint B
+
+        for (char i =0;i<12;++i)
+        {
         time += T;
         txd @ time <: 1; // Endpoint B
         time += T;
         txd @ time <: 0;// Endpoint B
+        }
     }
 }
 
@@ -621,7 +631,7 @@ int main() {
     chan c;
     par
     {
-        irda_rd(irda, c);
+        irda_rd_v3(irda, c);
         print_h(c);
         gen_clock(gpio_clock);
     }

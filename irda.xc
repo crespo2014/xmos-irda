@@ -95,6 +95,56 @@ void irda_rd_v1(in port p, chanend c) {
     }
 }
 
+/*
+ * Wait for transition on pn or timeout, then take a action base on the pin level
+ */
+void irda_rd_v3(in port p, chanend c) {
+    int pv; // port value
+    timer tm;
+    char bitcount = 70;      // how many bits have been received invalid if > 64
+    unsigned val = 0;       // storing bits
+    const unsigned T = 60 * 1000;
+    int ts;     // start time of data
+    int te;     // time end of transation
+
+    p :> pv;
+    tm :> ts;
+    for (;;)
+    {
+        // wait for pin transition
+        select
+        {
+            case tm when timerafter(ts+T*2.5) :> void: // timeout
+                if (pv == HIGH)
+                {
+                    bitcount = 0;
+                    val = 0;
+                } else
+                {
+                    if (bitcount < 64 && bitcount != 0) c <: val; // send any capture data
+                    bitcount = 70;// ignore any data without start
+                }
+                p when pinsneq(pv) :> pv;   // wait for transition
+                tm :> ts;
+                break;
+            case p when pinsneq(pv) :> pv:                       // for t < 1.5 is 0 otherwise is 1
+                tm :> te;
+                if (pv == LOW && bitcount < 64)// store only if start signal was received
+                {
+                    val <<= 1;
+                    if (te - ts > T*1.5) val |= 1;
+                    bitcount++;
+                    if (bitcount == 32)
+                    {
+                        bitcount = 0;
+                        c <: val;
+                    }
+                }
+                ts = te;
+                break;
+        }
+    }
+}
 
 void irda_rd(in port p, chanend c)
 {
