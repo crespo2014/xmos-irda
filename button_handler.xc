@@ -637,7 +637,7 @@ int main() {
     {
         irda_rd_v3(irda, c);
         print_h(c);
-        gen_clock(gpio_clock);
+        //gen_clock(gpio_clock);
     }
 
     //    par

@@ -96,7 +96,7 @@ void irda_rd_v1(in port p, chanend c) {
 }
 
 /*
- * Wait for transition on pn or timeout, then take a action base on the pin level
+ * Wait for transition on ping or timeout, then take a action base on the pin level
  */
 void irda_rd_v3(in port p, chanend c) {
     int pv; // port value
