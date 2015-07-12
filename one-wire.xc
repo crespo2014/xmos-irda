@@ -26,6 +26,9 @@
  *  Data coming from CH2 go to a queue to be send to CH0
  *  cmd unit also push data to queue
  *
+ *  TODO:
+ *  Read byte by byte and resend
+ *
  *  Created on: 10 Jul 2015
  *      Author: lester.crespo
  */
@@ -52,6 +55,7 @@ struct one_wire
     unsigned tp; // time point of current low level, set up after start bit.
     timer t;
     char  high;     // polarity
+    char  pv;       // last rx port value
 };
 
 void owire_tx_start(struct one_wire & rthis) {
@@ -99,10 +103,48 @@ void owire_tx(struct one_wire & rthis,char data[],unsigned count)
 
 /*
  * read a byte
+ * if status != reading then a end signal receive
  */
 char owire_rx_getByte(struct one_wire & rthis)
 {
+    int pv; // port value
+    char bitcount = 0; // how many bits have been received invalid if > 64
+    int te; // time end of transation
+    char val;
 
+    // wait level low, then high
+    rthis.RX :> pv;
+    rthis.t :> rthis.tp;
+    do {
+        // wait for pin transition
+        select
+        {
+            case rthis.t when timerafter(rthis.tp+rthis.T*2.5) :> void: // timeout
+            if (pv == rthis.high)
+            {
+                // start condition
+                rthis.rx_status = w_id;
+                return 0;
+            } else
+            {
+                // end of data
+                rthis.rx_status = w_start;
+                break;
+            }
+            break;
+            case rthis.RX when pinsneq(pv) :> pv: // for t < 1.5 is 0 otherwise is 1
+            rthis.t :> te;
+            if (pv == !rthis.high)
+            {
+                val <<= 1;
+                if (te - rthis.tp > rthis.T*1.5) val |= 1;
+                bitcount++;
+            }
+            rthis.tp = te;
+            break;
+        }
+    } while(bitcount < 8);
+    return val;
 }
 /*
  * Call this function to read all command data after recevied the id
@@ -112,52 +154,7 @@ void owire_rx(struct one_wire & rthis, char data[], unsigned & max) {
     char * pd = data;
     char * pend = data + max;
 
-    int pv; // port value
-    char bitcount = 0; // how many bits have been received invalid if > 64
-    int ts; // start time of data
-    int te; // time end of transation
+    // read bytes until status w_id
 
-    rthis.RX :> pv;
-    rthis.t :> ts;
-    for (;;) {
-        // wait for pin transition
-        select
-        {
-            case rthis.t when timerafter(ts+rthis.T*2.5) :> void: // timeout
-            if (pv == rthis.high)
-            {
-                // start condition
-                rthis.rx_status = w_id;
-                max = 0;
-                return;
-            } else
-            {
-                // end of data
-                rthis.rx_status = w_start;
-                max = pd - data;
-                break;
-            }
-            break;
-            case rthis.RX when pinsneq(pv) :> pv: // for t < 1.5 is 0 otherwise is 1
-            rthis.t :> te;
-            if (pv == !rthis.high)
-            {
-                (*pd) <<= 1;
-                if (te - ts > rthis.T*1.5) (*pd) |= 1;
-                bitcount++;
-                if (bitcount == 8)
-                {
-                    bitcount = 0;
-                    pd++;
-                    if (pd == pend)
-                    {
-                        max = pd - data;
-                        return;
-                    }
-                }
-            }
-            ts = te;
-            break;
-        }
-    }
+
 }
