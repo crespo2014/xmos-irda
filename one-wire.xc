@@ -215,6 +215,7 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX)
     char rd_idx = -1;      // current read frame
     char rd_idx_pos = 0;  // currently sending byte
     char rd_bit;      // currently sending bit   16 high pulse, 15 low pulse and so until 0 (18 is the start bit)
+    char dt;         // data to send
     for (int i =0;i<MAX_FRAME;++i)
     {
       pframes[i]->len = 0;
@@ -275,11 +276,44 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX)
               rd_bit = 18;
               TX <: TX_HIGH;
               tp += 4*T;
+              dt = pframes[rd_idx]->dt[rd_idx_pos];
               rd_idx_pos++;
             }
             else
             {
-
+              rd_bit--;
+              if (rd_bit == 0)
+              {
+                  // start sending next byte
+                  if (rd_idx_pos == pframes[rd_idx]->len)
+                  {
+                      // no more to send
+                      tp += 3*T;
+                      pframes[rd_idx]->len = 0;
+                      // find another frame to send
+                  }
+                  else
+                  {
+                      rd_bit = 16;
+                      dt = pframes[rd_idx]->dt[rd_idx_pos];
+                      rd_idx_pos++;
+                  }
+              }else
+              {
+                  if (rd_bit & 1 == 0)  // even number
+                  {
+                      TX <: TX_HIGH;
+                      if (dt & 1 == 1)
+                          tp += 2*T;
+                      else
+                          tp += T;
+                  }
+                  else
+                  {
+                      TX <: TX_LOW;
+                      tp += T;      // keep low only for T
+                  }
+              }
             }
           }
           break;
