@@ -35,15 +35,15 @@ void i2c_wait_start()
 
 unsigned i2c_read_address_7()
 {
-
+    return 0;
 }
 
 char i2c_read_bit()
 {
-
+    return 0;
 }
 
 unsigned i2c_read_byte()
 {
-
+    return 0;
 }
