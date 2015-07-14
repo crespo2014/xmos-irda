@@ -45,7 +45,7 @@ struct tx_frame_t
  * Command interface, or inteface that process incomming data
  */
 interface cmd_if {
-    [[notification]] slave void ondata();
+    void donothing();
 };
 
 /*
@@ -68,6 +68,7 @@ interface ch0_tx_if {
  * TODO : provide also for tx interface, act as hub
  */
 interface ch0_rx_if {
+    [[notification]] slave void ondata();
     [[clears_notification]] void getcmd(struct tx_frame_t  * movable &old_p);  // get pointer to frame.
 };
 

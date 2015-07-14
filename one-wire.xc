@@ -153,10 +153,17 @@ void CMD(server interface cmd_if cmd,client interface ch0_tx_if tx,client interf
   t :> tp;
   for (;;)
   {
-    rx.getcmd(p);
-    t when timerafter(tp+Hz) :> void;
-    t :> tp;
-    p->len = 0;
+//      t when timerafter(tp+Hz) :> void;
+//      t :> tp;
+      select
+      {
+          case rx.ondata():
+           rx.getcmd(p);
+          if (p != null )
+              p->len = 0;
+          break;
+      }
+    //p->len = 0;
   }
 }
 
@@ -322,6 +329,7 @@ void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port
     //struct tx_frame_t* movable pfrm[MAX_FRAME] = {&frm[0],&frm1,&frm2,&frm3};
     timer t;
     int tp;
+
 //    for (int i = 0;i < MAX_FRAME;++i)
 //    {
 //        pfrm[i]->len = 4;
@@ -332,16 +340,16 @@ void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port
        select {
            case ch0rx.getcmd(struct tx_frame_t  * movable &old_p) :
            // find a frame with data
-           old_p->len = 0;
-           struct tx_frame_t* movable p;
            if (pfrm0->len !=0 )
            {
+               struct tx_frame_t* movable p;
                p = move(pfrm0);
                pfrm0 = move(old_p);
                old_p = move(p);
            }
            break;
            case t when timerafter(tp + 1000) :> void:
+           ch0rx.ondata();
            t :> tp;
            break;
        }
