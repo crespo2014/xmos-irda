@@ -155,7 +155,7 @@ void CMD(server interface cmd_if cmd,client interface ch0_tx_if tx,client interf
   {
       while (rx.getcmd(p) == 1)
       {
-          printf("%c %d\n",p->dt[0], p->len);
+          //printf("%c\n",p->dt[0]);
           p->len = 0;
       };
       select
@@ -325,7 +325,6 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T)
  */
 void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port RX,unsigned T)
 {
-    //struct tx_frame_t frm0,frm1,frm2,frm3;
     struct tx_frame_t frm[MAX_FRAME];
     struct tx_frame_t* movable pfrm[MAX_FRAME] = {&frm[0],&frm[1],&frm[2],&frm[3]};
     struct tx_frame_t* movable wr_frame;      // currently writting in this frame
@@ -362,7 +361,7 @@ void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port
               }
             }
             break;
-        case t when timerafter(tp + 100 * 1000 * 1000) :> void:   // 100Mhz
+        case t when timerafter(tp + 100) :> void:   // 100Mhz 100 * 1000 * 1000
           t :> tp;
           // add full frame to list and notify
           if (wr_frame != null)
@@ -374,6 +373,10 @@ void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port
                   ++i;
               pfrm[i] = move(wr_frame);
               ch0rx.ondata();
+          }
+          else
+          {
+            printf(".\n");
           }
           // find a empty frame
           for (int i = 0;i<MAX_FRAME;++i)
