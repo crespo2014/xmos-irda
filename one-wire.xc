@@ -160,7 +160,10 @@ void CMD(server interface cmd_if cmd,client interface ch0_tx_if tx,client interf
           case rx.ondata():
            rx.getcmd(p);
           if (p != null )
+          {
+              printf("%d\n", p->len);
               p->len = 0;
+          }
           break;
       }
     //p->len = 0;
@@ -340,13 +343,10 @@ void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port
        select {
            case ch0rx.getcmd(struct tx_frame_t  * movable &old_p) :
            // find a frame with data
-           if (pfrm0->len !=0 )
-           {
-               struct tx_frame_t* movable p;
-               p = move(pfrm0);
-               pfrm0 = move(old_p);
-               old_p = move(p);
-           }
+           struct tx_frame_t* movable p;
+           p = move(pfrm0);
+           pfrm0 = move(old_p);
+           old_p = move(p);
            break;
            case t when timerafter(tp + 1000) :> void:
            ch0rx.ondata();
