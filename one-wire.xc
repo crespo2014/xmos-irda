@@ -153,20 +153,17 @@ void CMD(server interface cmd_if cmd,client interface ch0_tx_if tx,client interf
   t :> tp;
   for (;;)
   {
-//      t when timerafter(tp+Hz) :> void;
-//      t :> tp;
+      while (rx.getcmd(p) == 1)
+      {
+          printf("%c %d\n",p->dt[0], p->len);
+          p->len = 0;
+      };
       select
       {
           case rx.ondata():
-           rx.getcmd(p);
-          if (p != null )
-          {
-              printf("%d\n", p->len);
-              p->len = 0;
-          }
           break;
       }
-    //p->len = 0;
+      //printf("on data\n");
   }
 }
 
@@ -320,40 +317,76 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T)
  * RX channel 0
  * Data will be buffered from start signal to end one
  * Ones de buffer is full the cmd inteface will be notified
+ * cmd interface will pick the buffer and can send also to tx interface, but tx has to send back
+ *
+ * if data comming faster then cmd processing will no eat all of then, at position of last read frame will be hold to pick all cmd from
+ * that place
+ *
  */
 void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port RX,unsigned T)
 {
-    struct tx_frame_t frm0,frm1,frm2,frm3;
-    //struct tx_frame_t frm[MAX_FRAME];
-    struct tx_frame_t* movable pfrm0 = &frm0;
-    struct tx_frame_t* movable pfrm1 = &frm1;
-    struct tx_frame_t* movable pfrm2 = &frm2;
-    struct tx_frame_t* movable pfrm3 = &frm3;
-    //struct tx_frame_t* movable pfrm[MAX_FRAME] = {&frm[0],&frm1,&frm2,&frm3};
+    //struct tx_frame_t frm0,frm1,frm2,frm3;
+    struct tx_frame_t frm[MAX_FRAME];
+    struct tx_frame_t* movable pfrm[MAX_FRAME] = {&frm[0],&frm[1],&frm[2],&frm[3]};
+    struct tx_frame_t* movable wr_frame;      // currently writting in this frame
     timer t;
     int tp;
-
-//    for (int i = 0;i < MAX_FRAME;++i)
-//    {
-//        pfrm[i]->len = 4;
-//    }
+    for (int i = 0;i < MAX_FRAME;++i)
+    {
+        pfrm[i]->dt[0] = 'A' + i;
+        pfrm[i]->len = 0;
+    }
+    wr_frame = move(pfrm[0]);
     t :> tp;
     for (;;)
-   {
+    {
        select {
-           case ch0rx.getcmd(struct tx_frame_t  * movable &old_p) :
-           // find a frame with data
-           struct tx_frame_t* movable p;
-           p = move(pfrm0);
-           pfrm0 = move(old_p);
-           old_p = move(p);
-           break;
-           case t when timerafter(tp + 1000) :> void:
-           ch0rx.ondata();
-           t :> tp;
-           break;
+        case ch0rx.getcmd(struct tx_frame_t  * movable &old_p) -> unsigned char b :
+            // get frame from client if it is not null
+            if (old_p != null)
+            {
+                int i = 0;
+                while (pfrm[i] != null)     // all pointers cames from here,  there is space always
+                    ++i;
+                pfrm[i] = move(old_p);
+            }
+            // find a frame with data
+            b = 0;
+            for (int i = 0;i < MAX_FRAME;++i)
+            {
+              if (pfrm[i] != null && pfrm[i]->len != 0)
+              {
+                 old_p = move(pfrm[i]);
+                 b = 1;
+                 break;
+              }
+            }
+            break;
+        case t when timerafter(tp + 100 * 1000 * 1000) :> void:   // 100Mhz
+          t :> tp;
+          // add full frame to list and notify
+          if (wr_frame != null)
+          {
+              wr_frame->len = 1;
+
+              int i = 0;
+              while (pfrm[i] != null)     // all pointers cames from here,  there is space always
+                  ++i;
+              pfrm[i] = move(wr_frame);
+              ch0rx.ondata();
+          }
+          // find a empty frame
+          for (int i = 0;i<MAX_FRAME;++i)
+          {
+              if (pfrm[i] != null && pfrm[i]->len == 0 )
+              {
+                  wr_frame = move(pfrm[i]);
+                  break;
+              }
+          }
+          break;
        }
-   }
+    }
 
 }
 

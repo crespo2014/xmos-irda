@@ -69,7 +69,12 @@ interface ch0_tx_if {
  */
 interface ch0_rx_if {
     [[notification]] slave void ondata();
-    [[clears_notification]] void getcmd(struct tx_frame_t  * movable &old_p);  // get pointer to frame.
+    [[clears_notification]] unsigned char getcmd(struct tx_frame_t  * movable &old_p);  // get pointer to frame true if pointer is get
+
+    /*
+     * [[clears_notification]] unsigned char getForward(struct tx_frame_t  * movable &old_p);     // use by tx interface
+     * [[notification]] slave void onForward(); // frame for forwarding
+     */
 };
 
 extern void CMD(server interface cmd_if cmd,client interface ch0_tx_if tx,client interface ch0_rx_if rx);
