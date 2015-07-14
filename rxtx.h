@@ -45,10 +45,7 @@ struct tx_frame_t
  * Command interface, or inteface that process incomming data
  */
 interface cmd_if {
-    void start();       // start signal received
-    void onId(char id);
-    void onData(char data);
-    void end();         // end signal recieved
+    [[notification]] slave void ondata();
 };
 
 /*
@@ -65,5 +62,16 @@ interface ch0_tx_if {
     struct tx_frame_t  * movable getSlot();             //get a free slot for data buffering (0xff or -1 not free slot)
     void sendSlot(struct tx_frame_t  * movable &frm);
 };
+
+/*
+ * Channel 0 rx interface provide buffers to cmd interface
+ * TODO : provide also for tx interface, act as hub
+ */
+interface ch0_rx_if {
+    [[clears_notification]] void getcmd(struct tx_frame_t  * movable &old_p);  // get pointer to frame.
+};
+
+extern void CMD(server interface cmd_if cmd,client interface ch0_tx_if tx,client interface ch0_rx_if rx);
+extern void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port RX,unsigned T);
 
 #endif /* RXTX_H_ */

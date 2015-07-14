@@ -144,33 +144,38 @@ void owire_rx(struct one_wire & rthis, char data[], unsigned & max) {
  * Command module
  */
 
-void CMD(client interface ch0_tx_if tx)
+void CMD(server interface cmd_if cmd,client interface ch0_tx_if tx,client interface ch0_rx_if rx)
 {
   timer t;
   unsigned tp;
+  struct tx_frame_t* movable p;
+
   t :> tp;
   for (;;)
   {
+    rx.getcmd(p);
     t when timerafter(tp+Hz) :> void;
     t :> tp;
+    p->len = 0;
   }
 }
 
 /*
  * Transmition channel 0
  */
-#define MAX_FRAME 8
+#define MAX_FRAME 4
 #define TX_HIGH  1
 #define TX_LOW   0
 
 void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T)
 {
+    for (;;){}
     struct tx_frame_t frm[MAX_FRAME];
-    struct tx_frame_t frm0,frm1,frm2,frm3,frm4,frm5,frm6,frm7;
+    //struct tx_frame_t frm0,frm1,frm2,frm3,frm4,frm5,frm6,frm7;
     timer t;
     int tp;
     // initialize MAX_FRAME movable pointer
-    struct tx_frame_t* movable pframes[MAX_FRAME] = { frm,&frm1,&frm2,&frm3,&frm4,&frm5,&frm6,&frm7 };
+    struct tx_frame_t* movable pframes[MAX_FRAME] = { &frm[0],&frm[1],&frm[2],&frm[3]};//&frm1,&frm2,&frm3,&frm4,&frm5,&frm6,&frm7 };
 
     signed char rd_idx = -1;      // current read frame
     unsigned char rd_idx_pos = 0;  // currently sending byte
@@ -184,14 +189,14 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T)
     for (;;)
     {
     select {
-        case tx.getSlot() -> struct tx_frame_t  * movable frm:
+        case tx.getSlot() -> struct tx_frame_t  * movable ret_frm:
         // Find a slot with len 0
           char pos = rd_idx;
           do
           {
             if (pframes[pos] != null && pframes[pos]->len == 0)
             {
-              frm = move(pframes[pos]);
+                ret_frm = move(pframes[pos]);
               break;
             }
             ++pos;
@@ -299,6 +304,49 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T)
           break;
     }
     }
+}
+
+/*
+ * RX channel 0
+ * Data will be buffered from start signal to end one
+ * Ones de buffer is full the cmd inteface will be notified
+ */
+void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port RX,unsigned T)
+{
+    struct tx_frame_t frm0,frm1,frm2,frm3;
+    //struct tx_frame_t frm[MAX_FRAME];
+    struct tx_frame_t* movable pfrm0 = &frm0;
+    struct tx_frame_t* movable pfrm1 = &frm1;
+    struct tx_frame_t* movable pfrm2 = &frm2;
+    struct tx_frame_t* movable pfrm3 = &frm3;
+    //struct tx_frame_t* movable pfrm[MAX_FRAME] = {&frm[0],&frm1,&frm2,&frm3};
+    timer t;
+    int tp;
+//    for (int i = 0;i < MAX_FRAME;++i)
+//    {
+//        pfrm[i]->len = 4;
+//    }
+    t :> tp;
+    for (;;)
+   {
+       select {
+           case ch0rx.getcmd(struct tx_frame_t  * movable &old_p) :
+           // find a frame with data
+           old_p->len = 0;
+           struct tx_frame_t* movable p;
+           if (pfrm0->len !=0 )
+           {
+               p = move(pfrm0);
+               pfrm0 = move(old_p);
+               old_p = move(p);
+           }
+           break;
+           case t when timerafter(tp + 1000) :> void:
+           t :> tp;
+           break;
+       }
+   }
+
 }
 
 /*

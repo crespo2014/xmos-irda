@@ -9,7 +9,6 @@ extern void irda_rd(in port p, chanend c);
 extern void irda_rd_v1(in port p, chanend c);
 extern void irda_rd_v3(in port p, chanend c);
 extern void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T);
-void CMD(client interface ch0_tx_if tx);
 
 /*
 
@@ -635,6 +634,8 @@ void gen_clock(out port txd) {
 
 
 out port gpio_clock = XS1_PORT_1I;
+in port gpio_ch0_rx = XS1_PORT_1A;
+in port gpio_ch0_tx = XS1_PORT_1B;
 /*
 on stdcore[0] : out port tx      = XS1_PORT_1A;
 on stdcore[0] : in  port rx      = XS1_PORT_1B;
@@ -654,14 +655,17 @@ int main() {
     //chan c;
      *
      */
-    interface ch0_tx_if ch0tx_if;
+    interface ch0_tx_if ch0tx;
+    interface ch0_rx_if ch0rx;
+    interface cmd_if cmd;
     par
     {
         //irda_rd_v3(irda, c);
         //print_h(c);
         //gen_clock(gpio_clock);
-      CH0_TX(ch0tx_if,gpio_clock,100*1000);
-      CMD(ch0tx_if);
+      CH0_TX(ch0tx,gpio_clock,100*1000);
+      CH0_RX(ch0rx,cmd,gpio_ch0_rx,100*1000);
+      CMD(cmd,ch0tx,ch0rx);
     }
 
     //    par
