@@ -38,64 +38,7 @@
 #include <stdio.h>
 #include <xscope.h>
 #include <platform.h>
-
-const unsigned Hz = 100 * 1000 * 1000; // timer frecuency in Hz
-
-enum rx_status_e
-{
-    w_start,    // waiting start
-    w_id,       // waiting id
-    d_bridge,   // act as bridge
-    d_cmd,      // reading cmd
-};
-struct one_wire
-{
-    enum rx_status_e rx_status;         //waiting start,waiting id, bridge, processing
-    in port RX;
-    out port TX;
-    unsigned T;  // frecuency
-    unsigned tp; // time point of current low level, set up after start bit.
-    timer t;
-    char  high;     // polarity
-    char  pv;       // last rx port value
-};
-
-/*
- * Transmition channel has a list of frames to send
- * it use a pointer that circle looking for full frames forwards and backwards looking for free frames
- */
-struct tx_frame_t
-{
-    char    dt[20];
-    char    len;        //0 all data has been sent
-    //enum { free,writting, reading } st;         //0 - free, 1 - writing , 2 - reading
-};
-
-/*
- * Command interface, or inteface that process incomming data
- */
-interface cmd_if {
-    void start();       // start signal received
-    void onId(char id);
-    void onData(char data);
-    void end();         // end signal recieved
-};
-
-/*
- * Tx on channel 0
- * Sever keeps a list of pointers plus current pointer idx
- * Requesting a frame will find the first pointer to a block with len == 0.
- * Pushing a frame will be on the first nullptr.
- * when current block is
- * - len = 0 that means nothing to send. it canbe pick it next time
- * - null (frame is comming soon, )
- * -
- */
-interface ch0_tx_if {
-    struct tx_frame_t  * movable getSlot();             //get a free slot for data buffering (0xff or -1 not free slot)
-    void sendSlot(struct tx_frame_t  * movable &frm);
-};
-
+#include <rxtx.h>
 
 void owire_tx_start(struct one_wire & rthis) {
     rthis.TX <: 1;
@@ -198,6 +141,15 @@ void owire_rx(struct one_wire & rthis, char data[], unsigned & max) {
 
 
 /*
+ * Command module
+ */
+
+void CMD(client interface ch0_tx_if tx)
+{
+
+}
+
+/*
  * Transmition channel 0
  */
 #define MAX_FRAME 8
@@ -205,7 +157,7 @@ void owire_rx(struct one_wire & rthis, char data[], unsigned & max) {
 #define TX_LOW   0
 struct tx_frame_t frames[MAX_FRAME];
 
-void CH0_TX(server interface ch0_tx_if tx,out port TX)
+void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T)
 {
     timer t;
     int tp;
@@ -218,7 +170,7 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX)
     char dt;         // data to send
     for (int i =0;i<MAX_FRAME;++i)
     {
-      pframes[i]->len = 0;
+      pframes[i]->len = 10;
     }
     t :> tp;
     for (;;)
@@ -257,23 +209,40 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX)
           if (rd_idx == -1)
           {
             t :> tp;
-            tp += 4*T;  // wake up at early
+            tp += 4*T;  // wake up at early than 1sec
             rd_idx = pos;
           }
           break;
          // case time to send more data, check for pending buffer.
         case t when  timerafter(tp) :> void:
-          // keep sending current byte or start a new send
+          if (rd_idx == -1)   // if we are not sending data
+          {
+            // find another frame to send
+            char pos = rd_idx;
+            do
+            {
+              if (pframes[pos] != null && pframes[pos]->len != 0)
+              {
+                // send start bit next time
+                 rd_idx = pos;
+                 rd_idx_pos = 0;
+                 break;
+              }
+              ++pos;
+              if (pos == MAX_FRAME)
+                pos = 0;
+            } while (pos != rd_idx);
+          }
           if (rd_idx == -1)
           {
             tp += Hz; // wake up 1 sec later.
           }
           else
           {
-            if (rd_idx_pos == 0)
+            if (rd_idx_pos == 0)    // start sending first byte of this frame
             {
               // send start bit
-              rd_bit = 18;
+              rd_bit = 18;    // 18 start bit, 17 and odd is zero, 16 bit 8 ... 2 bit 1, 1 .. zero, 0 next
               TX <: TX_HIGH;
               tp += 4*T;
               dt = pframes[rd_idx]->dt[rd_idx_pos];
@@ -281,16 +250,15 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX)
             }
             else
             {
-              rd_bit--;
-              if (rd_bit == 0)
+              if (rd_bit == 0)    // one byte done
               {
                   // start sending next byte
                   if (rd_idx_pos == pframes[rd_idx]->len)
                   {
-                      // no more to send
+                      // no more data to send
                       tp += 3*T;
                       pframes[rd_idx]->len = 0;
-                      // find another frame to send
+                      rd_idx = -1;
                   }
                   else
                   {
@@ -298,21 +266,25 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX)
                       dt = pframes[rd_idx]->dt[rd_idx_pos];
                       rd_idx_pos++;
                   }
-              }else
+              }
+              if (rd_bit != 0)  // send bit of data
               {
-                  if (rd_bit & 1 == 0)  // even number
-                  {
-                      TX <: TX_HIGH;
-                      if (dt & 1 == 1)
-                          tp += 2*T;
-                      else
-                          tp += T;
-                  }
-                  else
-                  {
-                      TX <: TX_LOW;
-                      tp += T;      // keep low only for T
-                  }
+                // send data
+                if ((rd_bit & 1) == 0)  // even number (data 1 or 2 T)
+                {
+                   TX <: TX_HIGH;
+                   if ((dt & 1) == 1)
+                       tp += 2*T;
+                   else
+                       tp += T;
+                   dt >>= 1;
+                }
+                else    // odd number (low for T)
+                {
+                   TX <: TX_LOW;
+                   tp += T;      // keep low only for T
+                }
+                rd_bit--;
               }
             }
           }

@@ -3,10 +3,13 @@
 #include <stdio.h>
 #include <xscope.h>
 #include <platform.h>
+#include "rxtx.h"
 
 extern void irda_rd(in port p, chanend c);
 extern void irda_rd_v1(in port p, chanend c);
 extern void irda_rd_v3(in port p, chanend c);
+extern void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T);
+void CMD(client interface ch0_tx_if tx);
 
 /*
 
@@ -629,6 +632,8 @@ void gen_clock(out port txd) {
     }
 }
 
+
+
 out port gpio_clock = XS1_PORT_1I;
 /*
 on stdcore[0] : out port tx      = XS1_PORT_1A;
@@ -636,12 +641,15 @@ on stdcore[0] : in  port rx      = XS1_PORT_1B;
 */
 
 int main() {
-    chan c;
+    //chan c;
+    interface ch0_tx_if ch0tx_if;
     par
     {
-        irda_rd_v3(irda, c);
-        print_h(c);
-        gen_clock(gpio_clock);
+        //irda_rd_v3(irda, c);
+        //print_h(c);
+        //gen_clock(gpio_clock);
+      CH0_TX(ch0tx_if,gpio_clock,100*1000);
+      CMD(ch0tx_if);
     }
 
     //    par
