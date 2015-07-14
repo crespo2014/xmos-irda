@@ -640,8 +640,20 @@ on stdcore[0] : out port tx      = XS1_PORT_1A;
 on stdcore[0] : in  port rx      = XS1_PORT_1B;
 */
 
+
 int main() {
+    /*
+    int frm[8];
+    int frm0,frm1,frm2,frm3,frm4,frm5,frm6,frm7;
+    int* movable pframes[8] = { frm,&frm1,&frm2,&frm3,&frm4,&frm5,&frm6,&frm7 };
+    for (int i =0;i<8;++i)
+       {
+         *pframes[i] = 10;
+       }
+
     //chan c;
+     *
+     */
     interface ch0_tx_if ch0tx_if;
     par
     {

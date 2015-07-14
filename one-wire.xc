@@ -146,7 +146,14 @@ void owire_rx(struct one_wire & rthis, char data[], unsigned & max) {
 
 void CMD(client interface ch0_tx_if tx)
 {
-
+  timer t;
+  unsigned tp;
+  t :> tp;
+  for (;;)
+  {
+    t when timerafter(tp+Hz) :> void;
+    t :> tp;
+  }
 }
 
 /*
@@ -155,19 +162,20 @@ void CMD(client interface ch0_tx_if tx)
 #define MAX_FRAME 8
 #define TX_HIGH  1
 #define TX_LOW   0
-struct tx_frame_t frames[MAX_FRAME];
 
 void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T)
 {
+    struct tx_frame_t frm[MAX_FRAME];
+    struct tx_frame_t frm0,frm1,frm2,frm3,frm4,frm5,frm6,frm7;
     timer t;
     int tp;
     // initialize MAX_FRAME movable pointer
-    struct tx_frame_t* movable pframes[MAX_FRAME] = { &frames[0],&frames[1],&frames[2],&frames[3],&frames[4],&frames[5],&frames[6],&frames[7] };
+    struct tx_frame_t* movable pframes[MAX_FRAME] = { frm,&frm1,&frm2,&frm3,&frm4,&frm5,&frm6,&frm7 };
 
-    char rd_idx = -1;      // current read frame
-    char rd_idx_pos = 0;  // currently sending byte
-    char rd_bit;      // currently sending bit   16 high pulse, 15 low pulse and so until 0 (18 is the start bit)
-    char dt;         // data to send
+    signed char rd_idx = -1;      // current read frame
+    unsigned char rd_idx_pos = 0;  // currently sending byte
+    unsigned char rd_bit;      // currently sending bit   16 high pulse, 15 low pulse and so until 0 (18 is the start bit)
+    unsigned char dt;         // data to send
     for (int i =0;i<MAX_FRAME;++i)
     {
       pframes[i]->len = 10;

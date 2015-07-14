@@ -36,8 +36,8 @@ struct one_wire
  */
 struct tx_frame_t
 {
-    char    dt[20];
-    char    len;        //0 all data has been sent
+    unsigned char    dt[20];
+    unsigned char    len;        //0 all data has been sent
     //enum { free,writting, reading } st;         //0 - free, 1 - writing , 2 - reading
 };
 
