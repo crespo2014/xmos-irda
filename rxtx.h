@@ -11,18 +11,6 @@
 
 #define Hz   100*1000*1000 // timer frecuency in Hz
 
-//struct one_wire
-//{
-//    enum rx_status_e rx_status;         //waiting start,waiting id, bridge, processing
-//    in port RX;
-//    out port TX;
-//    unsigned T;  // frecuency
-//    unsigned tp; // time point of current low level, set up after start bit.
-//    timer t;
-//    char  high;     // polarity
-//    char  pv;       // last rx port value
-//};
-
 /*
  * Transmition channel has a list of frames to send
  * it use a pointer that circle looking for full frames forwards and backwards looking for free frames
@@ -57,9 +45,22 @@ interface rx_if {
     [[notification]] slave void onrx();       // data waiting to be read
     [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);  // get pointer to frame true if pointer is get
 };
+/*
+ * Router interface is a buffer o frames with a destination
+ * It will dispatch frames to many tx interfaces.
+ * It will read from many interfaces data ( data need to be buffered)
+ * Data will be pick from all interface in a circular way one at the time.
+ * a counter of empty frames will optimize
+ *
+ */
+interface route_if {
+  void nothing();
+};
 
 extern void CMD(server interface cmd_if cmd,server interface tx_if tx,client interface rx_if rx);
 extern void RX(server interface rx_if rx,client interface cmd_if cmd,in port RX,unsigned T);
 extern void TX(client interface tx_if tx,out port TX,unsigned T);
+extern void Router(server interface tx_if ch0_tx,server interface tx_if ch1_tx,client interface rx_if ch0_rx,client interface rx_if ch1_rx,client interface cmd_if cmd);
+//for join ch1 rx to ch0 tx
 
 #endif /* RXTX_H_ */

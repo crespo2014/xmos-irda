@@ -40,8 +40,33 @@
 #include <platform.h>
 #include <rxtx.h>
 
+
+/*
+ * Packet router.
+ * All packets are delivery to the router
+ * router will read from all places until buffers become all full
+ * when buffer are empty router does not select for TX interfaces.
+ * when buffer are all full routers oly select on tx channels.
+ *
+ * - read until full or not more.
+ * -
+ */
+void Router(server interface tx_if ch0_tx,server interface tx_if ch1_tx,client interface rx_if ch0_rx,client interface rx_if ch1_rx,client interface cmd_if cmd)
+{
+  enum dest_e {
+    to_cmd,
+    to_ch0_tx,
+    to_ch1_tx,
+  } destination[8];
+  struct tx_frame_t frm[8];
+  struct tx_frame_t* movable pfrm[MAX_FRAME] = {&frm[0],&frm[1],&frm[2],&frm[3]};
+
+}
 /*
  * Command task
+ * it will read a command and it will create the answer in the same frame,
+ * next time a frame is swap the previous one is send back to host.
+ * when command is ready it will be a notification
  */
 
 void CMD(server interface cmd_if cmd,server interface tx_if tx,client interface rx_if rx)
@@ -56,6 +81,8 @@ void CMD(server interface cmd_if cmd,server interface tx_if tx,client interface 
   {
       while (rx.get(p) == 1)
       {
+        // push to tx channel
+        tx.ontx();
           //printf("%c\n",p->dt[0]);
           p->len = 0;
       };
@@ -87,10 +114,10 @@ void TX(client interface tx_if tx,out port TX,unsigned T)
   t when timerafter(tp + 4*T) :> tp;    // wait 4 cycles
   for(;;)
   {
-    t :> tp;
     // peek and send data
     while (tx.get(pfrm) == 1)
     {
+      t :> tp;
       // send data
       if (pfrm->len != 0)
       {
@@ -114,7 +141,8 @@ void TX(client interface tx_if tx,out port TX,unsigned T)
             dt <<= 1;
           }
         }
-        // send stop bit
+        pfrm->len = 0;
+        // keep low for stop bit
         t when timerafter(tp + 3*T) :> tp;
       }
     }
