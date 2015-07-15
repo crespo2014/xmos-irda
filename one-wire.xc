@@ -26,6 +26,10 @@
  *  Data coming from CH2 go to a queue to be send to CH0
  *  cmd unit also push data to queue
  *
+ *  CH0_RX ---> CMD ---   ---CH1_RX
+ *                    ^   ^
+ *  CHO_TX <-------- ROUTER <----- CH1_TX
+ *
  *  TODO:
  *  Read byte by byte and resend
  *
@@ -48,18 +52,31 @@
  * when buffer are empty router does not select for TX interfaces.
  * when buffer are all full routers oly select on tx channels.
  *
- * - read until full or not more.
- * -
+ * - purge all incoming data
+ * - wait on TX and RX signals and push from cmd interface if buffer is not full.
+ * - wait on TX if buffer is full
+ * - repeat
+ *
+ * cmd interface will be like a RX, it will pick from Rx, process, signal, wait for purge
  */
 void Router(server interface tx_if ch0_tx,server interface tx_if ch1_tx,client interface rx_if ch0_rx,client interface rx_if ch1_rx,client interface cmd_if cmd)
 {
+  unsigned char buff_usage = 0;
   enum dest_e {
     to_cmd,
     to_ch0_tx,
     to_ch1_tx,
   } destination[8];
   struct tx_frame_t frm[8];
-  struct tx_frame_t* movable pfrm[MAX_FRAME] = {&frm[0],&frm[1],&frm[2],&frm[3]};
+  struct tx_frame_t* movable pfrm[MAX_FRAME] = {&frm[0],&frm[1],&frm[2],&frm[3],&frm[4]};
+  for(;;)
+  {
+    // collect all icomming data
+    if (buff_usage < MAX_FRAME)
+    {
+
+    }
+  }
 
 }
 /*
