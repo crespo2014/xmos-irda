@@ -311,7 +311,7 @@ void CH0_RX(server interface rx_if ch0rx,client interface cmd_if cmd,in port RX,
     unsigned char pv;            // current rx pin value
     unsigned char bitcount = 0; // how many bits have been received invalid if > 64
     unsigned char val;          // coping incoming bytes to this variable
-
+    // bitcount can be use as timeout status. it vaue is 0xFF then a timeout was received then next transition must be ignored
     const unsigned char high = 1;
 
     for (int i = 0;i < MAX_FRAME;++i)
@@ -342,11 +342,12 @@ void CH0_RX(server interface rx_if ch0rx,client interface cmd_if cmd,in port RX,
             }
             break;
             // wait for pin transition or timeout
-        case t when timerafter(tp+T*2.5) :> void: // timeout
+        case t when timerafter(tp+T*2.5) :> tp: // timeout (adjusting tp will be a problem for start condition, when signal go dow, the pulse width seems to be short
             if (pv == high)
             {
                 // start condition
                 wr_frame->len = 0;
+                bitcount = 0xFF;    // invalidate next transition (long low level does not produce data when go high, not need to set bit to 0xFF)
             } else
             {
               // end of data it will happens many times when we are waiting for start signal
@@ -378,6 +379,8 @@ void CH0_RX(server interface rx_if ch0rx,client interface cmd_if cmd,in port RX,
               t :> te;
               if (pv == !high)
               {
+                if (bitcount < 8) // is this a transition of start signal?
+                {
                   val <<= 1;
                   if (te - tp > T*1.5) val |= 1;
                   bitcount++;
@@ -388,6 +391,10 @@ void CH0_RX(server interface rx_if ch0rx,client interface cmd_if cmd,in port RX,
                     bitcount = 0;
                     val = 0;
                   }
+                } else
+                {
+                  bitcount = 0; // it was a start signal going low, just ignore, but now we are ready to store data next time
+                }
               }
               tp = te;
               break;
