@@ -148,7 +148,8 @@ void CMD(server interface cmd_if cmd,client interface ch0_tx_if tx,client interf
 {
   timer t;
   unsigned tp;
-  struct tx_frame_t* movable p;
+  struct tx_frame_t   frm;
+  struct tx_frame_t* movable p = &frm;
 
   t :> tp;
   for (;;)
@@ -322,12 +323,15 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T)
  * if data comming faster then cmd processing will no eat all of then, at position of last read frame will be hold to pick all cmd from
  * that place
  *
+ * 1. reduce instructions by using not null pointers.
+ *
  */
 void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port RX,unsigned T)
 {
+    struct tx_frame_t cfrm;   // current writting frame
     struct tx_frame_t frm[MAX_FRAME];
     struct tx_frame_t* movable pfrm[MAX_FRAME] = {&frm[0],&frm[1],&frm[2],&frm[3]};
-    struct tx_frame_t* movable wr_frame;      // currently writting in this frame
+    struct tx_frame_t* movable wr_frame = &cfrm;      // currently writting in this frame
     timer t;
     int tp;
     for (int i = 0;i < MAX_FRAME;++i)
@@ -341,51 +345,41 @@ void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port
     {
        select {
         case ch0rx.getcmd(struct tx_frame_t  * movable &old_p) -> unsigned char b :
-            // get frame from client if it is not null
-            if (old_p != null)
-            {
-                int i = 0;
-                while (pfrm[i] != null)     // all pointers cames from here,  there is space always
-                    ++i;
-                pfrm[i] = move(old_p);
-            }
             // find a frame with data
             b = 0;
             for (int i = 0;i < MAX_FRAME;++i)
             {
-              if (pfrm[i] != null && pfrm[i]->len != 0)
+              if (pfrm[i]->len != 0)
               {
-                 old_p = move(pfrm[i]);
-                 b = 1;
-                 break;
+                struct tx_frame_t  * movable tmp;
+                tmp = move(old_p);
+                old_p = move(pfrm[i]);
+                pfrm[i] = move(tmp);
+                b = 1;
+                break;
               }
             }
             break;
         case t when timerafter(tp + 100) :> void:   // 100Mhz 100 * 1000 * 1000
           t :> tp;
           // add full frame to list and notify
-          if (wr_frame != null)
+          for (int i = 0;i < MAX_FRAME;++i)
           {
-              wr_frame->len = 1;
-
-              int i = 0;
-              while (pfrm[i] != null)     // all pointers cames from here,  there is space always
-                  ++i;
-              pfrm[i] = move(wr_frame);
+            if (pfrm[i]->len == 0)
+            {
+              struct tx_frame_t  * movable tmp;
+              tmp = move(wr_frame);
+              wr_frame = move(pfrm[i]);
+              pfrm[i] = move(tmp);
               ch0rx.ondata();
+              break;
+            }
           }
-          else
+          if (wr_frame->len != 0)   // it was not empty frame
           {
-            printf(".\n");
-          }
-          // find a empty frame
-          for (int i = 0;i<MAX_FRAME;++i)
-          {
-              if (pfrm[i] != null && pfrm[i]->len == 0 )
-              {
-                  wr_frame = move(pfrm[i]);
-                  break;
-              }
+             printf(".\n");
+             wr_frame->len = 0;
+              ch0rx.ondata();
           }
           break;
        }
