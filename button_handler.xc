@@ -8,8 +8,6 @@
 extern void irda_rd(in port p, chanend c);
 extern void irda_rd_v1(in port p, chanend c);
 extern void irda_rd_v3(in port p, chanend c);
-extern void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T);
-
 /*
 
  //interface to task comunication
@@ -655,8 +653,8 @@ int main() {
     //chan c;
      *
      */
-    interface ch0_tx_if ch0tx;
-    interface ch0_rx_if ch0rx;
+    interface tx_if ch0tx;
+    interface rx_if ch0rx;
     interface cmd_if cmd;
     par
     {

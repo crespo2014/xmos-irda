@@ -144,7 +144,7 @@ void owire_rx(struct one_wire & rthis, char data[], unsigned & max) {
  * Command module
  */
 
-void CMD(server interface cmd_if cmd,client interface ch0_tx_if tx,client interface ch0_rx_if rx)
+void CMD(server interface cmd_if cmd,server interface tx_if tx,client interface rx_if rx)
 {
   timer t;
   unsigned tp;
@@ -154,14 +154,14 @@ void CMD(server interface cmd_if cmd,client interface ch0_tx_if tx,client interf
   t :> tp;
   for (;;)
   {
-      while (rx.getcmd(p) == 1)
+      while (rx.get(p) == 1)
       {
           //printf("%c\n",p->dt[0]);
           p->len = 0;
       };
       select
       {
-          case rx.ondata():
+          case rx.onrx():
           break;
       }
       //printf("on data\n");
@@ -175,65 +175,48 @@ void CMD(server interface cmd_if cmd,client interface ch0_tx_if tx,client interf
 #define TX_HIGH  1
 #define TX_LOW   0
 
-void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T)
+void CH0_TX(client interface tx_if tx,out port TX,unsigned T)
 {
-    for (;;){}
-    struct tx_frame_t frm[MAX_FRAME];
-    //struct tx_frame_t frm0,frm1,frm2,frm3,frm4,frm5,frm6,frm7;
+    struct tx_frame_t frm;
     timer t;
     int tp;
     // initialize MAX_FRAME movable pointer
-    struct tx_frame_t* movable pframes[MAX_FRAME] = { &frm[0],&frm[1],&frm[2],&frm[3]};//&frm1,&frm2,&frm3,&frm4,&frm5,&frm6,&frm7 };
+    struct tx_frame_t* movable pframes = &frm;
 
     signed char rd_idx = -1;      // current read frame
     unsigned char rd_idx_pos = 0;  // currently sending byte
     unsigned char rd_bit;      // currently sending bit   16 high pulse, 15 low pulse and so until 0 (18 is the start bit)
     unsigned char dt;         // data to send
-    for (int i =0;i<MAX_FRAME;++i)
-    {
-      pframes[i]->len = 10;
-    }
+    pframes->len  =0;
     t :> tp;
     for (;;)
     {
     select {
-        case tx.getSlot() -> struct tx_frame_t  * movable ret_frm:
-        // Find a slot with len 0
-          char pos = rd_idx;
-          do
-          {
-            if (pframes[pos] != null && pframes[pos]->len == 0)
-            {
-                ret_frm = move(pframes[pos]);
-              break;
-            }
-            ++pos;
-            if (pos == MAX_FRAME)
-              pos = 0;
-          } while (pos != rd_idx);
+      case tx.ontx():
+          // peek more data from cmd channel
           break;
-        case  tx.sendSlot(struct tx_frame_t  * movable &frm):
-          // Find a slot pointer to null
-          char pos = rd_idx;
-          do
-          {
-            if (pframes[pos] == null)
-            {
-              pframes[pos]  = move(frm);
-              break;
-            }
-            ++pos;
-            if (pos == MAX_FRAME)
-              pos = 0;
-          } while (pos != rd_idx);
-          // restart transmition machine
-          if (rd_idx == -1)
-          {
-            t :> tp;
-            tp += 4*T;  // wake up at early than 1sec
-            rd_idx = pos;
-          }
-          break;
+//        case  tx.sendSlot(struct tx_frame_t  * movable &frm):
+//          // Find a slot pointer to null
+//          char pos = rd_idx;
+//          do
+//          {
+//            if (pframes[pos] == null)
+//            {
+//              pframes[pos]  = move(frm);
+//              break;
+//            }
+//            ++pos;
+//            if (pos == MAX_FRAME)
+//              pos = 0;
+//          } while (pos != rd_idx);
+//          // restart transmition machine
+//          if (rd_idx == -1)
+//          {
+//            t :> tp;
+//            tp += 4*T;  // wake up at early than 1sec
+//            rd_idx = pos;
+//          }
+//          break;
          // case time to send more data, check for pending buffer.
         case t when  timerafter(tp) :> void:
           if (rd_idx == -1)   // if we are not sending data
@@ -242,7 +225,7 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T)
             char pos = rd_idx;
             do
             {
-              if (pframes[pos] != null && pframes[pos]->len != 0)
+              if (pframes->len != 0)
               {
                 // send start bit next time
                  rd_idx = pos;
@@ -266,7 +249,7 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T)
               rd_bit = 18;    // 18 start bit, 17 and odd is zero, 16 bit 8 ... 2 bit 1, 1 .. zero, 0 next
               TX <: TX_HIGH;
               tp += 4*T;
-              dt = pframes[rd_idx]->dt[rd_idx_pos];
+              dt = pframes->dt[rd_idx_pos];
               rd_idx_pos++;
             }
             else
@@ -274,17 +257,17 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T)
               if (rd_bit == 0)    // one byte done
               {
                   // start sending next byte
-                  if (rd_idx_pos == pframes[rd_idx]->len)
+                  if (rd_idx_pos == pframes->len)
                   {
                       // no more data to send
                       tp += 3*T;
-                      pframes[rd_idx]->len = 0;
+                      pframes->len = 0;
                       rd_idx = -1;
                   }
                   else
                   {
                       rd_bit = 16;
-                      dt = pframes[rd_idx]->dt[rd_idx_pos];
+                      dt = pframes->dt[rd_idx_pos];
                       rd_idx_pos++;
                   }
               }
@@ -326,7 +309,7 @@ void CH0_TX(server interface ch0_tx_if tx,out port TX,unsigned T)
  * 1. reduce instructions by using not null pointers.
  *
  */
-void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port RX,unsigned T)
+void CH0_RX(server interface rx_if ch0rx,client interface cmd_if cmd,in port RX,unsigned T)
 {
     struct tx_frame_t cfrm;   // current writting frame
     struct tx_frame_t frm[MAX_FRAME];
@@ -344,7 +327,7 @@ void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port
     for (;;)
     {
        select {
-        case ch0rx.getcmd(struct tx_frame_t  * movable &old_p) -> unsigned char b :
+        case ch0rx.get(struct tx_frame_t  * movable &old_p) -> unsigned char b :
             // find a frame with data
             b = 0;
             for (int i = 0;i < MAX_FRAME;++i)
@@ -371,15 +354,14 @@ void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port
               tmp = move(wr_frame);
               wr_frame = move(pfrm[i]);
               pfrm[i] = move(tmp);
-              ch0rx.ondata();
+              ch0rx.onrx();
               break;
             }
           }
           if (wr_frame->len != 0)   // it was not empty frame
           {
              printf(".\n");
-             wr_frame->len = 0;
-              ch0rx.ondata();
+             wr_frame->len = 0;   // reuse the same frame
           }
           break;
        }

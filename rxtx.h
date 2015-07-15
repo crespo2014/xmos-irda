@@ -45,39 +45,31 @@ struct tx_frame_t
  * Command interface, or inteface that process incomming data
  */
 interface cmd_if {
-    void donothing();
+    void nothing();
 };
 
 /*
- * Tx on channel 0
- * Sever keeps a list of pointers plus current pointer idx
- * Requesting a frame will find the first pointer to a block with len == 0.
- * Pushing a frame will be on the first nullptr.
- * when current block is
- * - len = 0 that means nothing to send. it canbe pick it next time
- * - null (frame is comming soon, )
- * -
+ * Generic Tx interface.
+ * Tx module acts as client waiting for ontx notification
  */
-interface ch0_tx_if {
-    struct tx_frame_t  * movable getSlot();             //get a free slot for data buffering (0xff or -1 not free slot)
-    void sendSlot(struct tx_frame_t  * movable &frm);
+interface tx_if {
+    [[notification]] slave void ontx();           //data waiting to be send
+    [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);  // get pointer to frame true if pointer is get
 };
 
 /*
- * Channel 0 rx interface provide buffers to cmd interface
- * TODO : provide also for tx interface, act as hub
+ * Generic RX interface.
+ * RX module acts as server, it send notifications when data can be read
  */
-interface ch0_rx_if {
-    [[notification]] slave void ondata();
-    [[clears_notification]] unsigned char getcmd(struct tx_frame_t  * movable &old_p);  // get pointer to frame true if pointer is get
-
-    /*
-     * [[clears_notification]] unsigned char getForward(struct tx_frame_t  * movable &old_p);     // use by tx interface
-     * [[notification]] slave void onForward(); // frame for forwarding
-     */
+interface rx_if {
+    [[notification]] slave void onrx();       // data waiting to be read
+    [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);  // get pointer to frame true if pointer is get
 };
 
-extern void CMD(server interface cmd_if cmd,client interface ch0_tx_if tx,client interface ch0_rx_if rx);
-extern void CH0_RX(server interface ch0_rx_if ch0rx,client interface cmd_if cmd,in port RX,unsigned T);
+extern void CMD(server interface cmd_if cmd,server interface tx_if tx,client interface rx_if rx);
+extern void CH0_RX(server interface rx_if ch0rx,client interface cmd_if cmd,in port RX,unsigned T);
+extern void CH0_TX(client interface tx_if tx,out port TX,unsigned T);
+extern void CH1_RX(server interface rx_if ch0rx,client interface cmd_if cmd,in port RX,unsigned T);
+extern void CH1_TX(client interface tx_if tx,out port TX,unsigned T);
 
 #endif /* RXTX_H_ */
