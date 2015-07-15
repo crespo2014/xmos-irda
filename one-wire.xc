@@ -20,7 +20,7 @@
  *                -------------------
  *  ---- RX -----|                   |------- TX -----
  *  CH0          |  **CMD UNIT   **  |  CH2
- *  ---- TX -----|  ** RPL QUEUE **  |-------- RX ----
+ *  ---- TX -----|                   |-------- RX ----
  *                -------------------
  *  Data comming from Ch0 will got to cmd unit if id was 0 or to CH2
  *  Data coming from CH2 go to a queue to be send to CH0
