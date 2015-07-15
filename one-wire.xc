@@ -128,16 +128,7 @@ char owire_rx_getByte(struct one_wire & rthis)
     } while(bitcount < 8);
     return val;
 }
-/*
- * Call this function to read all command data after recevied the id
- * recieving a start will return 0
- */
-void owire_rx(struct one_wire & rthis, char data[], unsigned & max) {
-   // char * pd = data;
-    //char * pend = data + max;
 
-    // read bytes until status w_id
-}
 
 
 /*
@@ -311,19 +302,26 @@ void CH0_TX(client interface tx_if tx,out port TX,unsigned T)
  */
 void CH0_RX(server interface rx_if ch0rx,client interface cmd_if cmd,in port RX,unsigned T)
 {
-    struct tx_frame_t cfrm;   // current writting frame
+    struct tx_frame_t cfrm;   // first writting frame
     struct tx_frame_t frm[MAX_FRAME];
     struct tx_frame_t* movable pfrm[MAX_FRAME] = {&frm[0],&frm[1],&frm[2],&frm[3]};
     struct tx_frame_t* movable wr_frame = &cfrm;      // currently writting in this frame
-    timer t;
-    int tp;
+    timer t;      // timer
+    int tp;       // time point
+    unsigned char pv;            // current rx pin value
+    unsigned char bitcount = 0; // how many bits have been received invalid if > 64
+    unsigned char val;          // coping incoming bytes to this variable
+
+    const unsigned char high = 1;
+
     for (int i = 0;i < MAX_FRAME;++i)
     {
         pfrm[i]->dt[0] = 'A' + i;
         pfrm[i]->len = 0;
     }
     wr_frame = move(pfrm[0]);
-    t :> tp;
+    t :> tp;    // get current time
+    RX :> pv;
     for (;;)
     {
        select {
@@ -343,27 +341,78 @@ void CH0_RX(server interface rx_if ch0rx,client interface cmd_if cmd,in port RX,
               }
             }
             break;
-        case t when timerafter(tp + 100) :> void:   // 100Mhz 100 * 1000 * 1000
-          t :> tp;
-          // add full frame to list and notify
-          for (int i = 0;i < MAX_FRAME;++i)
-          {
-            if (pfrm[i]->len == 0)
+            // wait for pin transition or timeout
+        case t when timerafter(tp+T*2.5) :> void: // timeout
+            if (pv == high)
             {
-              struct tx_frame_t  * movable tmp;
-              tmp = move(wr_frame);
-              wr_frame = move(pfrm[i]);
-              pfrm[i] = move(tmp);
-              ch0rx.onrx();
-              break;
+                // start condition
+                wr_frame->len = 0;
+            } else
+            {
+              // end of data it will happens many times when we are waiting for start signal
+              if (wr_frame->len !=0)
+              {
+                // add full frame to list and notify
+                for (int i = 0;i < MAX_FRAME;++i)
+                {
+                  if (pfrm[i]->len == 0)
+                  {
+                    struct tx_frame_t  * movable tmp;
+                    tmp = move(wr_frame);
+                    wr_frame = move(pfrm[i]);
+                    pfrm[i] = move(tmp);
+                    ch0rx.onrx();
+                    break;
+                  }
+                }
+                if (wr_frame->len != 0)   // it was not empty frame
+                {
+                   printf(".\n");
+                   wr_frame->len = 0;   // reuse the same frame
+                }
+              }
             }
-          }
-          if (wr_frame->len != 0)   // it was not empty frame
-          {
-             printf(".\n");
-             wr_frame->len = 0;   // reuse the same frame
-          }
-          break;
+            break;
+            case RX when pinsneq(pv) :> pv: // for t < 1.5 is 0 otherwise is 1
+              int te;
+              t :> te;
+              if (pv == !high)
+              {
+                  val <<= 1;
+                  if (te - tp > T*1.5) val |= 1;
+                  bitcount++;
+                  if (bitcount == 8)
+                  {
+                    wr_frame->dt[wr_frame->len] = val;
+                    wr_frame->len++;
+                    bitcount = 0;
+                    val = 0;
+                  }
+              }
+              tp = te;
+              break;
+
+//        case t when timerafter(tp + 100) :> void:   // 100Mhz 100 * 1000 * 1000
+//          t :> tp;
+//          // add full frame to list and notify
+//          for (int i = 0;i < MAX_FRAME;++i)
+//          {
+//            if (pfrm[i]->len == 0)
+//            {
+//              struct tx_frame_t  * movable tmp;
+//              tmp = move(wr_frame);
+//              wr_frame = move(pfrm[i]);
+//              pfrm[i] = move(tmp);
+//              ch0rx.onrx();
+//              break;
+//            }
+//          }
+//          if (wr_frame->len != 0)   // it was not empty frame
+//          {
+//             printf(".\n");
+//             wr_frame->len = 0;   // reuse the same frame
+//          }
+//          break;
        }
     }
 
