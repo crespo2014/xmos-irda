@@ -30,8 +30,6 @@
  *                    ^   ^
  *  CHO_TX <-------- ROUTER <----- CH1_TX
  *
- *  TODO:
- *  Read byte by byte and resend
  *
  *  Created on: 10 Jul 2015
  *      Author: lester.crespo
