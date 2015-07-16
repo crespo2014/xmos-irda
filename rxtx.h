@@ -29,6 +29,19 @@ interface cmd_if {
 };
 
 /*
+ * Push interface.
+ * Interface to push data on router.
+ * - push function will never fail unless all buffer are full.
+ * - a trigger is received when data is ready
+ * - get data can fail
+ */
+interface cmd_push_if {
+  [[notification]] slave void ondata();       // means data is waiting to be read
+  unsigned char push(struct tx_frame_t  * movable &old_p); //push data on the router it must not fail
+  [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p); //push data on the router it never fails
+
+};
+/*
  * Generic Tx interface.
  * Tx module acts as client waiting for ontx notification
  */
@@ -60,7 +73,7 @@ interface route_if {
 extern void CMD(server interface cmd_if cmd,server interface tx_if tx,client interface rx_if rx);
 extern void RX(server interface rx_if rx,client interface cmd_if cmd,in port RX,unsigned T);
 extern void TX(client interface tx_if tx,out port TX,unsigned T);
-extern void Router(server interface tx_if ch0_tx,server interface tx_if ch1_tx,client interface rx_if ch0_rx,client interface rx_if ch1_rx,client interface cmd_if cmd);
+extern void Router(server interface tx_if ch0_tx,server interface tx_if ch1_tx,client interface rx_if ch0_rx,client interface rx_if ch1_rx,client interface cmd_push_if cmd);
 //for join ch1 rx to ch0 tx
 
 #endif /* RXTX_H_ */

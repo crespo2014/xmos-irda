@@ -41,6 +41,84 @@
 #include <rxtx.h>
 
 
+ enum dest_e {
+    to_none,
+    to_cmd,
+    to_ch0_tx,
+    to_ch1_tx,
+  };
+
+/*
+ * Frame buffer structure
+ * - support for destinity
+ * - support for peek and push
+ *
+ */
+struct frm_buff_t
+{
+#define BUFF_MAX 8
+  enum dest_e dest[BUFF_MAX];
+  struct tx_frame_t* movable pfrm[BUFF_MAX];// = {&frm[0],&frm[1],&frm[2],&frm[3],&frm[4],&frm[5],&frm[6],&frm[7]};
+  unsigned char free_count;  // how many frame with no data
+};
+
+/*
+ * Initialize frame buffer structure
+ */
+void buff_init(struct frm_buff_t &buff)
+{
+  buff.free_count = BUFF_MAX; // all frames empty
+  for (int i =0 ;i < BUFF_MAX;i++)
+  {
+    buff.dest[i] = to_none;
+    buff.pfrm[i]->len = 0;
+  }
+}
+/*
+ * Get a frame from buffer
+ */
+inline unsigned char buff_get(struct frm_buff_t &buff,enum dest_e dst,struct tx_frame_t  * movable &old_p)
+{
+  if (buff.free_count != BUFF_MAX)
+  {
+    for (int i =0 ;i < BUFF_MAX;i++)
+    {
+      if ( buff.dest[i] == dst)
+      {
+        struct tx_frame_t  * movable tmp;
+        tmp = move(old_p);
+        old_p = move(buff.pfrm[i]);
+        buff.pfrm[i] = move(tmp);
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+/*
+ * Add a new frame to the buffer
+ */
+inline unsigned char buff_push(struct frm_buff_t &buff,enum dest_e dst,struct tx_frame_t  * movable &old_p)
+{
+  if (buff.free_count != 0)
+   {
+     for (int i =0 ;i < BUFF_MAX;i++)
+     {
+       if ( buff.dest[i] == to_none)
+       {
+         struct tx_frame_t  * movable tmp;
+         old_p->len = 0;
+         tmp = move(old_p);
+         old_p = move(buff.pfrm[i]);
+         buff.pfrm[i] = move(tmp);
+         buff.dest[i] = dst;
+         return 1;
+       }
+     }
+   }
+   return 0;
+}
+
 /*
  * Packet router.
  * All packets are delivery to the router
@@ -51,17 +129,25 @@
  * - read until full or not more.
  * -
  */
-void Router(server interface tx_if ch0_tx,server interface tx_if ch1_tx,client interface rx_if ch0_rx,client interface rx_if ch1_rx,client interface cmd_if cmd)
+void Router(server interface tx_if ch0_tx,server interface tx_if ch1_tx,client interface rx_if ch0_rx,client interface rx_if ch1_rx,client interface cmd_push_if cmd)
 {
-  enum dest_e {
-    to_cmd,
-    to_ch0_tx,
-    to_ch1_tx,
-  } destination[8];
-  struct tx_frame_t frm[8];
-  struct tx_frame_t* movable pfrm[MAX_FRAME] = {&frm[0],&frm[1],&frm[2],&frm[3]};
+  struct tx_frame_t frm[BUFF_MAX];
+  struct frm_buff_t buff = {{},{&frm[0],&frm[1],&frm[2],&frm[3],&frm[4],&frm[5],&frm[6],&frm[7]} };
 
+  buff_init(buff);
+  for (;;)
+  {
+    select
+    {
+      case ch0_tx. get(struct tx_frame_t  * movable &old_p) -> unsigned char b:
+        {
+          b = buff_get(buff,to_ch0_tx,old_p);
+          break;
+        }
+    }
+  }
 }
+
 /*
  * Command task
  * it will read a command and it will create the answer in the same frame,
