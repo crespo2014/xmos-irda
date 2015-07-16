@@ -45,6 +45,86 @@
 #include <rxtx.h>
 
 
+ enum dest_e {
+    to_none,
+    to_cmd,
+    to_ch0_tx,
+    to_ch1_tx,
+  };
+
+/*
+ * Frame buffer structure
+ * - support for destinity
+ * - support for peek and push
+ *
+ */
+struct frm_buff_t
+{
+#define BUFF_MAX 8
+  enum dest_e dest[BUFF_MAX];
+  struct tx_frame_t* movable pfrm[BUFF_MAX];// = {&frm[0],&frm[1],&frm[2],&frm[3],&frm[4],&frm[5],&frm[6],&frm[7]};
+  unsigned char free_count;  // how many frame with no data
+};
+
+/*
+ * Initialize frame buffer structure
+ */
+void buff_init(struct frm_buff_t &buff)
+{
+  buff.free_count = BUFF_MAX; // all frames empty
+  for (int i =0 ;i < BUFF_MAX;i++)
+  {
+    buff.dest[i] = to_none;
+    buff.pfrm[i]->len = 0;
+  }
+}
+/*
+ * Get a frame from buffer
+ */
+inline unsigned char buff_get(struct frm_buff_t &buff,enum dest_e dst,struct tx_frame_t  * movable &old_p)
+{
+  if (buff.free_count != BUFF_MAX)
+  {
+    for (int i =0 ;i < BUFF_MAX;i++)
+    {
+      if ( buff.dest[i] == dst)
+      {
+        struct tx_frame_t  * movable tmp;
+        tmp = move(old_p);
+        old_p = move(buff.pfrm[i]);
+        buff.pfrm[i] = move(tmp);
+        buff.free_count++;
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+/*
+ * Add a new frame to the buffer
+ */
+inline unsigned char buff_push(struct frm_buff_t &buff,enum dest_e dst,struct tx_frame_t  * movable &old_p)
+{
+  if (buff.free_count != 0)
+   {
+     for (int i =0 ;i < BUFF_MAX;i++)
+     {
+       if ( buff.dest[i] == to_none)
+       {
+         struct tx_frame_t  * movable tmp;
+         old_p->len = 0;
+         tmp = move(old_p);
+         old_p = move(buff.pfrm[i]);
+         buff.pfrm[i] = move(tmp);
+         buff.dest[i] = dst;
+         buff.free_count--;
+         return 1;
+       }
+     }
+   }
+   return 0;
+}
+
 /*
  * Packet router.
  * All packets are delivery to the router
@@ -59,26 +139,58 @@
  *
  * cmd interface will be like a RX, it will pick from Rx, process, signal, wait for purge
  */
-void Router(server interface tx_if ch0_tx,server interface tx_if ch1_tx,client interface rx_if ch0_rx,client interface rx_if ch1_rx,client interface cmd_if cmd)
+void Router(server interface tx_if ch0_tx,server interface tx_if ch1_tx,client interface rx_if ch0_rx,client interface rx_if ch1_rx,server interface cmd_push_if cmd)
 {
-  unsigned char buff_usage = 0;
-  enum dest_e {
-    to_cmd,
-    to_ch0_tx,
-    to_ch1_tx,
-  } destination[8];
-  struct tx_frame_t frm[8];
-  struct tx_frame_t* movable pfrm[MAX_FRAME] = {&frm[0],&frm[1],&frm[2],&frm[3],&frm[4]};
-  for(;;)
-  {
-    // collect all icomming data
-    if (buff_usage < MAX_FRAME)
-    {
+  struct tx_frame_t frm[BUFF_MAX];
+  struct frm_buff_t buff = {{},{&frm[0],&frm[1],&frm[2],&frm[3],&frm[4],&frm[5],&frm[6],&frm[7]} };
+  struct tx_frame_t tfrm;     // temporal frame
+  struct tx_frame_t  * movable p = &tfrm;
 
+  buff_init(buff);
+  for (;;)
+  {
+    select
+    {
+      case ch0_tx.get(struct tx_frame_t  * movable &old_p) -> unsigned char b:
+        {
+          b = buff_get(buff,to_ch0_tx,old_p);
+          break;
+        }
+      case ch1_tx.get(struct tx_frame_t  * movable &old_p) -> unsigned char b:
+        {
+          b = buff_get(buff,to_ch1_tx,old_p);
+          break;
+        }
+      case ch0_rx.ondata():
+        // read all from rx channels
+        while (ch0_rx.get(p) == 1)
+        {
+         if (p->dt[0] == 0)
+         {
+           buff_push(buff,to_cmd,p);
+           cmd.ondata();
+         }
+         else
+         {
+           --(p->dt[0]);
+           buff_push(buff,to_ch1_tx,p);
+           ch1_tx.ondata();
+         }
+        }
+        break;
+      case ch1_rx.ondata():
+        // Read all from channel 1 RX
+        while (ch1_rx.get(p) == 1)
+        {
+          ++(p->dt[0]);
+          buff_push(buff,to_ch0_tx,p);
+          ch0_tx.ondata();
+        }
+        break;
     }
   }
-
 }
+
 /*
  * Command task
  * it will read a command and it will create the answer in the same frame,
@@ -86,7 +198,7 @@ void Router(server interface tx_if ch0_tx,server interface tx_if ch1_tx,client i
  * when command is ready it will be a notification
  */
 
-void CMD(server interface cmd_if cmd,server interface tx_if tx,client interface rx_if rx)
+void CMD(client interface cmd_push_if router)
 {
   timer t;
   unsigned tp;
@@ -96,19 +208,19 @@ void CMD(server interface cmd_if cmd,server interface tx_if tx,client interface 
   t :> tp;
   for (;;)
   {
-      while (rx.get(p) == 1)
-      {
-        // push to tx channel
-        tx.ontx();
-          //printf("%c\n",p->dt[0]);
-          p->len = 0;
-      };
-      select
-      {
-          case rx.onrx():
-          break;
-      }
-      //printf("on data\n");
+//      while (rx.get(p) == 1)
+//      {
+//        // push to tx channel
+//        tx.ontx();
+//          //printf("%c\n",p->dt[0]);
+//          p->len = 0;
+//      };
+//      select
+//      {
+//          case rx.onrx():
+//          break;
+//      }
+//      //printf("on data\n");
   }
 }
 
@@ -166,7 +278,7 @@ void TX(client interface tx_if tx,out port TX,unsigned T)
     // wait for more data
     select
     {
-      case tx.ontx():
+      case tx.ondata():
         break;
     }
   }
@@ -184,7 +296,7 @@ void TX(client interface tx_if tx,out port TX,unsigned T)
  * 1. reduce instructions by using not null pointers.
  *
  */
-void RX(server interface rx_if ch0rx,client interface cmd_if cmd,in port RX,unsigned T)
+void RX(server interface rx_if ch0rx,in port RX,unsigned T)
 {
     struct tx_frame_t cfrm;
     struct tx_frame_t frm[MAX_FRAME];
@@ -246,7 +358,7 @@ void RX(server interface rx_if ch0rx,client interface cmd_if cmd,in port RX,unsi
                     tmp = move(wr_frame);
                     wr_frame = move(pfrm[i]);
                     pfrm[i] = move(tmp);
-                    ch0rx.onrx();
+                    ch0rx.ondata();
                     break;
                   }
                 }

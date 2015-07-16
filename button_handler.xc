@@ -634,6 +634,8 @@ void gen_clock(out port txd) {
 out port gpio_clock = XS1_PORT_1I;
 in port gpio_ch0_rx = XS1_PORT_1A;
 out port gpio_ch0_tx = XS1_PORT_1B;
+in port gpio_ch1_rx = XS1_PORT_1C;
+out port gpio_ch1_tx = XS1_PORT_1D;
 /*
 on stdcore[0] : out port tx      = XS1_PORT_1A;
 on stdcore[0] : in  port rx      = XS1_PORT_1B;
@@ -641,14 +643,18 @@ on stdcore[0] : in  port rx      = XS1_PORT_1B;
 
 
 int main() {
-    interface tx_if ch0tx;
-    interface rx_if ch0rx;
-    interface cmd_if cmd;
+    interface tx_if ch0tx,ch1tx;
+    interface rx_if ch0rx,ch1rx;
+    interface cmd_push_if cmd;
+    const unsigned T = 100*1000;
     par
     {
-      TX(ch0tx,gpio_ch0_tx,100*1000);
-      RX(ch0rx,cmd,gpio_ch0_rx,100*1000);
-      CMD(cmd,ch0tx,ch0rx);
+      TX(ch0tx,gpio_ch0_tx,T);
+      RX(ch0rx,gpio_ch0_rx,T);
+      TX(ch1tx,gpio_ch1_tx,T);
+      RX(ch1rx,gpio_ch1_rx,T);
+      CMD(cmd);
+      Router(ch0tx,ch1tx,ch0rx,ch1rx,cmd);
     }
     return 0;
 }
