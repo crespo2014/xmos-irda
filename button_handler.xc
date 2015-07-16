@@ -643,8 +643,7 @@ on stdcore[0] : in  port rx      = XS1_PORT_1B;
 
 
 int main() {
-    interface tx_if ch0tx,ch1tx;
-    interface rx_if ch0rx,ch1rx;
+    interface tx_rx_if ch0tx,ch1tx,ch0rx,ch1rx;
     interface cmd_push_if cmd;
     const unsigned T = 100*1000;
     par

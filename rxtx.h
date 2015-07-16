@@ -22,13 +22,6 @@ struct tx_frame_t
 };
 
 /*
- * Command interface, or inteface that process incomming data
- */
-interface cmd_if {
-    void nothing();
-};
-
-/*
  * Push interface.
  * Interface to push data on router.
  * - push function will never fail unless all buffer are full.
@@ -40,39 +33,20 @@ interface cmd_push_if {
   [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p); //push data on the router it never fails
   unsigned char push(struct tx_frame_t  * movable &old_p); //push data on the router it must not fail
 };
-/*
- * Generic Tx interface.
- * Tx module acts as client waiting for ontx notification
- */
-interface tx_if {
-    [[notification]] slave void ondata();           //data waiting to be send
-    [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);  // get pointer to frame true if pointer is get
-};
 
 /*
- * Generic RX interface.
- * RX module acts as server, it send notifications when data can be read
+ * Generic TX RX interface.
+ * It notifies when data can be read
+ * It acts as server on RX and as client in TX
  */
-interface rx_if {
+interface tx_rx_if {
     [[notification]] slave void ondata();       // data waiting to be read
     [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);  // get pointer to frame true if pointer is get
 };
-/*
- * Router interface is a buffer o frames with a destination
- * It will dispatch frames to many tx interfaces.
- * It will read from many interfaces data ( data need to be buffered)
- * Data will be pick from all interface in a circular way one at the time.
- * a counter of empty frames will optimize
- *
- */
-interface route_if {
-  void nothing();
-};
 
 extern void CMD(client interface cmd_push_if router);
-extern void RX(server interface rx_if rx,in port RX,unsigned T);
-extern void TX(client interface tx_if tx,out port TX,unsigned T);
-extern void Router(server interface tx_if ch0_tx,server interface tx_if ch1_tx,client interface rx_if ch0_rx,client interface rx_if ch1_rx,server interface cmd_push_if cmd);
-//for join ch1 rx to ch0 tx
+extern void RX(server interface tx_rx_if rx,in port RX,unsigned T);
+extern void TX(client interface tx_rx_if tx,out port TX,unsigned T);
+extern void Router(server interface tx_rx_if ch0_tx,server interface tx_rx_if ch1_tx,client interface tx_rx_if ch0_rx,client interface tx_rx_if ch1_rx,server interface cmd_push_if cmd);
 
 #endif /* RXTX_H_ */
