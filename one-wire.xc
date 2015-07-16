@@ -153,21 +153,32 @@ void Router(server interface tx_if ch0_tx,server interface tx_if ch1_tx,client i
           b = buff_get(buff,to_ch1_tx,old_p);
           break;
         }
-    }
-    // read all from rx channels
-    while (ch0_rx.get(p) == 1)
-    {
-      if (p->dt[0] == 0)
-      {
-        buff_push(buff,to_cmd,p);
-        cmd.ondata();
-      }
-      else
-      {
-        --(p->dt[0]);
-        buff_push(buff,to_ch1_tx,p);
-        ch1_tx.ondata();
-      }
+      case ch0_rx.ondata():
+        // read all from rx channels
+        while (ch0_rx.get(p) == 1)
+        {
+         if (p->dt[0] == 0)
+         {
+           buff_push(buff,to_cmd,p);
+           cmd.ondata();
+         }
+         else
+         {
+           --(p->dt[0]);
+           buff_push(buff,to_ch1_tx,p);
+           ch1_tx.ondata();
+         }
+        }
+        break;
+      case ch1_rx.ondata():
+        // Read all from channel 1 RX
+        while (ch1_rx.get(p) == 1)
+        {
+          ++(p->dt[0]);
+          buff_push(buff,to_ch0_tx,p);
+          ch0_tx.ondata();
+        }
+        break;
     }
   }
 }
