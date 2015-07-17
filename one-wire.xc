@@ -247,7 +247,7 @@ void Router(server interface tx_rx_if ch0_tx,
             v <<= 8;
             v += p->dt[i];
           }
-          printf("%d %X\n",p->len,v);
+          printf("%X\n",v);
         }
         break;
     }
@@ -282,8 +282,8 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char hig
      select {
       case rx.get(struct tx_frame_t  * movable &old_p) -> unsigned char b :
           // find a frame with data
-          b = 0;
-          for (int i = 0;i < irda_rx_frm_count;++i)
+          int i = 0;
+          for (;i < irda_rx_frm_count;++i)
           {
             if (pfrm[i]->len != 0)
             {
@@ -292,10 +292,13 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char hig
               old_p = move(pfrm[i]);
               pfrm[i] = move(tmp);
               pfrm[i]->len = 0;
-              b = 1;
               break;
             }
           }
+          if ( i == irda_rx_frm_count)
+            b = 0;
+          else
+            b = 1;
           break;
           // wait for pin transition or timeout
       case t when timerafter(tp+T*2.5) :> tp: // timeout (adjusting tp will be a problem for start condition, when signal go dow, the pulse width seems to be short
@@ -308,18 +311,19 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char hig
             // end of data it will happens many times when we are waiting for start signal
             if (wr_frame->len > 0 && wr_frame->len != 0xFF)
             {
-              printf("E %d %X\n",wr_frame->len,val);
+              printf(":\n");
               // create data.
               wr_frame->dt[0] = 0 ; // id is 0 this device
               wr_frame->dt[1] = 0 ; // irda device id to be set by cmd interface
               wr_frame->dt[2] = wr_frame->len;  //bit count
-              wr_frame->dt[3] = val;
-              wr_frame->dt[4] = val >> 8;
-              wr_frame->dt[5] = val >> 16;
-              wr_frame->dt[6] = val >> 24;
+              wr_frame->dt[3] = val >> 24;
+              wr_frame->dt[4] = val >> 16;
+              wr_frame->dt[5] = val >> 8;
+              wr_frame->dt[6] = val;
               wr_frame->len = 7;
               // add full frame to list and notify
-              for (int i = 0;i < irda_rx_frm_count;++i)
+              int i = 0;
+              for (;i < irda_rx_frm_count;++i)
               {
                 if (pfrm[i]->len == 0)
                 {
@@ -331,7 +335,7 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char hig
                   break;
                 }
               }
-              if (wr_frame->len != 0)   // there is not empty frame
+              if (i == irda_rx_frm_count)   // there is not empty frame
               {
                  printf(".\n");
               }
@@ -348,11 +352,9 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char hig
               {
                 wr_frame->len = 0; // it was a start signal going low, just ignore, but now we are ready to store data next time
                 val = 0;
-                printf("S\n");
               }
               else
               {
-                printf(":");
                 val <<= 1;
                 if (te - tp > T*1.5) val |= 1;
                 wr_frame->len++;
