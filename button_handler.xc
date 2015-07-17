@@ -14,8 +14,6 @@ extern void irda_rd_v3(in port p, chanend c);
  one task blind led other set frecuency
  */
 
-const unsigned clock_freq = 100 * 1000 * 1000; // timer frecuency in Hz
-
 interface flasher_if {
     void setFreqHz(unsigned freq);
     void set_ton_percent(unsigned ton); // 0 - 100
@@ -23,7 +21,7 @@ interface flasher_if {
 
 void flasher(port p, server interface flasher_if i)
 {
-    unsigned t = clock_freq;
+    unsigned t = Hz;
     unsigned ton = t * 0.5;
     unsigned ton_percent = 50;
     timer tm;
@@ -51,7 +49,7 @@ void flasher(port p, server interface flasher_if i)
             ton = t*ton_percent/100;
             break;
             case i.setFreqHz(unsigned freq):
-            t = clock_freq/freq;
+            t = Hz/freq;
             ton = t/100*ton_percent;
             break;
         }
@@ -71,7 +69,7 @@ void flasher_control(client interface flasher_if i)
             for (unsigned t = 50;t < 100;++t)
             {
                 i.set_ton_percent(t);
-                mark += clock_freq; // 1/2 second
+                mark += Hz/2; // 1/2 second
         select
         {
             case tm when timerafter(mark) :> void:
@@ -151,14 +149,6 @@ void xscope_user_init(void) {
     xscope_register(0);
     xscope_config_io(XSCOPE_IO_BASIC);
 }
-
-//port p = XS1_PORT_1D;
-//port led_d2 = XS1_PORT_1A;
-//port p32 = XS1_PORT_32A;
-//in port irda = XS1_PORT_1F;
-//out port led = XS1_PORT_1A;
-
-in port irda = XS1_PORT_1F;
 
 /**
  * pins is normaly at level 1
@@ -629,21 +619,19 @@ void gen_clock(out port txd) {
     }
 }
 
-
-
 out port gpio_clock = XS1_PORT_1I;
 in port gpio_ch0_rx = XS1_PORT_1A;
 out port gpio_ch0_tx = XS1_PORT_1B;
 in port gpio_ch1_rx = XS1_PORT_1C;
 out port gpio_ch1_tx = XS1_PORT_1D;
+out port gpio_irda_tx = XS1_PORT_1E;
+in port gpio_irda_rx = XS1_PORT_1F;
 /*
 on stdcore[0] : out port tx      = XS1_PORT_1A;
 on stdcore[0] : in  port rx      = XS1_PORT_1B;
 */
-
-
 int main() {
-    interface tx_rx_if ch0tx,ch1tx,ch0rx,ch1rx;
+    interface tx_rx_if ch0tx,ch1tx,ch0rx,ch1rx,irda_tx,irda_rx;
     interface cmd_push_if cmd;
     const unsigned T = 100*1000;
     par
@@ -652,7 +640,8 @@ int main() {
       RX(ch0rx,gpio_ch0_rx,T);
       TX(ch1tx,gpio_ch1_tx,T);
       RX(ch1rx,gpio_ch1_rx,T);
-      CMD(cmd);
+      irda_TX(irda_tx,gpio_irda_tx,3*kHz,0,1);
+      CMD(cmd,irda_tx);
       Router(ch0tx,ch1tx,ch0rx,ch1rx,cmd);
     }
     return 0;

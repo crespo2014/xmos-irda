@@ -204,11 +204,12 @@ void Router(server interface tx_rx_if ch0_tx,
  * when command is ready it will be a notification
  */
 
-[[combinable]] void CMD(client interface cmd_push_if router)
+[[combinable]] void CMD(client interface cmd_push_if router,server interface tx_rx_if irda_tx)
 {
   struct tx_frame_t   frm,irda_frm;     // frame ready to be send to irda tx
   struct tx_frame_t* movable p = &frm;
   struct tx_frame_t* movable pirda = &irda_frm;
+  pirda->len = 0;
   while(1)
   {
     select
@@ -245,7 +246,7 @@ void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char l
   TX <: low;
   t :> tp;
   t when timerafter(tp + 4*T) :> tp;    // wait 4 cycles
-  for(;;)     // do not do it combinable, because case sentence take a while sending data
+  for(;;)     // do not make it combinable, because sending data will take a while
   {
     select
     {
@@ -253,13 +254,13 @@ void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char l
       // peek and send data
       while (tx.get(pfrm) == 1)
       {
-        t :> tp;
         // send data
         if (pfrm->len == 5)
         {
           dt = 0 | pfrm->dt[1] | (pfrm->dt[2] << 8) | (pfrm->dt[3] << 16 ) | (pfrm->dt[4] << 24);
           // send start bit
           TX <: high;
+          t :> tp;
           t when timerafter(tp + 3*T) :> tp;
           TX <: low;
           t when timerafter(tp + T) :> tp;

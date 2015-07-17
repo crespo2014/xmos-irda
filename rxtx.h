@@ -9,7 +9,8 @@
 #ifndef RXTX_H_
 #define RXTX_H_
 
-#define Hz   100*1000*1000 // timer frecuency in Hz
+#define Hz   1000*1000*100 // timer frecuency in Hz
+#define kHz  1000*100 // timer frecuency in Hz
 
 /*
  * Transmition channel has a list of frames to send
@@ -45,7 +46,7 @@ interface tx_rx_if {
     [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);  // get pointer to frame true if pointer is get
 };
 
-[[combinable]] extern void CMD(client interface cmd_push_if router);
+[[combinable]] extern void CMD(client interface cmd_push_if router,server interface tx_rx_if irda_tx);
 [[combinable]] extern void Router(server interface tx_rx_if ch0_tx,server interface tx_rx_if ch1_tx,client interface tx_rx_if ch0_rx,client interface tx_rx_if ch1_rx,server interface cmd_push_if cmd);
 
 extern void RX(server interface tx_rx_if rx,in port RX,unsigned T);
