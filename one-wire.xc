@@ -137,6 +137,7 @@ inline unsigned char buff_push(struct frm_buff_t &buff,enum dest_e dst,struct tx
  *
  * cmd interface will be like a RX, it will pick from Rx, process, signal, wait for purge
  */
+[[combinable]]
 void Router(server interface tx_rx_if ch0_tx,
             server interface tx_rx_if ch1_tx,
             client interface tx_rx_if ch0_rx,
@@ -149,7 +150,7 @@ void Router(server interface tx_rx_if ch0_tx,
   struct tx_frame_t  * movable p = &tfrm;
 
   buff_init(buff);
-  for (;;)
+  while (1)
   {
     select
     {
@@ -203,26 +204,27 @@ void Router(server interface tx_rx_if ch0_tx,
  * when command is ready it will be a notification
  */
 
-void CMD(client interface cmd_push_if router)
+[[combinable]] void CMD(client interface cmd_push_if router)
 {
-  struct tx_frame_t   frm;
+  struct tx_frame_t   frm,irda_frm;     // frame ready to be send to irda tx
   struct tx_frame_t* movable p = &frm;
-  for (;;)
+  struct tx_frame_t* movable pirda = &irda_frm;
+  while(1)
   {
     select
     {
         case router.ondata():
+        while (router.get(p) == 1)
+        {
+          // reply back the command
+          p->len = 3;
+          p->dt[1] = 'B';
+          p->dt[2] = 'C';
+          if (router.push(p) == 0)
+            printf(".\n");
+        }
         break;
     }
-    while (router.get(p) == 1)
-    {
-      // reply back the command
-      p->len = 3;
-      p->dt[1] = 'B';
-      p->dt[2] = 'C';
-      if (router.push(p) == 0)
-        printf(".\n");
-    };
   }
 }
 
