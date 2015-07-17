@@ -266,7 +266,7 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char hig
   struct tx_frame_t* movable pfrm[irda_rx_frm_count] = {&frm[0],&frm[1]};
   struct tx_frame_t* movable wr_frame = &cfrm;      // currently writting in this frame
   timer t;      // timer
-  int tp;       // time point
+  unsigned int tp;       // time point // timerafter fail with unsigned
   unsigned char pv;            // current rx pin value
   unsigned int val;          // coping incoming bits to this variable
 
@@ -311,7 +311,6 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char hig
             // end of data it will happens many times when we are waiting for start signal
             if (wr_frame->len > 0 && wr_frame->len != 0xFF)
             {
-              printf(":\n");
               // create data.
               wr_frame->dt[0] = 0 ; // id is 0 this device
               wr_frame->dt[1] = 0 ; // irda device id to be set by cmd interface
@@ -358,6 +357,8 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char hig
                 val <<= 1;
                 if (te - tp > T*1.5) val |= 1;
                 wr_frame->len++;
+                if (wr_frame->len > 32)
+                  printf("e\n");
               }
             }
             tp = te;
