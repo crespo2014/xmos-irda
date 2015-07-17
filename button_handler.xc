@@ -641,7 +641,8 @@ int main() {
       TX(ch1tx,gpio_ch1_tx,T);
       RX(ch1rx,gpio_ch1_rx,T);
       irda_TX(irda_tx,gpio_irda_tx,3*kHz,0,1);
-      CMD(cmd,irda_tx);
+      irda_RX(irda_rx,gpio_irda_rx,3*kHz,0,1);
+      CMD(cmd,irda_tx,irda_rx);
       Router(ch0tx,ch1tx,ch0rx,ch1rx,cmd);
     }
     return 0;

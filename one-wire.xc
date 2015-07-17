@@ -204,7 +204,7 @@ void Router(server interface tx_rx_if ch0_tx,
  * when command is ready it will be a notification
  */
 
-[[combinable]] void CMD(client interface cmd_push_if router,server interface tx_rx_if irda_tx)
+[[combinable]] void CMD(client interface cmd_push_if router,server interface tx_rx_if irda_tx,client interface tx_rx_if irda_rx)
 {
   struct tx_frame_t   frm,irda_frm;     // frame ready to be send to irda tx
   struct tx_frame_t* movable p = &frm;
@@ -230,6 +230,57 @@ void Router(server interface tx_rx_if ch0_tx,
 }
 
 /*
+ * Wait for transition on ping or timeout, then take a action base on the pin level
+ */
+void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char low,unsigned char high)
+{
+    int pv; // port value
+    timer tm;
+    char bitcount = 70;      // how many bits have been received invalid if > 64
+    unsigned val = 0;       // storing bits
+    int ts;     // start time of data
+    int te;     // time end of transation
+
+    p :> pv;
+    tm :> ts;
+    for (;;)
+    {
+        // wait for pin transition
+        select
+        {
+            case tm when timerafter(ts+T*2.5) :> void: // timeout
+                if (pv == high)
+                {
+                    bitcount = 0;
+                    val = 0;
+                } else
+                {
+                    //if (bitcount < 64 && bitcount != 0) c <: val; // send any capture data
+                    bitcount = 70;// ignore any data without start
+                }
+                p when pinsneq(pv) :> pv;   // wait for transition
+                tm :> ts;
+                break;
+            case p when pinsneq(pv) :> pv:                       // for t < 1.5 is 0 otherwise is 1
+                tm :> te;
+                if (pv == low && bitcount < 64)// store only if start signal was received
+                {
+                    val <<= 1;
+                    if (te - ts > T*1.5) val |= 1;
+                    bitcount++;
+                    if (bitcount == 32)
+                    {
+                        bitcount = 0;
+                        //c <: val;
+                    }
+                }
+                ts = te;
+                break;
+        }
+    }
+}
+
+/*
  * Irda frame transmitter
  * bitcount - how many bit to send max 32.
  * data - 4 bytes ( send from lsb to MSB , bytes ordered from lsb to msb)
@@ -246,7 +297,7 @@ void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char l
   TX <: low;
   t :> tp;
   t when timerafter(tp + 4*T) :> tp;    // wait 4 cycles
-  for(;;)     // do not make it combinable, because sending data will take a while
+  for(;;)     // do not make it combinable, because send data take a while
   {
     select
     {
