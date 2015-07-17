@@ -204,11 +204,13 @@ void Router(server interface tx_rx_if ch0_tx,
  * when command is ready it will be a notification
  */
 
-[[combinable]] void CMD(client interface cmd_push_if router,server interface tx_rx_if irda_tx,client interface tx_rx_if irda_rx)
+[[combinable]] void CMD(client interface cmd_push_if router,
+    server interface tx_rx_if irda_tx,
+    client interface tx_rx_if irda_rx)
 {
   struct tx_frame_t   frm,irda_frm;     // frame ready to be send to irda tx
   struct tx_frame_t* movable p = &frm;
-  struct tx_frame_t* movable pirda = &irda_frm;
+  struct tx_frame_t* movable pirda = &irda_frm;   //irda packet waiting to be send
   pirda->len = 0;
   while(1)
   {
@@ -217,6 +219,35 @@ void Router(server interface tx_rx_if ch0_tx,
         case router.ondata():
         while (router.get(p) == 1)
         {
+          // reply back the command
+          p->len = 3;
+          p->dt[1] = 'B';
+          p->dt[2] = 'C';
+          if (router.push(p) == 0)
+            printf(".\n");
+        }
+        break;
+        case irda_tx.get(struct tx_frame_t  * movable &old_p) -> unsigned char b :
+          if (pirda->len != 0)
+          {
+            struct tx_frame_t  * movable tmp;
+            tmp = move(old_p);
+            old_p = move(pirda);
+            pirda = move(tmp);
+            b =1;
+          } else
+            b = 0;
+        break;
+        case irda_rx.ondata():
+        while (irda_rx.get(p) == 1)
+        {
+          unsigned int v = 0;
+          for (int i= 3;i< p->len;++i)
+          {
+            v <<= 8;
+            v += p->dt[i];
+          }
+
           // reply back the command
           p->len = 3;
           p->dt[1] = 'B';
@@ -282,7 +313,7 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char low
             if (wr_frame->len != 0 && wr_frame->len < 33)
             {
               // create data.
-              wr_frame->dt[0] = 0 ; // id is 0 thsi device
+              wr_frame->dt[0] = 0 ; // id is 0 this device
               wr_frame->dt[1] = 0 ; // irda device id to be set by cmd interface
               wr_frame->dt[2] = wr_frame->len;  //bit count
               wr_frame->dt[3] = val;
@@ -334,8 +365,10 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char low
 
 /*
  * Irda frame transmitter
- * bitcount - how many bit to send max 32.
- * data - 4 bytes ( send from lsb to MSB , bytes ordered from lsb to msb)
+ * id - device id
+ * subid - irda device id
+ * bit   - bitcount.
+ * data - 4 bytes from lsb to msb (Bit are send from MSb to LSB using a bit mask)
  */
 void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char low,unsigned char high)
 {
@@ -345,6 +378,7 @@ void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char l
   struct tx_frame_t* movable pfrm = &frm;
 
   unsigned int dt;
+  unsigned int bitmask;
 
   TX <: low;
   t :> tp;
@@ -358,25 +392,26 @@ void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char l
       while (tx.get(pfrm) == 1)
       {
         // send data
-        if (pfrm->len == 5)
+        if (pfrm->len == 7 &&  pfrm->dt[2] > 0)
         {
-          dt = 0 | pfrm->dt[1] | (pfrm->dt[2] << 8) | (pfrm->dt[3] << 16 ) | (pfrm->dt[4] << 24);
+          dt = 0 | pfrm->dt[3] | (pfrm->dt[4] << 8) | (pfrm->dt[5] << 16 ) | (pfrm->dt[6] << 24);
+          bitmask = 1 << (pfrm->dt[2]-1);
           // send start bit
           TX <: high;
           t :> tp;
           t when timerafter(tp + 3*T) :> tp;
           TX <: low;
           t when timerafter(tp + T) :> tp;
-          for (unsigned char pos = 0;pos < pfrm ->dt[0];++pos)
+          while (bitmask != 0)
           {
               TX <: high;
               tp += T;
-              if (dt & 0x01)   //1 is 2T 0 is T
+              if (dt & bitmask == bitmask)   //1 is 2T 0 is T
                 tp += T;
               t when timerafter(tp) :> tp;
               TX <: low;
               t when timerafter(tp + T) :> tp;
-              dt >>= 1;
+              bitmask >>= 1;
           }
           // keep low for stop bit
           t when timerafter(tp + 3*T) :> tp;
