@@ -229,6 +229,61 @@ void Router(server interface tx_rx_if ch0_tx,
 }
 
 /*
+ * Irda frame transmitter
+ * bitcount - how many bit to send max 32.
+ * data - 4 bytes ( send from lsb to MSB , bytes ordered from lsb to msb)
+ */
+void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char low,unsigned char high)
+{
+  struct tx_frame_t frm;
+  timer t;
+  int tp;
+  struct tx_frame_t* movable pfrm = &frm;
+
+  unsigned int dt;
+
+  TX <: low;
+  t :> tp;
+  t when timerafter(tp + 4*T) :> tp;    // wait 4 cycles
+  for(;;)     // do not do it combinable, because case sentence take a while sending data
+  {
+    select
+    {
+      case tx.ondata():
+      // peek and send data
+      while (tx.get(pfrm) == 1)
+      {
+        t :> tp;
+        // send data
+        if (pfrm->len == 5)
+        {
+          dt = 0 | pfrm->dt[1] | (pfrm->dt[2] << 8) | (pfrm->dt[3] << 16 ) | (pfrm->dt[4] << 24);
+          // send start bit
+          TX <: high;
+          t when timerafter(tp + 3*T) :> tp;
+          TX <: low;
+          t when timerafter(tp + T) :> tp;
+          for (unsigned char pos = 0;pos < pfrm ->dt[0];++pos)
+          {
+              TX <: high;
+              tp += T;
+              if (dt & 0x01)   //1 is 2T 0 is T
+                tp += T;
+              t when timerafter(tp) :> tp;
+              TX <: low;
+              t when timerafter(tp + T) :> tp;
+              dt >>= 1;
+          }
+          // keep low for stop bit
+          t when timerafter(tp + 3*T) :> tp;
+        }
+      }
+      break;
+    } // select
+  }  // for
+}
+
+/*
  * Transmition channel 0
  */
 #define MAX_FRAME 4

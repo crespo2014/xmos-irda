@@ -14,6 +14,7 @@
 /*
  * Transmition channel has a list of frames to send
  * it use a pointer that circle looking for full frames forwards and backwards looking for free frames
+ * TODO add start index to allow layers of protocols
  */
 struct tx_frame_t
 {
@@ -45,8 +46,10 @@ interface tx_rx_if {
 };
 
 [[combinable]] extern void CMD(client interface cmd_push_if router);
+[[combinable]] extern void Router(server interface tx_rx_if ch0_tx,server interface tx_rx_if ch1_tx,client interface tx_rx_if ch0_rx,client interface tx_rx_if ch1_rx,server interface cmd_push_if cmd);
+
 extern void RX(server interface tx_rx_if rx,in port RX,unsigned T);
 extern void TX(client interface tx_rx_if tx,out port TX,unsigned T);
-[[combinable]] extern void Router(server interface tx_rx_if ch0_tx,server interface tx_rx_if ch1_tx,client interface tx_rx_if ch0_rx,client interface tx_rx_if ch1_rx,server interface cmd_push_if cmd);
+extern void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char low,unsigned char high);
 
 #endif /* RXTX_H_ */
