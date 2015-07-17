@@ -9,8 +9,9 @@
 #ifndef RXTX_H_
 #define RXTX_H_
 
-#define Hz   1000*1000*100 // timer frecuency in Hz
-#define kHz  1000*100 // timer frecuency in Hz
+#define sec 1000*1000*100
+#define ms  1000*100
+#define ns  100
 
 /*
  * Transmition channel has a list of frames to send
@@ -52,6 +53,6 @@ interface tx_rx_if {
 extern void RX(server interface tx_rx_if rx,in port RX,unsigned T);
 extern void TX(client interface tx_rx_if tx,out port TX,unsigned T);
 extern void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char low,unsigned char high);
-extern void irda_RX(server interface tx_rx_if rx,in port RX,unsigned T,unsigned char low,unsigned char high);
+extern void irda_RX(server interface tx_rx_if rx,in port RX,unsigned T,unsigned char high);
 
 #endif /* RXTX_H_ */

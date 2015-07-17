@@ -21,7 +21,7 @@ interface flasher_if {
 
 void flasher(port p, server interface flasher_if i)
 {
-    unsigned t = Hz;
+    unsigned t = sec;
     unsigned ton = t * 0.5;
     unsigned ton_percent = 50;
     timer tm;
@@ -49,7 +49,7 @@ void flasher(port p, server interface flasher_if i)
             ton = t*ton_percent/100;
             break;
             case i.setFreqHz(unsigned freq):
-            t = Hz/freq;
+            t = sec/freq;
             ton = t/100*ton_percent;
             break;
         }
@@ -69,7 +69,7 @@ void flasher_control(client interface flasher_if i)
             for (unsigned t = 50;t < 100;++t)
             {
                 i.set_ton_percent(t);
-                mark += Hz/2; // 1/2 second
+                mark += sec/2; // 1/2 second
         select
         {
             case tm when timerafter(mark) :> void:
@@ -640,8 +640,8 @@ int main() {
       RX(ch0rx,gpio_ch0_rx,T);
       TX(ch1tx,gpio_ch1_tx,T);
       RX(ch1rx,gpio_ch1_rx,T);
-      irda_TX(irda_tx,gpio_irda_tx,3*kHz,0,1);
-      irda_RX(irda_rx,gpio_irda_rx,3*kHz,0,1);
+      irda_TX(irda_tx,gpio_irda_tx,600*ns,0,1);
+      irda_RX(irda_rx,gpio_irda_rx,600*ns,0);
       CMD(cmd,irda_tx,irda_rx);
       Router(ch0tx,ch1tx,ch0rx,ch1rx,cmd);
     }

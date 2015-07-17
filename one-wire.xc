@@ -247,13 +247,7 @@ void Router(server interface tx_rx_if ch0_tx,
             v <<= 8;
             v += p->dt[i];
           }
-
-          // reply back the command
-          p->len = 3;
-          p->dt[1] = 'B';
-          p->dt[2] = 'C';
-          if (router.push(p) == 0)
-            printf(".\n");
+          printf("%d %X\n",p->len,v);
         }
         break;
     }
@@ -264,18 +258,19 @@ void Router(server interface tx_rx_if ch0_tx,
  * Read data from irda port, max of 32 bits of data are allowed
  * first bytes is the numbers of bit received
  */
-void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char low,unsigned char high)
+void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char high)
 {
+#define irda_rx_frm_count 2
   struct tx_frame_t cfrm;
-  struct tx_frame_t frm[2];
-  struct tx_frame_t* movable pfrm[sizeof(frm)/sizeof(*frm)] = {&frm[0],&frm[1]};
+  struct tx_frame_t frm[irda_rx_frm_count];
+  struct tx_frame_t* movable pfrm[irda_rx_frm_count] = {&frm[0],&frm[1]};
   struct tx_frame_t* movable wr_frame = &cfrm;      // currently writting in this frame
   timer t;      // timer
   int tp;       // time point
   unsigned char pv;            // current rx pin value
   unsigned int val;          // coping incoming bits to this variable
 
-  for (int i = 0;i < sizeof(frm)/sizeof(*frm);++i)
+  for (int i = 0;i < irda_rx_frm_count;++i)
   {
       pfrm[i]->len = 0;
   }
@@ -288,7 +283,7 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char low
       case rx.get(struct tx_frame_t  * movable &old_p) -> unsigned char b :
           // find a frame with data
           b = 0;
-          for (int i = 0;i < sizeof(frm)/sizeof(*frm);++i)
+          for (int i = 0;i < irda_rx_frm_count;++i)
           {
             if (pfrm[i]->len != 0)
             {
@@ -296,6 +291,7 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char low
               tmp = move(old_p);
               old_p = move(pfrm[i]);
               pfrm[i] = move(tmp);
+              pfrm[i]->len = 0;
               b = 1;
               break;
             }
@@ -310,8 +306,9 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char low
           } else
           {
             // end of data it will happens many times when we are waiting for start signal
-            if (wr_frame->len != 0 && wr_frame->len < 33)
+            if (wr_frame->len > 0 && wr_frame->len != 0xFF)
             {
+              printf("E %d %X\n",wr_frame->len,val);
               // create data.
               wr_frame->dt[0] = 0 ; // id is 0 this device
               wr_frame->dt[1] = 0 ; // irda device id to be set by cmd interface
@@ -322,7 +319,7 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char low
               wr_frame->dt[6] = val >> 24;
               wr_frame->len = 7;
               // add full frame to list and notify
-              for (int i = 0;i < sizeof(frm)/sizeof(*frm);++i)
+              for (int i = 0;i < irda_rx_frm_count;++i)
               {
                 if (pfrm[i]->len == 0)
                 {
@@ -345,16 +342,20 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char low
           case p when pinsneq(pv) :> pv: // for t < 1.5 is 0 otherwise is 1
             int te;
             t :> te;
-            if (pv == !high)
+            if (pv != high)
             {
-              if (wr_frame->len < 33) // is this a transition or the end of start signal?
+              if (wr_frame->len == 0xFF)
               {
+                wr_frame->len = 0; // it was a start signal going low, just ignore, but now we are ready to store data next time
+                val = 0;
+                printf("S\n");
+              }
+              else
+              {
+                printf(":");
                 val <<= 1;
                 if (te - tp > T*1.5) val |= 1;
                 wr_frame->len++;
-              } else
-              {
-                wr_frame->len = 0; // it was a start signal going low, just ignore, but now we are ready to store data next time
               }
             }
             tp = te;
@@ -406,7 +407,7 @@ void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char l
           {
               TX <: high;
               tp += T;
-              if (dt & bitmask == bitmask)   //1 is 2T 0 is T
+              if (dt & bitmask)   //1 is 2T 0 is T
                 tp += T;
               t when timerafter(tp) :> tp;
               TX <: low;
