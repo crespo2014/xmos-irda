@@ -230,54 +230,106 @@ void Router(server interface tx_rx_if ch0_tx,
 }
 
 /*
- * Wait for transition on ping or timeout, then take a action base on the pin level
+ * Read data from irda port, max of 32 bits of data are allowed
+ * first bytes is the numbers of bit received
  */
 void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char low,unsigned char high)
 {
-    int pv; // port value
-    timer tm;
-    char bitcount = 70;      // how many bits have been received invalid if > 64
-    unsigned val = 0;       // storing bits
-    int ts;     // start time of data
-    int te;     // time end of transation
+  struct tx_frame_t cfrm;
+  struct tx_frame_t frm[2];
+  struct tx_frame_t* movable pfrm[sizeof(frm)/sizeof(*frm)] = {&frm[0],&frm[1]};
+  struct tx_frame_t* movable wr_frame = &cfrm;      // currently writting in this frame
+  timer t;      // timer
+  int tp;       // time point
+  unsigned char pv;            // current rx pin value
+  unsigned int val;          // coping incoming bits to this variable
 
-    p :> pv;
-    tm :> ts;
-    for (;;)
-    {
-        // wait for pin transition
-        select
-        {
-            case tm when timerafter(ts+T*2.5) :> void: // timeout
-                if (pv == high)
+  for (int i = 0;i < sizeof(frm)/sizeof(*frm);++i)
+  {
+      pfrm[i]->len = 0;
+  }
+  wr_frame->len = 0xFF;  // bits received , if it is 0xFF then a timeout was received then next transition must be ignored
+  t :> tp;    // get current time
+  p :> pv;
+  for (;;)
+  {
+     select {
+      case rx.get(struct tx_frame_t  * movable &old_p) -> unsigned char b :
+          // find a frame with data
+          b = 0;
+          for (int i = 0;i < sizeof(frm)/sizeof(*frm);++i)
+          {
+            if (pfrm[i]->len != 0)
+            {
+              struct tx_frame_t  * movable tmp;
+              tmp = move(old_p);
+              old_p = move(pfrm[i]);
+              pfrm[i] = move(tmp);
+              b = 1;
+              break;
+            }
+          }
+          break;
+          // wait for pin transition or timeout
+      case t when timerafter(tp+T*2.5) :> tp: // timeout (adjusting tp will be a problem for start condition, when signal go dow, the pulse width seems to be short
+          if (pv == high)
+          {
+              // start condition
+              wr_frame->len = 0xFF;   // invalidate next transition (long low level does not produce data when go high, not need to set bit to 0xFF)
+          } else
+          {
+            // end of data it will happens many times when we are waiting for start signal
+            if (wr_frame->len != 0 && wr_frame->len < 33)
+            {
+              // create data.
+              wr_frame->dt[0] = 0 ; // id is 0 thsi device
+              wr_frame->dt[1] = 0 ; // irda device id to be set by cmd interface
+              wr_frame->dt[2] = wr_frame->len;  //bit count
+              wr_frame->dt[3] = val;
+              wr_frame->dt[4] = val >> 8;
+              wr_frame->dt[5] = val >> 16;
+              wr_frame->dt[6] = val >> 24;
+              wr_frame->len = 7;
+              // add full frame to list and notify
+              for (int i = 0;i < sizeof(frm)/sizeof(*frm);++i)
+              {
+                if (pfrm[i]->len == 0)
                 {
-                    bitcount = 0;
-                    val = 0;
-                } else
-                {
-                    //if (bitcount < 64 && bitcount != 0) c <: val; // send any capture data
-                    bitcount = 70;// ignore any data without start
+                  struct tx_frame_t  * movable tmp;
+                  tmp = move(wr_frame);
+                  wr_frame = move(pfrm[i]);
+                  pfrm[i] = move(tmp);
+                  rx.ondata();
+                  break;
                 }
-                p when pinsneq(pv) :> pv;   // wait for transition
-                tm :> ts;
-                break;
-            case p when pinsneq(pv) :> pv:                       // for t < 1.5 is 0 otherwise is 1
-                tm :> te;
-                if (pv == low && bitcount < 64)// store only if start signal was received
-                {
-                    val <<= 1;
-                    if (te - ts > T*1.5) val |= 1;
-                    bitcount++;
-                    if (bitcount == 32)
-                    {
-                        bitcount = 0;
-                        //c <: val;
-                    }
-                }
-                ts = te;
-                break;
-        }
-    }
+              }
+              if (wr_frame->len != 0)   // there is not empty frame
+              {
+                 printf(".\n");
+              }
+              wr_frame->len = 0xFF;   // reuse the same frame
+            }
+          }
+          break;
+          case p when pinsneq(pv) :> pv: // for t < 1.5 is 0 otherwise is 1
+            int te;
+            t :> te;
+            if (pv == !high)
+            {
+              if (wr_frame->len < 33) // is this a transition or the end of start signal?
+              {
+                val <<= 1;
+                if (te - tp > T*1.5) val |= 1;
+                wr_frame->len++;
+              } else
+              {
+                wr_frame->len = 0; // it was a start signal going low, just ignore, but now we are ready to store data next time
+              }
+            }
+            tp = te;
+            break;
+     }
+  }
 }
 
 /*
@@ -407,7 +459,7 @@ void TX(client interface tx_rx_if tx,out port TX,unsigned T)
  * 1. reduce instructions by using not null pointers.
  *
  */
-void RX(server interface tx_rx_if ch0rx,in port RX,unsigned T)
+void RX(server interface tx_rx_if rx,in port RX,unsigned T)
 {
     struct tx_frame_t cfrm;
     struct tx_frame_t frm[MAX_FRAME];
@@ -423,7 +475,6 @@ void RX(server interface tx_rx_if ch0rx,in port RX,unsigned T)
 
     for (int i = 0;i < MAX_FRAME;++i)
     {
-        pfrm[i]->dt[0] = 'A' + i;
         pfrm[i]->len = 0;
     }
     wr_frame = move(pfrm[0]);
@@ -432,7 +483,7 @@ void RX(server interface tx_rx_if ch0rx,in port RX,unsigned T)
     for (;;)
     {
        select {
-        case ch0rx.get(struct tx_frame_t  * movable &old_p) -> unsigned char b :
+        case rx.get(struct tx_frame_t  * movable &old_p) -> unsigned char b :
             // find a frame with data
             b = 0;
             for (int i = 0;i < MAX_FRAME;++i)
@@ -469,7 +520,7 @@ void RX(server interface tx_rx_if ch0rx,in port RX,unsigned T)
                     tmp = move(wr_frame);
                     wr_frame = move(pfrm[i]);
                     pfrm[i] = move(tmp);
-                    ch0rx.ondata();
+                    rx.ondata();
                     break;
                   }
                 }
