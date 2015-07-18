@@ -124,6 +124,75 @@ inline unsigned char buff_push(struct frm_buff_t &buff,enum dest_e dst,struct tx
 }
 
 /*
+ * Send a irda packet from msb to lsb
+ * Send high for 3T then send 1 as high for 2T an 0 as high for 1T
+ * end signal is low for 3T
+ */
+inline void irda_send(unsigned int v,unsigned char bitcount,unsigned char high,unsigned char low,out port p, unsigned int T)
+{
+  timer t;
+  unsigned int tp;
+  unsigned int bitmask = 1 << (bitcount -1);
+  // send start bit
+  p <: high;
+  t :> tp;
+  t when timerafter(tp + 3*T) :> tp;
+  p <: low;
+  t when timerafter(tp + T) :> tp;
+  while (bitmask != 0)
+  {
+      p <: high;
+      tp += T;
+      if (v & bitmask)   //1 is 2T 0 is T
+        tp += T;
+      t when timerafter(tp) :> tp;
+      p <: low;
+      t when timerafter(tp + T) :> tp;
+      bitmask >>= 1;
+  }
+  // keep low for stop bit
+  t when timerafter(tp + 3*T) :> tp;
+}
+
+/*
+ * Send bytes from 0 to n from MSB to LSB
+ * High for 3T low for 1T
+ * Send data high for 2t if 1 or higj for 1T if 0
+ * Stop as low for 3T
+ */
+inline void send(const char* dt,char count,unsigned char high,unsigned char low,out port p, unsigned int T)
+{
+  unsigned char bitmask;
+  timer t;
+  int tp;
+  // send start bit
+  p <: high;
+  t :> tp;
+  t when timerafter(tp + 3*T) :> tp;
+  p <: low;
+  t when timerafter(tp + T) :> tp;
+  while (count)
+  {
+    bitmask = (1<<7);
+    while (bitmask)
+    {
+      p <: high;
+      tp += T;
+      if ((*dt) & bitmask)   //1 is 2T 0 is T
+        tp += T;
+      t when timerafter(tp) :> tp;
+      p <: low;
+      t when timerafter(tp + T) :> tp;
+      bitmask >>= 1;
+    }
+    --count;
+    ++dt;
+  }
+  // keep low for stop bit
+  t when timerafter(tp + 3*T) :> tp;
+}
+
+/*
  * Packet router.
  * All packets are delivery to the router
  * router will read from all places until buffers become all full
@@ -377,16 +446,9 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char hig
 void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char low,unsigned char high)
 {
   struct tx_frame_t frm;
-  timer t;
-  int tp;
   struct tx_frame_t* movable pfrm = &frm;
 
-  unsigned int dt;
-  unsigned int bitmask;
-
   TX <: low;
-  t :> tp;
-  t when timerafter(tp + 4*T) :> tp;    // wait 4 cycles
   for(;;)     // do not make it combinable, because send data take a while
   {
     select
@@ -398,27 +460,8 @@ void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char l
         // send data
         if (pfrm->len == 7 &&  pfrm->dt[2] > 0)
         {
-          dt = 0 | pfrm->dt[3] | (pfrm->dt[4] << 8) | (pfrm->dt[5] << 16 ) | (pfrm->dt[6] << 24);
-          bitmask = 1 << (pfrm->dt[2]-1);
-          // send start bit
-          TX <: high;
-          t :> tp;
-          t when timerafter(tp + 3*T) :> tp;
-          TX <: low;
-          t when timerafter(tp + T) :> tp;
-          while (bitmask != 0)
-          {
-              TX <: high;
-              tp += T;
-              if (dt & bitmask)   //1 is 2T 0 is T
-                tp += T;
-              t when timerafter(tp) :> tp;
-              TX <: low;
-              t when timerafter(tp + T) :> tp;
-              bitmask >>= 1;
-          }
-          // keep low for stop bit
-          t when timerafter(tp + 3*T) :> tp;
+          irda_send(pfrm->dt[3] | (pfrm->dt[4] << 8) | (pfrm->dt[5] << 16 ) | (pfrm->dt[6] << 24),
+              pfrm->dt[2],high,low,TX,T);
         }
       }
       break;
@@ -436,51 +479,22 @@ void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char l
 void TX(client interface tx_rx_if tx,out port TX,unsigned T)
 {
   struct tx_frame_t frm;
-  timer t;
-  int tp;
   struct tx_frame_t* movable pfrm = &frm;
 
   TX <: TX_LOW;
-  t :> tp;
-  t when timerafter(tp + 4*T) :> tp;    // wait 4 cycles
   for(;;)
   {
-    // peek and send data
-    while (tx.get(pfrm) == 1)
-    {
-      t :> tp;
-      // send data
-      if (pfrm->len != 0)
-      {
-        // send start bit
-        TX <: TX_HIGH;
-        t when timerafter(tp + 3*T) :> tp;
-        TX <: TX_LOW;
-        t when timerafter(tp + T) :> tp;
-        for (unsigned char pos = 0;pos < pfrm -> len;++pos)
-        {
-          unsigned char dt = pfrm->dt[pos];
-          for (unsigned char bit = 8;bit !=0;--bit)
-          {
-            TX <: TX_HIGH;
-            tp += T;
-            if (dt & 0x80)   //1 is 2T 0 is T
-              tp += T;
-            t when timerafter(tp) :> tp;
-            TX <: TX_LOW;
-            t when timerafter(tp + T) :> tp;
-            dt <<= 1;
-          }
-        }
-        pfrm->len = 0;
-        // keep low for stop bit
-        t when timerafter(tp + 3*T) :> tp;
-      }
-    }
-    // wait for more data
     select
     {
-      case tx.ondata():
+     case tx.ondata():
+        while (tx.get(pfrm) == 1)
+        {
+          // send data
+          if (pfrm->len != 0)
+          {
+            send(pfrm->dt,pfrm->len,TX_HIGH,TX_LOW,TX,T);
+          }
+        }
         break;
     }
   }
