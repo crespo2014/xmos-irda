@@ -13,32 +13,39 @@
 #include <stdio.h>
 #include <xscope.h>
 #include <platform.h>
+#include <rxtx.h>
 
-#define T_36Khz = 
-#define us = 100        // 1 usecond
+#define T_36Khz 27*us
+#define us  100        // 1 usecond
+
+#define IRDA_BIT_LEN 600*ns
 /*
 Produce a 36Khz wave form for irda transmitter. (27.8us)
 Dutty cycle is 25-33%
 Create many pulse to fill the specific time
 9us + 18us
 */
-inline void irda_pulse(unsigned start,unsigned end,timer &t,out port p,unsigned char high,unsigned char low)
+inline void irda_pulse(unsigned int T,unsigned start,unsigned len,timer t,out port p,unsigned char high,unsigned char low)
 {
-  for (;;)
+  const unsigned int ton = T/3;
+  do
   {
     p <: high;
-    t when timerafter(start+9*us) :> void;
+    t when timerafter(start+ton) :> void;
     p <: low;
-    start += 18*us;
-    select
+    if (len < T)
     {
-      case t when timerafter(start) :> void: 
-        break;
-      case t when timerafter(end) :> void:
-        return;
-      break;
+      start += len;
+      len = 0;
     }
-  }
+    else
+    {
+      start += T;
+      len -= T;
+    }
+    t when timerafter(start) :> void;
+
+  } while(len != 0);
 }
 
 
@@ -247,5 +254,24 @@ void irda_rd(in port p, chanend c)
         }
 
     }
+}
+
+out port led_1 = XS1_PORT_1D;
+
+int main()
+{
+  timer t;
+  unsigned int tp;
+  t :> tp;
+  for (;;)
+  {
+    irda_pulse(27*us,tp,4*IRDA_BIT_LEN,t,led_1,1,0);
+    tp += 5*IRDA_BIT_LEN + 500*ms;
+    t when timerafter(tp) :> void;
+    irda_pulse(27*us,tp,IRDA_BIT_LEN,t,led_1,1,0);
+    tp += 2*IRDA_BIT_LEN + 500*ms;
+    t when timerafter(tp) :> void;
+  }
+  return 0;
 }
 
