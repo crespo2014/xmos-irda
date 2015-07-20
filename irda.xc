@@ -14,6 +14,34 @@
 #include <xscope.h>
 #include <platform.h>
 
+#define T_36Khz = 
+#define us = 100        // 1 usecond
+/*
+Produce a 36Khz wave form for irda transmitter. (27.8us)
+Dutty cycle is 25-33%
+Create many pulse to fill the specific time
+9us + 18us
+*/
+inline void irda_pulse(unsigned start,unsigned end,timer &t,out port p,unsigned char high,unsigned char low)
+{
+  for (;;)
+  {
+    p <: high;
+    t when timerafter(start+9*us) :> void;
+    p <: low;
+    start += 18*us;
+    select
+    {
+      case t when timerafter(start) :> void: 
+        break;
+      case t when timerafter(end) :> void:
+        return;
+      break;
+    }
+  }
+}
+
+
 /*
  * high level for
  *  <= 1.5T is 0
