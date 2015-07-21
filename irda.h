@@ -11,6 +11,16 @@
 #define IRDA_BIT_LEN 600*us
 
 /*
+TODO : read from irda and store data as time diff bettween transitions.
+and normalize to T.
+max len of low signal will be 3 or 4T
+max len of high is not define
+High signal will be round to lower bound of multiple of T (600us)
+Sony (41....3)
+Philips (1111.....)
+*/
+
+/*
  * macro to produce a irda pulse.
  * time point will be update to the end of the pulse
  * a duty cycle of 33% is used
