@@ -11,7 +11,9 @@
 
 #define sec 1000*1000*100
 #define ms  1000*100
-#define ns  100
+#define us  100        // 1 usecond
+
+#define T_36Khz 27*us
 
 /*
  * Transmition channel has a list of frames to send

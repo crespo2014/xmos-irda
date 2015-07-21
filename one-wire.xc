@@ -41,6 +41,7 @@
 #include <xscope.h>
 #include <platform.h>
 #include <rxtx.h>
+#include "irda.h"
 
 
  enum dest_e {
@@ -128,30 +129,30 @@ inline unsigned char buff_push(struct frm_buff_t &buff,enum dest_e dst,struct tx
  * Send high for 3T then send 1 as high for 2T an 0 as high for 1T
  * end signal is low for 3T
  */
-inline void irda_send(unsigned int v,unsigned char bitcount,unsigned char high,unsigned char low,out port p, unsigned int T)
+inline void irda_send(unsigned int v,unsigned char bitcount,unsigned char high,unsigned char low,out port p, unsigned int BIT_LEN)
 {
   timer t;
   unsigned int tp;
+  unsigned int len;
   unsigned int bitmask = 1 << (bitcount -1);
   // send start bit
-  p <: high;
-  t :> tp;
-  t when timerafter(tp + 3*T) :> tp;
-  p <: low;
-  t when timerafter(tp + T) :> tp;
+  len = 4*BIT_LEN;
+  IRDA_PULSE(27*us,tp,len,t,p,1,0);
+  tp += BIT_LEN;
+  t when timerafter(tp) :> void;
+  // send data
   while (bitmask != 0)
   {
-      p <: high;
-      tp += T;
+      len = BIT_LEN;
       if (v & bitmask)   //1 is 2T 0 is T
-        tp += T;
-      t when timerafter(tp) :> tp;
-      p <: low;
-      t when timerafter(tp + T) :> tp;
+          len += BIT_LEN;
+      IRDA_PULSE(27*us,tp,len,t,p,1,0);
+      tp += BIT_LEN;
+      t when timerafter(tp) :> void;
       bitmask >>= 1;
   }
   // keep low for stop bit
-  t when timerafter(tp + 3*T) :> tp;
+  t when timerafter(tp + 3*BIT_LEN) :> tp;
 }
 
 /*
