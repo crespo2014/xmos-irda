@@ -22,8 +22,8 @@
  */
 struct tx_frame_t
 {
-    unsigned char    dt[20];
-    unsigned char    len;
+  unsigned int    len;
+  unsigned char    dt[20];
 };
 
 /*

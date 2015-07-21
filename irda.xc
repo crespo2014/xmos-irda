@@ -256,7 +256,7 @@ void irda_rd(in port p, chanend c)
 
 out port led_1 = XS1_PORT_1D;
 
-int main()
+int main1()
 {
   timer t;
   unsigned int tp;

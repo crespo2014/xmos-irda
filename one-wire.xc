@@ -92,6 +92,7 @@ inline unsigned char buff_get(struct frm_buff_t &buff,enum dest_e dst,struct tx_
         tmp = move(old_p);
         old_p = move(buff.pfrm[i]);
         buff.pfrm[i] = move(tmp);
+        buff.dest[i] = to_none;
         buff.free_count++;
         return 1;
       }
@@ -158,7 +159,7 @@ inline void irda_send(unsigned int v,unsigned char bitcount,unsigned char high,u
 /*
  * Send bytes from 0 to n from MSB to LSB
  * High for 3T low for 1T
- * Send data high for 2t if 1 or higj for 1T if 0
+ * Send data high for 2t if 1 or high for 1T if 0
  * Stop as low for 3T
  */
 inline void send(const char* dt,char count,unsigned char high,unsigned char low,out port p, unsigned int T)
@@ -226,16 +227,20 @@ void Router(server interface tx_rx_if ch0_tx,
     {
       case ch0_tx.get(struct tx_frame_t  * movable &old_p) -> unsigned char b:
         b = buff_get(buff,to_ch0_tx,old_p);
+        printf("ch0 :> %d\n",old_p->len);
         break;
       case ch1_tx.get(struct tx_frame_t  * movable &old_p) -> unsigned char b:
         b = buff_get(buff,to_ch1_tx,old_p);
+        printf("ch1 :> %d\n",old_p->len);
         break;
       case cmd.push(struct tx_frame_t  * movable &old_p) -> unsigned char b:
         b = buff_push(buff,to_ch0_tx,old_p);
+        printf("ch0 <: cmd %d\n",old_p->len);
         ch0_tx.ondata();
         break;
       case cmd.get(struct tx_frame_t  * movable &old_p) -> unsigned char b:
         b = buff_get(buff,to_cmd,old_p);
+        printf("cmd :> %d\n",old_p->len);
         break;
       case ch0_rx.ondata():
         // read all data from ch0 rx
@@ -244,12 +249,14 @@ void Router(server interface tx_rx_if ch0_tx,
          if (p->dt[0] == 0)
          {
            buff_push(buff,to_cmd,p);
+           printf("cmd <: %d\n",p->len);
            cmd.ondata();
          }
          else
          {
            --(p->dt[0]);
            buff_push(buff,to_ch1_tx,p);
+           printf("ch1 <: %d\n",p->len);
            ch1_tx.ondata();
          }
         }
@@ -282,6 +289,7 @@ void Router(server interface tx_rx_if ch0_tx,
   struct tx_frame_t* movable p = &frm;
   struct tx_frame_t* movable pirda = &irda_frm;   //irda packet waiting to be send
   pirda->len = 0;
+  p->len = 0;
   while(1)
   {
     select
@@ -293,8 +301,7 @@ void Router(server interface tx_rx_if ch0_tx,
           p->len = 3;
           p->dt[1] = 'B';
           p->dt[2] = 'C';
-          if (router.push(p) == 0)
-            printf(".\n");
+          router.push(p);
         }
         break;
         case irda_tx.get(struct tx_frame_t  * movable &old_p) -> unsigned char b :
@@ -307,6 +314,7 @@ void Router(server interface tx_rx_if ch0_tx,
             b =1;
           } else
             b = 0;
+          pirda->len = 0;
         break;
         case irda_rx.ondata():
         while (irda_rx.get(p) == 1)
@@ -317,6 +325,10 @@ void Router(server interface tx_rx_if ch0_tx,
             v <<= 8;
             v += p->dt[i];
           }
+          pirda->len = 7;
+          pirda->dt[2] = 32;
+          irda_tx.ondata();
+
           printf("%X\n",v);
         }
         break;
@@ -493,6 +505,7 @@ void TX(client interface tx_rx_if tx,out port TX,unsigned T)
           // send data
           if (pfrm->len != 0)
           {
+            printf("sending %d \n",pfrm->len);
             send(pfrm->dt,pfrm->len,TX_HIGH,TX_LOW,TX,T);
           }
         }
@@ -531,7 +544,7 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
     {
         pfrm[i]->len = 0;
     }
-    wr_frame = move(pfrm[0]);
+    wr_frame->len = 0;
     t :> tp;    // get current time
     RX :> pv;
     for (;;)
@@ -539,8 +552,8 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
        select {
         case rx.get(struct tx_frame_t  * movable &old_p) -> unsigned char b :
             // find a frame with data
-            b = 0;
-            for (int i = 0;i < MAX_FRAME;++i)
+            int i = 0;
+            for (;i < MAX_FRAME;++i)
             {
               if (pfrm[i]->len != 0)
               {
@@ -548,18 +561,21 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
                 tmp = move(old_p);
                 old_p = move(pfrm[i]);
                 pfrm[i] = move(tmp);
-                b = 1;
+                pfrm[i]->len = 0;
                 break;
               }
             }
+            if (i == MAX_FRAME)
+              b= 0;
+            else
+              b = 1;
             break;
             // wait for pin transition or timeout
         case t when timerafter(tp+T*2.5) :> tp: // timeout (adjusting tp will be a problem for start condition, when signal go dow, the pulse width seems to be short
             if (pv == high)
             {
                 // start condition
-                wr_frame->len = 0;
-                bitcount = 0xFF;    // invalidate next transition (long low level does not produce data when go high, not need to set bit to 0xFF)
+                bitcount = 0xF0;    // invalidate next transition (long low level does not produce data when go high, not need to set bit to 0xFF)
             } else
             {
               // end of data it will happens many times when we are waiting for start signal
@@ -570,6 +586,7 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
                 {
                   if (pfrm[i]->len == 0)
                   {
+                    printf("push %d\n",wr_frame->len);
                     struct tx_frame_t  * movable tmp;
                     tmp = move(wr_frame);
                     wr_frame = move(pfrm[i]);
@@ -589,9 +606,9 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
             case RX when pinsneq(pv) :> pv: // for t < 1.5 is 0 otherwise is 1
               int te;
               t :> te;
-              if (pv == !high)
+              if (pv != high)  // is signal going low
               {
-                if (bitcount < 8) // is this a transition of start signal?
+                if (bitcount < 8) // this is not an ignored transition of start signal?
                 {
                   val <<= 1;
                   if (te - tp > T*1.5) val |= 1;
@@ -600,12 +617,18 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
                   {
                     wr_frame->dt[wr_frame->len] = val;
                     wr_frame->len++;
+                    if (wr_frame->len == sizeof(wr_frame->dt))
+                    {
+                      printf(":\n");  // overflow
+                      wr_frame->len = 0;
+                    }
                     bitcount = 0;
                     val = 0;
                   }
                 } else
                 {
                   bitcount = 0; // it was a start signal going low, just ignore, but now we are ready to store data next time
+                  wr_frame->len = 0;
                 }
               }
               tp = te;

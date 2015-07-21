@@ -4,6 +4,7 @@
 #include <xscope.h>
 #include <platform.h>
 #include "rxtx.h"
+#include "irda.h"
 
 extern void irda_rd(in port p, chanend c);
 extern void irda_rd_v1(in port p, chanend c);
@@ -622,35 +623,32 @@ void gen_clock(out port txd) {
 out port gpio_clock = XS1_PORT_1I;
 in port gpio_ch0_rx = XS1_PORT_1G;
 out port gpio_ch0_tx = XS1_PORT_1B;
-in port gpio_ch1_rx = XS1_PORT_1C;
-out port gpio_ch1_tx = XS1_PORT_1H;
+in port gpio_ch1_rx = XS1_PORT_1A;
+out port gpio_ch1_tx = XS1_PORT_1F;
 out port gpio_irda_tx = XS1_PORT_1E;
-in port gpio_irda_rx = XS1_PORT_1F;
+
+in port gpio_irda_rx = XS1_PORT_1H;
 
 
 /*
 on stdcore[0] : out port tx      = XS1_PORT_1A;
 on stdcore[0] : in  port rx      = XS1_PORT_1B;
 */
-int main1() {
-  for (;;)
-  {
+int main() {
 
-  }
-
-//    interface tx_rx_if ch0tx,ch1tx,ch0rx,ch1rx,irda_tx,irda_rx;
-//    interface cmd_push_if cmd;
-//    const unsigned T = 100*1000;
-//    par
-//    {
-//      TX(ch0tx,gpio_ch0_tx,T);
-//      RX(ch0rx,gpio_ch0_rx,T);
-//      TX(ch1tx,gpio_ch1_tx,T);
-//      RX(ch1rx,gpio_ch1_rx,T);
-//      irda_TX(irda_tx,gpio_irda_tx,IRDA_BIT_LEN,0,1);
-//      irda_RX(irda_rx,gpio_irda_rx,IRDA_BIT_LEN,0);
-//      CMD(cmd,irda_tx,irda_rx);
-//      Router(ch0tx,ch1tx,ch0rx,ch1rx,cmd);
-//    }
+    interface tx_rx_if ch0tx,ch1tx,ch0rx,ch1rx,irda_tx,irda_rx;
+    interface cmd_push_if cmd;
+    const unsigned T = 100*1000;
+    par
+    {
+      TX(ch0tx,gpio_ch0_tx,T);
+      RX(ch0rx,gpio_ch0_rx,T);
+      TX(ch1tx,gpio_ch1_tx,T);
+      RX(ch1rx,gpio_ch1_rx,T);
+      irda_TX(irda_tx,gpio_irda_tx,IRDA_BIT_LEN,0,1);
+      irda_RX(irda_rx,gpio_irda_rx,IRDA_BIT_LEN,0);
+      CMD(cmd,irda_tx,irda_rx);
+      Router(ch0tx,ch1tx,ch0rx,ch1rx,cmd);
+    }
     return 0;
 }
