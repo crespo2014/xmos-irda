@@ -618,3 +618,24 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
        }
     }
 }
+/*
+ * User interface
+ * For error reporting
+ */
+[[combinable]] void ui(server interface fault_if ch0_rx,
+               server interface fault_if ch1_rx,
+               server interface fault_if router,
+               server interface fault_if cmd,
+               server interface fault_if irda_rx)
+{
+  while(1)
+  {
+    select
+    {
+      case ch0_rx.fault(unsigned char id):
+        break;
+    }
+  }
+
+}
+

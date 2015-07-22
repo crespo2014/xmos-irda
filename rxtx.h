@@ -48,6 +48,12 @@ interface tx_rx_if {
     [[notification]] slave void ondata();       // data waiting to be read
     [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);  // get pointer to frame true if pointer is get
 };
+/*
+ * Fault reporting interface
+ */
+interface fault_if {
+  void fault(unsigned char id);
+};
 
 [[combinable]] extern void CMD(client interface cmd_push_if router,server interface tx_rx_if irda_tx,client interface tx_rx_if irda_rx);
 [[combinable]] extern void Router(server interface tx_rx_if ch0_tx,server interface tx_rx_if ch1_tx,client interface tx_rx_if ch0_rx,client interface tx_rx_if ch1_rx,server interface cmd_push_if cmd);
@@ -56,6 +62,11 @@ extern void RX(server interface tx_rx_if rx,in port RX,unsigned T);
 extern void TX(client interface tx_rx_if tx,out port TX,unsigned T);
 extern void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char low,unsigned char high);
 extern void irda_RX(server interface tx_rx_if rx,in port RX,unsigned T,unsigned char high);
+[[combinable]] extern void ui(server interface fault_if ch0_rx,
+               server interface fault_if ch1_rx,
+               server interface fault_if router,
+               server interface fault_if cmd,
+               server interface fault_if irda_rx);
 
 /*
  * send a byte from MSB to LSB
