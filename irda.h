@@ -8,6 +8,46 @@
 #ifndef IRDA_H_
 #define IRDA_H_
 
+/*
+ * TODO
+ * use clocked port for irda output
+ * 36Khz - 27.77us 3x9us  - 100 (33% ton)
+ * irda Pulse 600us 22*27 = 66*9us = 594
+ *
+ * 8us - 24us(41.6khz) 25pulse per bit
+ * 9us - 27us(37Khz)   22pulse per bit
+ *
+ * to create one irda pulse
+ * p <:0 @ count;
+ * repeat 22 times or 44 or 66
+ * p <:1 @ count;
+ * count += 1;
+ * p @ count <: 0;
+ * count += 2;
+ * ...............
+ * count += (3x22)
+ * p @ count <: 0
+ */
+
+#define IRDA_CLK_LEN        8                   // clock use for irda
+#define IRDA_CARRIER_P      3*IRDA_CLK_LEN
+#define IRDA_PULSE_PER_BIT  600/IRDA_CARRIER_P
+#define IRDA_PULSE_CLK      600/IRDA_CLK_LEN    // how many clock in a irda pulse
+/*
+ * use
+ * p <:0 @ count; at start transmition
+ * count++;
+ */
+#define IRDA_CLK_PULSE(count,bitlen) \
+  do { \
+    for (int i = 0; i < bitlen*IRDA_PULSE_PER_BIT;++i) { \
+      p @ count <: 1; ++count; \
+      p @ count <: 0; count += 2; \
+    } \
+    count+=IRDA_PULSE_CLK;  /* low bit */ \
+  } while(0)
+
+
 #define IRDA_BIT_LEN 600*us
 
 /*
