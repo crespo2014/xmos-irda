@@ -339,26 +339,31 @@ void Router(server interface tx_rx_if ch0_tx,
 /*
  * Read data from irda port, max of 32 bits of data are allowed
  * first bytes is the numbers of bit received
+ * T is bit lengh
  */
 void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char high)
 {
 #define irda_rx_frm_count 2
-  struct tx_frame_t cfrm;
   struct tx_frame_t frm[irda_rx_frm_count];
   struct tx_frame_t* movable pfrm[irda_rx_frm_count] = {&frm[0],&frm[1]};
-  struct tx_frame_t* movable wr_frame = &cfrm;      // currently writting in this frame
-  timer t;      // timer
-  unsigned int tp;       // time point // timerafter fail with unsigned
-  unsigned char pv;            // current rx pin value
+
+  timer t;                   // timer
+  unsigned int tp,nxtp;       // time point // timerafter fail with unsigned
   unsigned int val;          // coping incoming bits to this variable
+  unsigned char pv;            // current rx pin value
+  unsigned char bitcount;     // how many bits has been received
+  unsigned char reading;      // true if start bit was recieved
 
   for (int i = 0;i < irda_rx_frm_count;++i)
   {
       pfrm[i]->len = 0;
   }
-  wr_frame->len = 0xFF;  // bits received , if it is 0xFF then a timeout was received then next transition must be ignored
   t :> tp;    // get current time
-  p :> pv;
+  p :> pv;    // get current port status
+  nxtp = 10*sec;
+  bitcount = 0;
+  val = 0;
+  reading = 0;
   for (;;)
   {
      select {
@@ -383,68 +388,64 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char hig
             b = 1;
           break;
           // wait for pin transition or timeout
-      case t when timerafter(tp+T*2.5) :> tp: // timeout (adjusting tp will be a problem for start condition, when signal go dow, the pulse width seems to be short
+      case t when timerafter(tp + nxtp) :> tp:
+          nxtp = 10*sec;      //timeout
           if (pv == high)
           {
-              // start condition
-              wr_frame->len = 0xFF;   // invalidate next transition (long low level does not produce data when go high, not need to set bit to 0xFF)
-          } else
+            //start signal
+            reading = 1;
+          }
+          else
           {
-            // end of data it will happens many times when we are waiting for start signal
-            if (wr_frame->len > 0 && wr_frame->len != 0xFF)
+            reading = 0;
+            if (bitcount > 0)            // If stop bit and data has been collected then store it
             {
-              // create data.
-              wr_frame->dt[0] = 0 ; // id is 0 this device
-              wr_frame->dt[1] = 0 ; // irda device id to be set by cmd interface
-              wr_frame->dt[2] = wr_frame->len;  //bit count
-              wr_frame->dt[3] = val >> 24;
-              wr_frame->dt[4] = val >> 16;
-              wr_frame->dt[5] = val >> 8;
-              wr_frame->dt[6] = val;
-              wr_frame->len = 7;
-              // add full frame to list and notify
+              // store data on buffers
               int i = 0;
               for (;i < irda_rx_frm_count;++i)
               {
                 if (pfrm[i]->len == 0)
                 {
-                  struct tx_frame_t  * movable tmp;
-                  tmp = move(wr_frame);
-                  wr_frame = move(pfrm[i]);
-                  pfrm[i] = move(tmp);
+                  pfrm[i]->dt[0] = 0 ; // id is 0 this device
+                  pfrm[i]->dt[1] = 0 ; // irda device id to be set by cmd interface
+                  pfrm[i]->dt[2] = bitcount;  //bit count
+                  pfrm[i]->dt[3] = val >> 24;
+                  pfrm[i]->dt[4] = val >> 16;
+                  pfrm[i]->dt[5] = val >> 8;
+                  pfrm[i]->dt[6] = val;
+                  pfrm[i]->len = 7;
                   rx.ondata();
                   break;
                 }
               }
               if (i == irda_rx_frm_count)   // there is not empty frame
               {
-                 printf(".\n");
+                 printf(":\n");
               }
-              wr_frame->len = 0xFF;   // reuse the same frame
             }
           }
+          // ready for data
+          bitcount = 0;
+          val = 0;
           break;
-          case p when pinsneq(pv) :> pv: // for t < 1.5 is 0 otherwise is 1
-            int te;
-            t :> te;
-            if (pv != high)
-            {
-              if (wr_frame->len == 0xFF)
+      case p when pinsneq(pv) :> pv: // for t < 1.5 is 0 otherwise is 1
+          int te;
+          t :> te;
+          if (pv != high && reading && nxtp < 1*sec)   // it signal going low and it was not timeout
+          {
+              // it was a normal transition calculate size of pulse
+              val <<= 1;
+              if (te - tp > T*1.5) val |= 1;
+              bitcount++;
+              if (bitcount > 32)
               {
-                wr_frame->len = 0; // it was a start signal going low, just ignore, but now we are ready to store data next time
-                val = 0;
+                printf(":\n");
+                bitcount = 0;
               }
-              else
-              {
-                val <<= 1;
-                if (te - tp > T*1.5) val |= 1;
-                wr_frame->len++;
-                if (wr_frame->len > 32)
-                  printf("e\n");
-              }
-            }
-            tp = te;
-            break;
+          }
+          tp = te;
+          nxtp = 2.5*T;
+          break;
      }
   }
 }
@@ -489,12 +490,14 @@ void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char l
 #define TX_HIGH  1
 #define TX_LOW   0
 
-void TX(client interface tx_rx_if tx,out port TX,unsigned T)
+void TX(client interface tx_rx_if tx,out port p,unsigned T)
 {
   struct tx_frame_t frm;
   struct tx_frame_t* movable pfrm = &frm;
+  timer t;
+  unsigned int tp;
 
-  TX <: TX_LOW;
+  p <: TX_LOW;
   for(;;)
   {
     select
@@ -505,8 +508,22 @@ void TX(client interface tx_rx_if tx,out port TX,unsigned T)
           // send data
           if (pfrm->len != 0)
           {
-            printf("sending %d \n",pfrm->len);
-            send(pfrm->dt,pfrm->len,TX_HIGH,TX_LOW,TX,T);
+             // send start bit
+             p <: TX_HIGH;
+             t :> tp;
+             tp += 3*T;
+             t when timerafter(tp) :> void;
+             p <: TX_LOW;
+             tp += T;
+             t when timerafter(tp) :> void;
+             printf("TX %d \n",pfrm->len);
+             for (unsigned char i =0;i<pfrm->len;++i)
+             {
+               SERIAL_SEND(pfrm->dt[i],T,t,tp,p,TX_HIGH,TX_LOW);
+             }
+             //stop bit
+             tp += 3*T;
+             t when timerafter(tp) :> void;
           }
         }
         break;
@@ -520,11 +537,6 @@ void TX(client interface tx_rx_if tx,out port TX,unsigned T)
  * Ones de buffer is full the cmd inteface will be notified
  * cmd interface will pick the buffer and can send also to tx interface, but tx has to send back
  *
- * if data comming faster then cmd processing will no eat all of then, at position of last read frame will be hold to pick all cmd from
- * that place
- *
- * 1. reduce instructions by using not null pointers.
- *
  */
 void RX(server interface tx_rx_if rx,in port RX,unsigned T)
 {
@@ -533,7 +545,8 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
     struct tx_frame_t* movable pfrm[MAX_FRAME] = {&frm[0],&frm[1],&frm[2],&frm[3]};
     struct tx_frame_t* movable wr_frame = &cfrm;      // currently writting in this frame
     timer t;      // timer
-    int tp;       // time point
+    unsigned int tp;       // time point
+    unsigned int nxtp;    // next time point to wait for
     unsigned char pv;            // current rx pin value
     unsigned char bitcount = 0; // how many bits have been received invalid if > 64
     unsigned char val;          // coping incoming bytes to this variable
@@ -545,7 +558,9 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
         pfrm[i]->len = 0;
     }
     wr_frame->len = 0;
+    bitcount = 0xF0;
     t :> tp;    // get current time
+    nxtp = tp + 10*sec;
     RX :> pv;
     for (;;)
     {
@@ -558,10 +573,10 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
               if (pfrm[i]->len != 0)
               {
                 struct tx_frame_t  * movable tmp;
+                old_p->len  = 0;
                 tmp = move(old_p);
                 old_p = move(pfrm[i]);
                 pfrm[i] = move(tmp);
-                pfrm[i]->len = 0;
                 break;
               }
             }
@@ -571,67 +586,61 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
               b = 1;
             break;
             // wait for pin transition or timeout
-        case t when timerafter(tp+T*2.5) :> tp: // timeout (adjusting tp will be a problem for start condition, when signal go dow, the pulse width seems to be short
-            if (pv == high)
+        case t when timerafter(tp+nxtp) :> tp: // timeout (adjusting tp will be a problem for start condition, when signal go dow, the pulse width seems to be short
+            nxtp = 10*sec;
+            if ((pv != high) && (wr_frame->len !=0))  // check stop bit and collected data
             {
-                // start condition
-                bitcount = 0xF0;    // invalidate next transition (long low level does not produce data when go high, not need to set bit to 0xFF)
-            } else
-            {
-              // end of data it will happens many times when we are waiting for start signal
-              if (wr_frame->len !=0)
+              // if bitcount !=0 then it was not received full byte, comunication broken
+
+              // If data was received then store in buffers
+              int i = 0;
+              for (;i < MAX_FRAME;++i)
               {
-                // add full frame to list and notify
-                for (int i = 0;i < MAX_FRAME;++i)
+                if (pfrm[i]->len == 0)
                 {
-                  if (pfrm[i]->len == 0)
-                  {
-                    printf("push %d\n",wr_frame->len);
-                    struct tx_frame_t  * movable tmp;
-                    tmp = move(wr_frame);
-                    wr_frame = move(pfrm[i]);
-                    pfrm[i] = move(tmp);
-                    rx.ondata();
-                    break;
-                  }
-                }
-                if (wr_frame->len != 0)   // there is not empty frame
-                {
-                   printf(".\n");
-                   wr_frame->len = 0;   // reuse the same frame
+                  printf("push %d\n",wr_frame->len);
+                  struct tx_frame_t  * movable tmp;
+                  tmp = move(wr_frame);
+                  wr_frame = move(pfrm[i]);
+                  pfrm[i] = move(tmp);
+                  rx.ondata();
+                  break;
                 }
               }
+              if (i == MAX_FRAME)   // there is not empty frame
+              {
+                 printf(":\n");
+              }
             }
+            // timeout will reset all
+            wr_frame->len = 0;
+            bitcount = 0;
+            val = 0;
             break;
             case RX when pinsneq(pv) :> pv: // for t < 1.5 is 0 otherwise is 1
               int te;
               t :> te;
-              if (pv != high)  // is signal going low
+              if (pv != high && nxtp < 1*sec)  // is signal going low and it is not timeout
               {
-                if (bitcount < 8) // this is not an ignored transition of start signal?
+                // store received bit
+                val <<= 1;
+                if (te - tp > T*1.5) val |= 1;
+                bitcount++;
+                if (bitcount == 8)    // every 8 bits store value on buffer
                 {
-                  val <<= 1;
-                  if (te - tp > T*1.5) val |= 1;
-                  bitcount++;
-                  if (bitcount == 8)
+                  wr_frame->dt[wr_frame->len] = val;
+                  wr_frame->len++;
+                  if (wr_frame->len == sizeof(wr_frame->dt))
                   {
-                    wr_frame->dt[wr_frame->len] = val;
-                    wr_frame->len++;
-                    if (wr_frame->len == sizeof(wr_frame->dt))
-                    {
-                      printf(":\n");  // overflow
-                      wr_frame->len = 0;
-                    }
-                    bitcount = 0;
-                    val = 0;
+                    printf(":\n");  // overflow more than 20 bytes received
+                    wr_frame->len = 0;
                   }
-                } else
-                {
-                  bitcount = 0; // it was a start signal going low, just ignore, but now we are ready to store data next time
-                  wr_frame->len = 0;
+                  bitcount = 0;
+                  val = 0;
                 }
               }
               tp = te;
+              nxtp = 2.5*T;   // timeout cleared.
               break;
        }
     }

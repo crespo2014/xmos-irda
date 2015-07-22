@@ -57,4 +57,25 @@ extern void TX(client interface tx_rx_if tx,out port TX,unsigned T);
 extern void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char low,unsigned char high);
 extern void irda_RX(server interface tx_rx_if rx,in port RX,unsigned T,unsigned char high);
 
+/*
+ * send a byte from MSB to LSB
+ * 1 will be 110
+ * 0 will be 10
+ * t - timer
+ * tp - start timepoint, it will be update to end tp
+ * bitlen - leng of bit
+ * uc_dt - unsigned char to send
+ * p - out port
+ */
+
+#define SERIAL_SEND(uc_dt,bitlen,t,tp,p,high,low) \
+    for (unsigned char mask = 0x80;mask != 0;mask>>=1) { \
+      p <: high;  \
+      tp += bitlen; \
+      if ((uc_dt & mask) != 0) tp += bitlen; \
+      t when timerafter(tp) :> void; \
+      p <: low;  \
+      tp += bitlen; \
+      t when timerafter(tp) :> void; \
+    }
 #endif /* RXTX_H_ */
