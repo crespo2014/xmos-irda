@@ -157,44 +157,6 @@ inline void irda_send(unsigned int v,unsigned char bitcount,unsigned char high,u
 }
 
 /*
- * Send bytes from 0 to n from MSB to LSB
- * High for 3T low for 1T
- * Send data high for 2t if 1 or high for 1T if 0
- * Stop as low for 3T
- */
-inline void send(const char* dt,char count,unsigned char high,unsigned char low,out port p, unsigned int T)
-{
-  unsigned char bitmask;
-  timer t;
-  int tp;
-  // send start bit
-  p <: high;
-  t :> tp;
-  t when timerafter(tp + 3*T) :> tp;
-  p <: low;
-  t when timerafter(tp + T) :> tp;
-  while (count)
-  {
-    bitmask = (1<<7);
-    while (bitmask)
-    {
-      p <: high;
-      tp += T;
-      if ((*dt) & bitmask)   //1 is 2T 0 is T
-        tp += T;
-      t when timerafter(tp) :> tp;
-      p <: low;
-      t when timerafter(tp + T) :> tp;
-      bitmask >>= 1;
-    }
-    --count;
-    ++dt;
-  }
-  // keep low for stop bit
-  t when timerafter(tp + 3*T) :> tp;
-}
-
-/*
  * Packet router.
  * All packets are delivery to the router
  * router will read from all places until buffers become all full
@@ -524,6 +486,7 @@ void TX(client interface tx_rx_if tx,out port p,unsigned T)
              //stop bit
              tp += 3*T;
              t when timerafter(tp) :> void;
+             pfrm->len = 0;
           }
         }
         break;
@@ -548,20 +511,20 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
     unsigned int tp;       // time point
     unsigned int nxtp;    // next time point to wait for
     unsigned char pv;            // current rx pin value
-    unsigned char bitcount = 0; // how many bits have been received invalid if > 64
+    unsigned char bitcount; // how many bits have been received invalid if > 64
     unsigned char val;          // coping incoming bytes to this variable
-    // bitcount can be use as timeout status. it vaue is 0xFF then a timeout was received then next transition must be ignored
+    unsigned char reading;      // true if start bit was recieved
     const unsigned char high = 1;
 
     for (int i = 0;i < MAX_FRAME;++i)
     {
         pfrm[i]->len = 0;
     }
+    reading = 0;
     wr_frame->len = 0;
-    bitcount = 0xF0;
-    t :> tp;    // get current time
-    nxtp = tp + 10*sec;
     RX :> pv;
+    t :> tp;    // get current time
+    nxtp = tp + 2.5*T;    // pick first timeout
     for (;;)
     {
        select {
@@ -588,28 +551,38 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
             // wait for pin transition or timeout
         case t when timerafter(tp+nxtp) :> tp: // timeout (adjusting tp will be a problem for start condition, when signal go dow, the pulse width seems to be short
             nxtp = 10*sec;
-            if ((pv != high) && (wr_frame->len !=0))  // check stop bit and collected data
+            if (pv == high)
             {
-              // if bitcount !=0 then it was not received full byte, comunication broken
+             //start signal
+             reading = 1;
+            }
+            else
+            {
+              // stop signal
+              reading = 0;
+              if (wr_frame->len !=0)
+              {
+                // if bitcount !=0 then it was not received full byte, comunication broken
 
-              // If data was received then store in buffers
-              int i = 0;
-              for (;i < MAX_FRAME;++i)
-              {
-                if (pfrm[i]->len == 0)
+                // If data was received then store in buffers
+                int i = 0;
+                for (;i < MAX_FRAME;++i)
                 {
-                  printf("push %d\n",wr_frame->len);
-                  struct tx_frame_t  * movable tmp;
-                  tmp = move(wr_frame);
-                  wr_frame = move(pfrm[i]);
-                  pfrm[i] = move(tmp);
-                  rx.ondata();
-                  break;
+                  if (pfrm[i]->len == 0)
+                  {
+                    printf("push %d\n",wr_frame->len);
+                    struct tx_frame_t  * movable tmp;
+                    tmp = move(wr_frame);
+                    wr_frame = move(pfrm[i]);
+                    pfrm[i] = move(tmp);
+                    rx.ondata();
+                    break;
+                  }
                 }
-              }
-              if (i == MAX_FRAME)   // there is not empty frame
-              {
-                 printf(":\n");
+                if (i == MAX_FRAME)   // there is not empty frame
+                {
+                   printf(":\n");
+                }
               }
             }
             // timeout will reset all
@@ -620,7 +593,7 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
             case RX when pinsneq(pv) :> pv: // for t < 1.5 is 0 otherwise is 1
               int te;
               t :> te;
-              if (pv != high && nxtp < 1*sec)  // is signal going low and it is not timeout
+              if (pv != high && reading && nxtp < 1*sec)  // is signal going low and it is not timeout
               {
                 // store received bit
                 val <<= 1;
@@ -644,5 +617,4 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
               break;
        }
     }
-
 }
