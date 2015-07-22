@@ -130,31 +130,31 @@ inline unsigned char buff_push(struct frm_buff_t &buff,enum dest_e dst,struct tx
  * Send high for 3T then send 1 as high for 2T an 0 as high for 1T
  * end signal is low for 3T
  */
-inline void irda_send(unsigned int v,unsigned char bitcount,unsigned char high,unsigned char low,out port p, unsigned int BIT_LEN)
-{
-  timer t;
-  unsigned int tp;
-  unsigned int len;
-  unsigned int bitmask = 1 << (bitcount -1);
-  // send start bit
-  len = 4*BIT_LEN;
-  IRDA_PULSE(27*us,tp,len,t,p,1,0);
-  tp += BIT_LEN;
-  t when timerafter(tp) :> void;
-  // send data
-  while (bitmask != 0)
-  {
-      len = BIT_LEN;
-      if (v & bitmask)   //1 is 2T 0 is T
-          len += BIT_LEN;
-      IRDA_PULSE(27*us,tp,len,t,p,1,0);
-      tp += BIT_LEN;
-      t when timerafter(tp) :> void;
-      bitmask >>= 1;
-  }
-  // keep low for stop bit
-  t when timerafter(tp + 3*BIT_LEN) :> tp;
-}
+//inline void irda_send(unsigned int v,unsigned char bitcount,unsigned char high,unsigned char low,out port p, unsigned int BIT_LEN)
+//{
+//  timer t;
+//  unsigned int tp;
+//  unsigned int len;
+//  unsigned int bitmask = 1 << (bitcount -1);
+//  // send start bit
+//  len = 4*BIT_LEN;
+//  IRDA_PULSE(27*us,tp,len,t,p,1,0);
+//  tp += BIT_LEN;
+//  t when timerafter(tp) :> void;
+//  // send data
+//  while (bitmask != 0)
+//  {
+//      len = BIT_LEN;
+//      if (v & bitmask)   //1 is 2T 0 is T
+//          len += BIT_LEN;
+//      IRDA_PULSE(27*us,tp,len,t,p,1,0);
+//      tp += BIT_LEN;
+//      t when timerafter(tp) :> void;
+//      bitmask >>= 1;
+//  }
+//  // keep low for stop bit
+//  t when timerafter(tp + 3*BIT_LEN) :> tp;
+//}
 
 /*
  * Packet router.
@@ -171,11 +171,13 @@ inline void irda_send(unsigned int v,unsigned char bitcount,unsigned char high,u
  * cmd interface will be like a RX, it will pick from Rx, process, signal, wait for purge
  */
 [[combinable]]
-void Router(server interface tx_rx_if ch0_tx,
-            server interface tx_rx_if ch1_tx,
-            client interface tx_rx_if ch0_rx,
-            client interface tx_rx_if ch1_rx,
-            server interface cmd_push_if cmd)
+void Router(
+    server interface tx_rx_if ch0_tx,
+    server interface tx_rx_if ch1_tx,
+    client interface tx_rx_if ch0_rx,
+    client interface tx_rx_if ch1_rx,
+    server interface cmd_push_if cmd,
+    client interface fault_if fault)
 {
   struct tx_frame_t frm[BUFF_MAX];
   struct frm_buff_t buff = {{},{&frm[0],&frm[1],&frm[2],&frm[3],&frm[4],&frm[5],&frm[6],&frm[7]} };
@@ -243,9 +245,11 @@ void Router(server interface tx_rx_if ch0_tx,
  * when command is ready it will be a notification
  */
 
-[[combinable]] void CMD(client interface cmd_push_if router,
+[[combinable]] void CMD(
+    client interface cmd_push_if router,
     server interface tx_rx_if irda_tx,
-    client interface tx_rx_if irda_rx)
+    client interface tx_rx_if irda_rx,
+    client interface fault_if fault)
 {
   struct tx_frame_t   frm,irda_frm;     // frame ready to be send to irda tx
   struct tx_frame_t* movable p = &frm;
@@ -303,7 +307,7 @@ void Router(server interface tx_rx_if ch0_tx,
  * first bytes is the numbers of bit received
  * T is bit lengh
  */
-void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char high)
+[[combinable]] void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char high,client interface fault_if fault)
 {
 #define irda_rx_frm_count 2
   struct tx_frame_t frm[irda_rx_frm_count];
@@ -326,7 +330,7 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char hig
   bitcount = 0;
   val = 0;
   reading = 0;
-  for (;;)
+  while (1)
   {
      select {
       case rx.get(struct tx_frame_t  * movable &old_p) -> unsigned char b :
@@ -419,11 +423,11 @@ void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char hig
  * bit   - bitcount.
  * data - 4 bytes from lsb to msb (Bit are send from MSb to LSB using a bit mask)
  */
-void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char low,unsigned char high)
+void irda_TX(client interface tx_rx_if tx,out port TX,unsigned bitlen,unsigned char low,unsigned char high)
 {
   struct tx_frame_t frm;
   struct tx_frame_t* movable pfrm = &frm;
-
+  timer t;
   TX <: low;
   for(;;)     // do not make it combinable, because send data take a while
   {
@@ -436,8 +440,8 @@ void irda_TX(client interface tx_rx_if tx,out port TX,unsigned T,unsigned char l
         // send data
         if (pfrm->len == 7 &&  pfrm->dt[2] > 0)
         {
-          irda_send(pfrm->dt[3] | (pfrm->dt[4] << 8) | (pfrm->dt[5] << 16 ) | (pfrm->dt[6] << 24),
-              pfrm->dt[2],high,low,TX,T);
+          unsigned int dt = pfrm->dt[3] | (pfrm->dt[4] << 8) | (pfrm->dt[5] << 16 ) | (pfrm->dt[6] << 24);
+          SONY_IRDA_SEND(dt,pfrm->dt[2],bitlen,t,TX,high,low);
         }
       }
       break;
@@ -501,7 +505,7 @@ void TX(client interface tx_rx_if tx,out port p,unsigned T)
  * cmd interface will pick the buffer and can send also to tx interface, but tx has to send back
  *
  */
-void RX(server interface tx_rx_if rx,in port RX,unsigned T)
+void RX(server interface tx_rx_if rx,in port RX,unsigned T,client interface fault_if fault)
 {
     struct tx_frame_t cfrm;
     struct tx_frame_t frm[MAX_FRAME];
@@ -621,18 +625,48 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T)
 /*
  * User interface
  * For error reporting
+ * 2 hz flashing led
  */
-[[combinable]] void ui(server interface fault_if ch0_rx,
-               server interface fault_if ch1_rx,
-               server interface fault_if router,
-               server interface fault_if cmd,
-               server interface fault_if irda_rx)
+[[combinable]] void ui(
+    out port p,
+    server interface fault_if ch0_rx,
+    server interface fault_if ch1_rx,
+    server interface fault_if router,
+    server interface fault_if cmd,
+    server interface fault_if irda_rx)
 {
+  unsigned int faults;
+  unsigned char led_on = 0;
+  timer t;
+  unsigned int tp;
+  t :> tp;
+  tp += 500*ms;
   while(1)
   {
     select
     {
-      case ch0_rx.fault(unsigned char id):
+      case ch0_rx.fault(unsigned int id):
+        faults |= id;
+        break;
+      case ch1_rx.fault(unsigned int id):
+        faults |= id;
+        break;
+      case router.fault(unsigned int id):
+        faults |= id;
+        break;
+      case cmd.fault(unsigned int id):
+        faults |= id;
+        break;
+      case irda_rx.fault(unsigned int id):
+        faults |= id;
+        break;
+      case t when timerafter(tp) :>void:
+        tp += 500*ms;
+        if (led_on)
+          p <:0;
+        else
+          p <: faults;
+        led_on = !led_on;
         break;
     }
   }

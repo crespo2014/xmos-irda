@@ -55,5 +55,33 @@ if there is not space no more pulse will be produce.
     t when timerafter(tp) :> void;\
   } while(len != 0);
 
+/*
+ * Send a frame of bits as irda transmition
+ * from msb to lsb
+ * ui unsigned integer  data to send
+ * bitcount  - how many bits to send
+ * bitlen - len of a pulse (0 = 10, 1 = 110)
+ * t timer object
+ * p out port
+ */
+#define SONY_IRDA_SEND(ui,bitcount,bitlen,t,p,high,low) \
+    do { \
+      unsigned int bitmask = (1<<(bitcount-1));  \
+      unsigned int len = 4*bitlen;    /*send start bit */\
+      unsigned int tp;  \
+      t :> tp;  \
+      IRDA_PULSE(27*us,tp,len,t,p,1,0); \
+      tp += bitlen; \
+      t when timerafter(tp) :> void; \
+      while (bitmask != 0)  { \
+          len = bitlen; \
+          if (ui & bitmask) len += bitlen; /* 1 is 2T 0 is T */ \
+          IRDA_PULSE(27*us,tp,len,t,p,high,low); \
+          tp += bitlen; \
+          t when timerafter(tp) :> void; \
+          bitmask >>= 1; \
+      } \
+    t when timerafter(tp + 3*bitlen) :> tp;   /* keep low for stop bit */ \
+    } while(0)
 
 #endif /* IRDA_H_ */
