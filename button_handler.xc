@@ -625,7 +625,7 @@ in port gpio_ch0_rx = XS1_PORT_1G;
 out port gpio_ch0_tx = XS1_PORT_1B;
 in port gpio_ch1_rx = XS1_PORT_1A;
 out port gpio_ch1_tx = XS1_PORT_1F;
-out port gpio_irda_tx = XS1_PORT_1E;
+out port gpio_irda_tx = XS1_PORT_1C;
 
 in port gpio_irda_rx = XS1_PORT_1H;
 out port gpio_fault = XS1_PORT_32A;
@@ -635,6 +635,7 @@ out port gpio_fault = XS1_PORT_32A;
 on stdcore[0] : out port tx      = XS1_PORT_1A;
 on stdcore[0] : in  port rx      = XS1_PORT_1B;
 */
+/*
 int main1() {
 
     interface tx_rx_if ch0tx,ch1tx,ch0rx,ch1rx,irda_tx,irda_rx;
@@ -658,3 +659,4 @@ int main1() {
     }
     return 0;
 }
+*/
