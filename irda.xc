@@ -19,8 +19,8 @@
 out port led_1 = XS1_PORT_1D;
 clock    clk      = XS1_CLKBLK_1;
 
-#define USER_CLK_DIV    255                 //
-#define USER_T_ns       (250*1000*1000)    //1 sec
+#define USER_CLK_DIV    250                 //
+#define USER_T_ns       (1000*1000)    //
 #define USER_CLK_T_ns   (XCORE_CLK_T_ns*USER_CLK_DIV) // T of clock
 #define USER_CLK_PER_T  (USER_T_ns/USER_CLK_T_ns)
 
@@ -42,9 +42,9 @@ counting 256 per Mhz
 int main()
 {
   timer t;
-  unsigned int tp,tp2;
+  unsigned int tp,tp2,tp3;
   int p;
-  unsigned int count1,count2,count;
+  int count1,count2,count;
   configure_clock_xcore(clk,USER_CLK_DIV);     // dividing clock ticks
   //configure_clock_rate(clk, 100, 128);
   configure_in_port(led_1, clk);
@@ -78,25 +78,26 @@ int main()
 //  return 0;
 //
 //
+  led_1 <: 0 @ count;
   for(;;)
   {
-    led_1 @count <: 1;
-    count += (USER_CLK_PER_T);
-    led_1 @count <: 1;
-    count += (USER_CLK_PER_T);
-    led_1 @count <: 1;
-    count += (USER_CLK_PER_T);
-    led_1 @count <: 1;
-    count += (USER_CLK_PER_T);
-
-    led_1 @count <: 0;
-    count += (USER_CLK_PER_T);
-    led_1 @count <: 0;
-    count += (USER_CLK_PER_T);
-    led_1 @count <: 0;
-    count += (USER_CLK_PER_T);
-    led_1 @count <: 0;
-    count += (USER_CLK_PER_T);
+    t :> tp;
+    // 1000 ms
+    for (int i=500;i !=0;--i)
+    {
+      count += (USER_CLK_PER_T);
+      led_1 @count <: 1;
+    }
+    sync(led_1);
+    t :> tp2;
+    for (int i=1500;i !=0;--i)
+    {
+      count += (USER_CLK_PER_T);
+      led_1 @count <: 0;
+    }
+    sync(led_1);
+    t :> tp3;
+    printf("%d %d\n",tp2-tp,tp3-tp2);
   }
 //
 //  for (;;)
