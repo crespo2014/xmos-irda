@@ -441,7 +441,7 @@ void irda_TX(client interface tx_rx_if tx,out port TX,unsigned bitlen,unsigned c
         if (pfrm->len == 7 &&  pfrm->dt[2] > 0)
         {
           unsigned int dt = pfrm->dt[3] | (pfrm->dt[4] << 8) | (pfrm->dt[5] << 16 ) | (pfrm->dt[6] << 24);
-          SONY_IRDA_SEND(dt,pfrm->dt[2],bitlen,t,TX,high,low);
+          //SONY_IRDA_SEND(dt,pfrm->dt[2],bitlen,t,TX,high,low);
         }
       }
       break;
