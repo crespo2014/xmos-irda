@@ -621,7 +621,7 @@ void gen_clock(out port txd) {
 }
 
 out port gpio_clock = XS1_PORT_1I;
-in port gpio_ch0_rx = XS1_PORT_1G;
+in port gpio_ch0_rx = XS1_PORT_1K;
 out port gpio_ch0_tx = XS1_PORT_1B;
 in port gpio_ch1_rx = XS1_PORT_1A;
 out port gpio_ch1_tx = XS1_PORT_1F;
