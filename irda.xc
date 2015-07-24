@@ -83,21 +83,19 @@ int main()
   {
     t :> tp;
     // 1000 ms
-    for (int i=500;i !=0;--i)
+    for (int i=1000;i !=0;--i)
     {
       count += (USER_CLK_PER_T);
       led_1 @count <: 1;
     }
-    sync(led_1);
-    t :> tp2;
-    for (int i=1500;i !=0;--i)
+    for (int i=1000;i !=0;--i)
     {
       count += (USER_CLK_PER_T);
       led_1 @count <: 0;
     }
-    sync(led_1);
+//    sync(led_1);
     t :> tp3;
-    printf("%d %d\n",tp2-tp,tp3-tp2);
+    //printf("%d %d\n",tp2-tp,tp3-tp);
   }
 //
 //  for (;;)

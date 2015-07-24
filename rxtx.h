@@ -34,7 +34,7 @@
  *
  */
 
-#define XCORE_CLK_T_ns 5
+#define XCORE_CLK_T_ns         10
 #define IRDA_XCORE_CLK_DIV     32
 #define IRDA_CLK_T_ns          (XCORE_CLK_T_ns*IRDA_XCORE_CLK_DIV) // T of clock to generated irda carrier
 #define IRDA_CARRIER_T_ns      27777
