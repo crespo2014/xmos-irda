@@ -43,7 +43,7 @@ int main()
   start_clock(clk);
   unsigned int a  = IRDA_CLK_PER_BIT;
   unsigned int b = IRDA_PULSE_PER_BIT;
-  printf("%d%d\n ",a,b);
+  printf("%d %d\n",a,b);
   led_1 <: 1;
   led_1 <: 0 @count;
   count += 1;
