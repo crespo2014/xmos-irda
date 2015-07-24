@@ -16,50 +16,99 @@
 #include <rxtx.h>
 #include "irda.h"
 
-out port led_1 = XS1_PORT_1E;
+out port led_1 = XS1_PORT_1D;
 clock    clk      = XS1_CLKBLK_1;
+
+#define USER_CLK_DIV    250                 //
+#define USER_T_ns       (1000*1000)    //
+#define USER_CLK_T_ns   (XCORE_CLK_T_ns*USER_CLK_DIV) // T of clock
+#define USER_CLK_PER_T  (USER_T_ns/USER_CLK_T_ns)
+
 /*
-create a clocked port for irda transmition
-TODO check sync function to wait for port
-use a 100/32 clock = .32us x 25 is 8us
-counter can be increase by 25 or 50 it is good
-Generated a pulse using N sub pulses of carrier - do not wait for last zero. - reset counter on each pulse
-wait for next transition and repeat.
-a timer will adjust pulse start point
 
 SPI synchronization byte
 10010001 - it is easy to known how many bits has been shifted
+
+using configure_clock_xcore taking samples at 1us
+DIV,portcount
+1us  1,255 2,128 4,64 8,32 16,16
+10us (16,157) (32,78) (64,38)
+100us (64,390) (128,194) (255,97)
+1ms (255,979)
+
+counting 256 per Mhz
 */
 
 int main()
 {
   timer t;
-  unsigned int tp;
-  unsigned int count;
-  //configure_clock_xcore(clk,2);     // 0.5ms pulse
-  //configure_clock_rate(clk, 100, 80); // .8us pulse x100 80us pulse
-  configure_clock_rate(clk, 100, 32); // 0.32us pulse
-  configure_out_port(led_1, clk, 0);
+  unsigned int tp,tp2,tp3;
+  int p;
+  int count1,count2,count;
+  configure_clock_xcore(clk,USER_CLK_DIV);     // dividing clock ticks
+  //configure_clock_rate(clk, 100, 128);
+  configure_in_port(led_1, clk);
   start_clock(clk);
-  unsigned int a  = IRDA_CLK_PER_BIT;
-  unsigned int b = IRDA_PULSE_PER_BIT;
-  printf("%d %d\n",a,b);
-  led_1 <: 1;
-  led_1 <: 0 @count;
-  count += 1;
-  led_1 @count <: 1;
-  count += 1;
-  led_1 @count <: 0;
-  count += 1;
-  led_1 @count <: 1;
-  count += 1;
-  return 0;
-  led_1 @count <: 0;
-  count += 1;
-  led_1 @count <: 1;
-  count += 1;
-  led_1 @count <: 0;
+  //printf("%d %d %d %d\n ",IRDA_CLK_T_ns,IRDA_CARRIER_CLK,IRDA_CLK_PER_BIT,IRDA_PULSE_PER_BIT);
+  printf("%d %d %d %d\n",USER_CLK_T_ns,USER_CLK_PER_T,0,0);
+  t :> tp;
+//  led_1 :> p @ count1;
+//  t when timerafter(tp+100*us) :> void;
+//  led_1 :> p @ count2;
+//  t :> tp2;
+  printf("%d \n",100*1000/USER_CLK_T_ns);
+  printf("%d \n",count2-count1);
 
+//  led_1 <: 0 @ count1;
+//  count1 += 2;
+//  led_1 @ count1  <: 0 ;
+//  sync(led_1);
+//  t :> tp2;
+//  printf("%d \n",tp2-tp);
+//
+//
+//  tp += us;
+//  t when timerafter(tp) :> void;
+//  led_1 <: 0 @ count2;
+//  tp += us;
+//  t when timerafter(tp) :> void;
+//  led_1 <: 0 @ count;
+//  printf("%d \n",count2-count1);
+//  printf("%d \n",count-count2);
+//  return 0;
+//
+//
+  led_1 <: 0 @ count;
+  for(;;)
+  {
+    t :> tp;
+    // 1000 ms
+    for (int i=500;i !=0;--i)
+    {
+      count += (USER_CLK_PER_T);
+      led_1 @count <: 1;
+    }
+    sync(led_1);
+    t :> tp2;
+    for (int i=1500;i !=0;--i)
+    {
+      count += (USER_CLK_PER_T);
+      led_1 @count <: 0;
+    }
+    sync(led_1);
+    t :> tp3;
+    printf("%d %d\n",tp2-tp,tp3-tp2);
+  }
+//
+//  for (;;)
+//  {
+//  IRDA_BIT_v1(led_1,1,1,0);
+////  tp += 1*sec;
+////  t when timerafter(tp) :> void;
+//  IRDA_BIT_v1(led_1,2,1,0);
+////  tp += 1*sec;
+////  t when timerafter(tp) :> void;
+//  }
 
   return 0;
 
