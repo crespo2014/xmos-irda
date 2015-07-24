@@ -34,12 +34,12 @@
  *
  */
 
-#define XCORE_CLK_T_ns 5
-#define IRDA_XCORE_CLK_DIV     32
+#define XCORE_CLK_T_ns         4    // produced clock T
+#define IRDA_XCORE_CLK_DIV     255
 #define IRDA_CLK_T_ns          (XCORE_CLK_T_ns*IRDA_XCORE_CLK_DIV) // T of clock to generated irda carrier
 #define IRDA_CARRIER_T_ns      27777
 #define IRDA_CARRIER_CLK       (IRDA_CARRIER_T_ns/IRDA_CLK_T_ns)    // How many pulse to produce the carrier
-#define IRDA_CARRIER_CLK_TON   (IRDA_CARRIER_CLK/4)
+#define IRDA_CARRIER_CLK_TON   (IRDA_CARRIER_CLK/5)
 #define IRDA_CARRIER_CLK_TOFF  (IRDA_CARRIER_CLK - IRDA_CARRIER_CLK_TON)
 
 #define IRDA_BIT_LEN_ns     600000

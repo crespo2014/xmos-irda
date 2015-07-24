@@ -51,30 +51,29 @@ Philips (1111.....)
 /*
  * Send a frame of bits as irda transmition
  * from msb to lsb
- * ui unsigned integer  data to send
+ * dt unsigned integer  data to send
  * bitcount  - how many bits to send
  * bitlen - len of a pulse (0 = 10, 1 = 110)
  * t timer object
  * p out port
  */
-//#define SONY_IRDA_SEND(ui,bitcount,bitlen,t,p,high,low) \
-//    do { \
-//      unsigned int bitmask = (1<<(bitcount-1));  \
-//      unsigned int len = 4*bitlen;    /*send start bit */\
-//      unsigned int tp;  \
-//      t :> tp;  \
-//      IRDA_BIT_v1(p,4,high,low); \
-//      tp += bitlen; \
-//      t when timerafter(tp) :> void; \
-//      while (bitmask != 0)  { \
-//          len = bitlen; \
-//          if (ui & bitmask) len += bitlen; /* 1 is 2T 0 is T */ \
-//          IRDA_BIT_v1(p,((ui & bitmask) ? 2 : 1) ,high,low); \
-//          tp += bitlen; \
-//          t when timerafter(tp) :> void; \
-//          bitmask >>= 1; \
-//      } \
-//    t when timerafter(tp + 3*bitlen) :> tp;   /* keep low for stop bit */ \
-//    } while(0)
+#define SONY_IRDA_SEND(dt,bitcount,t,p,high,low) \
+    do { \
+      unsigned int bitmask = (1<<(bitcount-1));  \
+      unsigned int tp;  \
+      unsigned char len; \
+      t :> tp;  \
+      IRDA_BIT_v1(p,4,high,low); /*send start bit */ \
+      tp = tp + (4+1)*IRDA_BIT_LEN_ns/SYS_TIMER_T_ns; \
+      t when timerafter(tp) :> void; \
+      while (bitmask != 0)  { \
+          len = (dt & bitmask) ? 2 : 1; /* 1 is 2T 0 is T */ \
+          IRDA_BIT_v1(p,len ,high,low); \
+          tp = tp + (len+1)*IRDA_BIT_LEN_ns/SYS_TIMER_T_ns; \
+          t when timerafter(tp) :> void; \
+          bitmask >>= 1; \
+      } \
+    t when timerafter(tp + 3*IRDA_BIT_LEN_ns/SYS_TIMER_T_ns) :> tp;   /* keep low for stop bit */ \
+    } while(0)
 
 #endif /* IRDA_H_ */
