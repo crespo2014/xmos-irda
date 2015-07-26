@@ -16,12 +16,14 @@
 #include <rxtx.h>
 #include "irda.h"
 
-out port led_1 = XS1_PORT_1D;
-out port clk_pin = XS1_PORT_1G;
+out port led_1 = XS1_PORT_1G;
+in port gpio_irda_rx = XS1_PORT_1H;
+
+//out port clk_pin = XS1_PORT_1G;
 clock    clk      = XS1_CLKBLK_1;
 
 #define USER_CLK_DIV    255                 //
-#define USER_T_ns       (1000*1000*1000)    //
+#define USER_T_ns       (1000*1000)    //
 #define USER_CLK_T_ns   (XCORE_CLK_T_ns*USER_CLK_DIV) // T of clock two times pulse width
 #define USER_CLK_PER_T  (USER_T_ns/USER_CLK_T_ns)
 
@@ -47,36 +49,79 @@ div =
 10 - 20ns     T = 40ns
 */
 
-int main()
+void irda_send_loop()
 {
   timer t;
-  configure_clock_xcore(clk,1);     // dividing clock ticks
-  //configure_clock_rate(clk, 100, 128);
+  unsigned tp;
+  for (;;)
+   {
+   SONY_IRDA_SEND(0x55,8,t,led_1,1,0);
+   t :> tp;
+   t when timerafter(tp+sec) :> tp;
+   }
+}
+
+void irda_cmd(client interface tx_rx_if irda_rx,server interface fault_if fault)
+{
+  struct tx_frame_t   frm;
+  struct tx_frame_t* movable p = &frm;
+  while(1)
+  {
+    select
+    {
+      case irda_rx.ondata():
+      while (irda_rx.get(p) == 1)
+      {
+        unsigned int v = 0;
+        for (int i= 3;i< p->len;++i)
+        {
+          v <<= 8;
+          v += p->dt[i];
+        }
+        printf("%X\n",v);
+      }
+      break;
+    }
+  }
+}
+
+int main()
+{
+  interface tx_rx_if irda_rx;
+  interface fault_if fault;
+
+  configure_clock_xcore(clk,USER_CLK_DIV);     // dividing clock ticks
   configure_in_port(led_1, clk);
   //configure_port_clock_output(clk_pin, clk);
-
   start_clock(clk);
-  printf("%d %d %d %d\n ",IRDA_CLK_T_ns,IRDA_CARRIER_CLK,IRDA_CLK_PER_BIT,IRDA_PULSE_PER_BIT);
-  printf("%d %d %d %d\n",USER_CLK_T_ns,USER_CLK_PER_T,0,0);
 
-  IRDA_BIT_v1(led_1,1,1,0);
-  IRDA_BIT_v1(led_1,2,1,0);
-  IRDA_BIT_v1(led_1,4,1,0);
-  return 0;
+  par
+  {
+    irda_RX(irda_rx,gpio_irda_rx,IRDA_BIT_LEN_ns/SYS_TIMER_T_ns,0,fault);
+    irda_cmd(irda_rx,fault);
+  }
 
-  SONY_IRDA_SEND(0x55555,2,t,led_1,1,0);
-
+//  sync(led_1);
+//  t :> tp;
+//  led_1 <: 0 @count;
+//  count++;
+//  led_1 <: 0 @count;
+//  t :> tp2;
+//  printf("%d\n",tp2-tp);
 //
 //  for (;;)
 //  {
-//  IRDA_BIT_v1(led_1,1,1,0);
-////  tp += 1*sec;
-////  t when timerafter(tp) :> void;
-//  IRDA_BIT_v1(led_1,2,1,0);
-////  tp += 1*sec;
-////  t when timerafter(tp) :> void;
+//    for (int i =500;i>0;--i)
+//    {
+//    count += USER_CLK_PER_T;
+//    led_1 @count <: 1;
+//    }
+//    for (int i =500;i>0;--i)
+//    {
+//    count += USER_CLK_PER_T;
+//    led_1 @count <: 0;
+//    }
 //  }
-
   return 0;
 }
 

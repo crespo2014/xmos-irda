@@ -15,9 +15,6 @@
 #define ms  100000
 #define us  100        // 1 usecond
 
-
-
-
 /*
  * TODO
  * use clocked port for irda output

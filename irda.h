@@ -56,6 +56,12 @@ Philips (1111.....)
  * bitlen - len of a pulse (0 = 10, 1 = 110)
  * t timer object
  * p out port
+ *
+ * get time.
+ * send 4bit pulse
+ * wait until 5bits time
+ * send nbits data
+ * wait (n+1) bits
  */
 #define SONY_IRDA_SEND(dt,bitcount,t,p,high,low) \
     do { \

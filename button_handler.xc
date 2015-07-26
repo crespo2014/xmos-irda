@@ -627,7 +627,7 @@ in port gpio_ch1_rx = XS1_PORT_1A;
 out port gpio_ch1_tx = XS1_PORT_1F;
 out port gpio_irda_tx = XS1_PORT_1C;
 
-in port gpio_irda_rx = XS1_PORT_1H;
+//in port gpio_irda_rx = XS1_PORT_1H;
 out port gpio_fault = XS1_PORT_32A;
 
 

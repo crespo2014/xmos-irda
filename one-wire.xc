@@ -305,7 +305,7 @@ void Router(
 /*
  * Read data from irda port, max of 32 bits of data are allowed
  * first bytes is the numbers of bit received
- * T is bit lengh
+ * T is bit lengh in timer units
  */
 [[combinable]] void irda_RX(server interface tx_rx_if rx,in port p,unsigned T,unsigned char high,client interface fault_if fault)
 {
