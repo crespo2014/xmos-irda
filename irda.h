@@ -103,16 +103,17 @@ Philips (1111.....)
       unsigned char len; \
       t :> tp;  \
       IRDA_BIT_v1(p,4,high,low); /*send start bit */ \
-      tp = tp + (4+1)*IRDA_BIT_LEN_ns/SYS_TIMER_T_ns; \
+      tp = tp + (4+1)*IRDA_BIT_ticks; \
       t when timerafter(tp) :> void; \
       while (bitmask != 0)  { \
           len = (dt & bitmask) ? 2 : 1; /* 1 is 2T 0 is T */ \
           IRDA_BIT_v1(p,len ,high,low); \
-          tp = tp + (len+1)*IRDA_BIT_LEN_ns/SYS_TIMER_T_ns; \
+          tp = tp + (len+1)*IRDA_BIT_ticks; \
           t when timerafter(tp) :> void; \
           bitmask >>= 1; \
       } \
-    t when timerafter(tp + 3*IRDA_BIT_LEN_ns/SYS_TIMER_T_ns) :> tp;   /* keep low for stop bit */ \
+      tp = tp + 3*IRDA_BIT_ticks;  /* keep low for stop bit */ \
+      t when timerafter(tp) :> void; \
     } while(0)
 
 #endif /* IRDA_H_ */

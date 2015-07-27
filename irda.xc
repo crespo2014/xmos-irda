@@ -661,10 +661,13 @@ void timed_irda()
 }
 void clocked_irda()
 {
+
    timer t;
    unsigned tp;
    t:> tp;
    tp += 1;
+   SONY_IRDA_SEND(0x55,2,t,led_2,1,0);
+   /*
    t when timerafter(tp) :> void;
    IRDA_BIT_v1(led_2,2,1,0);
    tp += (3*IRDA_BIT_ticks);
@@ -673,6 +676,7 @@ void clocked_irda()
    tp += (2*IRDA_BIT_ticks);
    t when timerafter(tp) :> void;
    IRDA_BIT_v1(led_2,2,1,0);
+   */
 }
 
 void both()
@@ -683,8 +687,6 @@ void both()
   t:> tp;
   tp += 1;
   IRDA_PULSE(led_1,t,tp,1,1,0);
-
-
 }
 
 int main()
@@ -698,7 +700,8 @@ int main()
   //configure_port_clock_output(clk_pin, clk);
   start_clock(clk);
 
-  both();
+  clocked_irda();
+  //both();
 //  par
 //  {
 //    clocked_irda();
