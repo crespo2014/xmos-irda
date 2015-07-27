@@ -647,7 +647,7 @@ void print_char(chanend c) {
     }
 }
 
-int main()
+int main1()
 {
   interface tx_rx_if irda_rx;
   interface fault_if fault;
@@ -669,3 +669,15 @@ int main()
   return 0;
 }
 
+int main()
+{
+  timer t;
+  unsigned int tp;
+  t:> tp;
+  tp += 1;
+  IRDA_PULSE(led_1,t,tp,2,1,0);
+  IRDA_PULSE(led_1,t,tp,1,1,0);
+  tp += (2*IRDA_BIT_ticks);   // two stop bits
+  IRDA_PULSE(led_1,t,tp,2,1,0);
+
+}

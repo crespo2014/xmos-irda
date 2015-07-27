@@ -8,6 +8,39 @@
 #ifndef IRDA_H_
 #define IRDA_H_
 
+#include "rxtx.h"
+
+// Producing irda carrier without clocked output
+#define IRDA_CARRIER_GEN_T_ticks      (IRDA_CARRIER_T_ns/SYS_TIMER_T_ns)
+#define IRDA_CARRIER_GEN_TON_ticks    IRDA_CARRIER_GEN_T_ticks/4
+#define IRDA_CARRIER_GEN_TOFF_ticks   (IRDA_CARRIER_GEN_T_ticks-IRDA_CARRIER_GEN_TON_ticks)
+//#define IRDA_BIT_CARRIER_PULSES       (IRDA_BIT_LEN_ns/IRDA_CARRIER_T_ns)
+#define IRDA_BIT_ticks                (IRDA_BIT_LEN_ns/SYS_TIMER_T_ns)
+
+/*
+ * Produce a irda pulse using system timer
+ * port,timer,
+ * timepoint to start, updated to next pulse time
+ * bits len
+ * high, low levels
+ */
+#define IRDA_PULSE(p,t,tp,bits,high,low) \
+  do { \
+    unsigned i = IRDA_BIT_ticks*bits;  \
+    unsigned ttp = tp; \
+    while (i>IRDA_CARRIER_GEN_TON_ticks) {\
+      t when timerafter(ttp) :> void;\
+      p <: high; \
+      ttp += IRDA_CARRIER_GEN_TON_ticks; \
+      t when timerafter(ttp) :> void;\
+      p <: low; \
+      ttp += IRDA_CARRIER_GEN_TOFF_ticks; \
+      if (i < IRDA_CARRIER_GEN_T_ticks) break; \
+      i-=IRDA_CARRIER_GEN_T_ticks; \
+    }\
+    tp += ((bits+1)*IRDA_BIT_ticks); /* plus one stop bit*/ \
+  } while(0)
+
 /*
  * Produce a irda pulse of the length of many bits
  */
