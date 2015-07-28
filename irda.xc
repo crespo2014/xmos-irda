@@ -309,8 +309,8 @@ void irda_send_loop()
 //  }
   for (;;)
    {
-//    IRDA_BIT_v1(led_1,4,1,0);
-   SONY_IRDA_SEND(0x55,8,t,led_1,1,0);
+     IRDA_BIT_v1(led_1,4,1,0);
+//   SONY_IRDA_SEND(0x55,8,t,led_1,1,0);
    t :> tp;
    t when timerafter(tp+100*us) :> tp;
    }
@@ -657,6 +657,7 @@ int main()
   configure_in_port(led_1, clk);
   //configure_port_clock_output(clk_pin, clk);
   start_clock(clk);
+  printf("%d %d %d %d\n",IRDA_CLK_T_ns,IRDA_CARRIER_CLK,IRDA_CARRIER_CLK_TON,IRDA_PULSE_PER_BIT);
 
   par
   {
