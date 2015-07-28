@@ -17,6 +17,7 @@
 #include "irda.h"
 
 out port led_1 = XS1_PORT_1G;
+out port led_2 = XS1_PORT_1D;
 in port gpio_irda_rx = XS1_PORT_1H;
 
 //out port clk_pin = XS1_PORT_1G;
@@ -647,26 +648,73 @@ void print_char(chanend c) {
     }
 }
 
+void timed_irda()
+{
+    timer t;
+    unsigned int tp;
+    t:> tp;
+    tp += 1;
+    IRDA_PULSE(led_1,t,tp,2,1,0);
+    IRDA_PULSE(led_1,t,tp,1,1,0);
+    tp += (2*IRDA_BIT_ticks);   // two stop bits
+    IRDA_PULSE(led_1,t,tp,2,1,0);
+}
+void clocked_irda()
+{
+
+   timer t;
+   unsigned tp;
+   t:> tp;
+   tp += 1;
+   SONY_IRDA_SEND(0x55,2,t,led_2,1,0);
+   /*
+   t when timerafter(tp) :> void;
+   IRDA_BIT_v1(led_2,2,1,0);
+   tp += (3*IRDA_BIT_ticks);
+   t when timerafter(tp) :> void;
+   IRDA_BIT_v1(led_2,1,1,0);
+   tp += (2*IRDA_BIT_ticks);
+   t when timerafter(tp) :> void;
+   IRDA_BIT_v1(led_2,2,1,0);
+   */
+}
+
+void both()
+{
+  timer t;
+  unsigned int tp;
+  IRDA_BIT_v1(led_2,1,1,0);
+  t:> tp;
+  tp += 1;
+  IRDA_PULSE(led_1,t,tp,1,1,0);
+}
+
 int main()
 {
   interface tx_rx_if irda_rx;
   interface fault_if fault;
   chan c;
 
-  configure_clock_xcore(clk,USER_CLK_DIV);     // dividing clock ticks
-  configure_in_port(led_1, clk);
+  configure_clock_xcore(clk,IRDA_XCORE_CLK_DIV);     // dividing clock ticks
+  configure_in_port(led_2, clk);
   //configure_port_clock_output(clk_pin, clk);
   start_clock(clk);
   printf("%d %d %d %d\n",IRDA_CLK_T_ns,IRDA_CARRIER_CLK,IRDA_CARRIER_CLK_TON,IRDA_PULSE_PER_BIT);
 
-  par
-  {
-    //irda_RX(irda_rx,gpio_irda_rx,IRDA_BIT_LEN_ns/SYS_TIMER_T_ns,0,fault);
-    //irda_cmd(irda_rx,fault);
-    irda_send_loop();
-    IRDA_delta(gpio_irda_rx,c);
-    print_us(c);
-  }
+  clocked_irda();
+  //both();
+//  par
+//  {
+//    clocked_irda();
+//    timed_irda();
+//  }
+//  par
+//  {
+//    //irda_RX(irda_rx,gpio_irda_rx,IRDA_BIT_LEN_ns/SYS_TIMER_T_ns,0,fault);
+//    //irda_cmd(irda_rx,fault);
+//    irda_send_loop();
+//    IRDA_delta(gpio_irda_rx,c);
+//    print_us(c);
+//  }
   return 0;
 }
-
