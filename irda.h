@@ -4,11 +4,23 @@
  *  Created on: 21 Jul 2015
  *      Author: lester.crespo
  */
+ 
+  /* TODO
+ * buffered and clocked output to reduce processor usage
+ * irda carrier T 27777ns, clock div = 217 T= 868ns* 32bits = 27776ns
+ * 32bits number 0xF000 creates a 25% duty cycle carrier
+ * 22 numbers make a bit.
+ */
 
 #ifndef IRDA_H_
 #define IRDA_H_
 
 #include "rxtx.h"
+
+#define IRDA_32b_CLK_DIV      (IRDA_CARRIER_T_ns/(32*XCORE_CLK_T_ns))
+#define IRDA_32b_CARRIER_T_ns (IRDA_32b_CLK_DIV*32*XCORE_CLK_T_ns) 
+#define IRDA_32b_WAVE         0xFF000000
+#define IRDA_32b_BIT_LEN      (IRDA_BIT_LEN_ns/IRDA_32b_CARRIER_T_ns + 1)   // one more 
 
 // Producing irda carrier without clocked output
 #define IRDA_CARRIER_GEN_T_ticks      (IRDA_CARRIER_T_ns/SYS_TIMER_T_ns)
@@ -16,6 +28,16 @@
 #define IRDA_CARRIER_GEN_TOFF_ticks   (IRDA_CARRIER_GEN_T_ticks-IRDA_CARRIER_GEN_TON_ticks)
 //#define IRDA_BIT_CARRIER_PULSES       (IRDA_BIT_LEN_ns/IRDA_CARRIER_T_ns)
 #define IRDA_BIT_ticks                (IRDA_BIT_LEN_ns/SYS_TIMER_T_ns)
+
+/*
+  Create an irda 36Khz pulse using a clocked buffered 32bist port
+*/
+#define IRDA_32b_PULSE(p,bits) \
+do { \
+  for (unsigned i = bits*IRDA_32b_BIT_LEN;i!=0;--i) { \
+  p <: IRDA_32b_WAVE; \
+  }\
+} while(0)
 
 /*
  * Produce a irda pulse using system timer
