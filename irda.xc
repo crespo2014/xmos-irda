@@ -1,10 +1,5 @@
 /*
  * irda.xc
- *  Implement a generic irda receiver
- *  Frame length need to be define plus storing data order
- *  4bits + 4bits + 8bits
- *  Data can be store in 8 bits units until fame size
- *
  *  Created on: 7 Jul 2015
  *      Author: lester.crespo
  */
@@ -29,7 +24,6 @@ clock    clk      = XS1_CLKBLK_1;
 #define USER_CLK_PER_T  (USER_T_ns/USER_CLK_T_ns)
 
 /*
-
 SPI synchronization byte
 10010001 - it is easy to known how many bits has been shifted
 
@@ -49,7 +43,6 @@ div =
 4 - 8ns pulse T = 16ns
 10 - 20ns     T = 40ns
 */
-
 
 /**
  * IRDA receiver project.

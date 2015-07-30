@@ -21,4 +21,5 @@ Pseudo-Code
 
 We need anotate time of level 1. and calculate time for 0,1, headers.
 
+Switch a led using pwm with a buffered clocked output, change intensiti using duty cycle.
 
