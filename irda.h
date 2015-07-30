@@ -17,6 +17,34 @@
 
 #include "rxtx.h"
 
+/*
+ * TODO
+ * use clocked port for irda output
+ * 36Khz - 27.77us 3x9us  - 100 (33% ton)
+ * irda Pulse 600us 22*27 = 66*9us = 594
+ *
+ * 8us - 24us(41.6khz) 25pulse per bit
+ * 9us - 27us(37Khz)   22pulse per bit
+ *
+ * Done:
+ * 100 Mhz / 32 = 0.32us pulse for clock.
+ * (*86 -> 27.52us -> 36.34Khz)
+ * (*75 -> 24us    -> 41.6Khz)
+ *
+ */
+
+#define XCORE_CLK_T_ns         4    // produced clock T
+#define IRDA_XCORE_CLK_DIV     255
+#define IRDA_CLK_T_ns          (XCORE_CLK_T_ns*IRDA_XCORE_CLK_DIV) // T of clock to generated irda carrier
+#define IRDA_CARRIER_T_ns      27777
+#define IRDA_CARRIER_CLK       (IRDA_CARRIER_T_ns/IRDA_CLK_T_ns)    // How many pulse to produce the carrier
+#define IRDA_CARRIER_CLK_TON   (IRDA_CARRIER_CLK/4)
+#define IRDA_CARRIER_CLK_TOFF  (IRDA_CARRIER_CLK - IRDA_CARRIER_CLK_TON)
+
+#define IRDA_BIT_LEN_ns     (600*1000)
+#define IRDA_CLK_PER_BIT    (IRDA_BIT_LEN_ns/IRDA_CLK_T_ns)     // carrier clocks per bit
+#define IRDA_PULSE_PER_BIT  (IRDA_BIT_LEN_ns/IRDA_CARRIER_T_ns)                     // carrier pulse per bit
+
 #define IRDA_32b_CLK_DIV      (IRDA_CARRIER_T_ns/(32*XCORE_CLK_T_ns))
 #define IRDA_32b_CARRIER_T_ns (IRDA_32b_CLK_DIV*32*XCORE_CLK_T_ns) 
 #define IRDA_32b_WAVE         0xFF000000
@@ -26,8 +54,9 @@
 #define IRDA_CARRIER_GEN_T_ticks      (IRDA_CARRIER_T_ns/SYS_TIMER_T_ns)
 #define IRDA_CARRIER_GEN_TON_ticks    IRDA_CARRIER_GEN_T_ticks/4
 #define IRDA_CARRIER_GEN_TOFF_ticks   (IRDA_CARRIER_GEN_T_ticks-IRDA_CARRIER_GEN_TON_ticks)
-//#define IRDA_BIT_CARRIER_PULSES       (IRDA_BIT_LEN_ns/IRDA_CARRIER_T_ns)
 #define IRDA_BIT_ticks                (IRDA_BIT_LEN_ns/SYS_TIMER_T_ns)
+
+
 
 /*
   Create an irda 36Khz pulse using a clocked buffered 32bist port
@@ -120,24 +149,61 @@ Philips (1111.....)
  * send nbits data
  * wait (n+1) bits
  */
+#define SONY_IRDA_SEND_BAD(dt,bitcount,t,p,high,low) \
+    do { \
+      unsigned int bitmask = (1<<(bitcount-1));  \
+      unsigned int __tp;  \
+       unsigned int __tp2,tp3;  \
+      unsigned char len; \
+      t :> __tp;  \
+      tp3 = __tp; \
+      IRDA_BIT_v2(p,4,high,low); /*send start bit */ \
+      __tp = __tp + (4+1)*IRDA_BIT_ticks; \
+      t when timerafter(__tp) :> void; \
+      while (bitmask != 0)  { \
+          len = (dt & bitmask) ? 2 : 1; /* 1 is 2T 0 is T */ \
+          t :> __tp2;  \
+          printf("%u S\n",__tp2-tp3) ; \
+          IRDA_BIT_v2(p,len ,high,low); \
+          __tp = __tp + (len+1)*IRDA_BIT_ticks; \
+          t when timerafter(__tp) :> void; \
+          bitmask >>= 1; \
+      } \
+      __tp = __tp + 3*IRDA_BIT_ticks;  /* keep low for stop bit */ \
+      t when timerafter(__tp) :> void; \
+    } while(0)
+
 #define SONY_IRDA_SEND(dt,bitcount,t,p,high,low) \
     do { \
       unsigned int bitmask = (1<<(bitcount-1));  \
-      unsigned int tp;  \
       unsigned char len; \
-      t :> tp;  \
+      unsigned __tp; \
       IRDA_BIT_v2(p,4,high,low); /*send start bit */ \
-      tp = tp + (4+1)*IRDA_BIT_ticks; \
-      t when timerafter(tp) :> void; \
+      t :> __tp; \
+      t when timerafter(__tp+IRDA_BIT_ticks) :> void; \
       while (bitmask != 0)  { \
           len = (dt & bitmask) ? 2 : 1; /* 1 is 2T 0 is T */ \
           IRDA_BIT_v2(p,len ,high,low); \
-          tp = tp + (len+1)*IRDA_BIT_ticks; \
-          t when timerafter(tp) :> void; \
+          IRDA_BIT_v2(p,1,low,low); \
           bitmask >>= 1; \
       } \
-      tp = tp + 3*IRDA_BIT_ticks;  /* keep low for stop bit */ \
-      t when timerafter(tp) :> void; \
+      IRDA_BIT_v2(p,2,low,low); /* elarge last bit to be 3 bits*/ \
     } while(0)
 
+/*
+ * Send data using processor timer
+ * tp will mark started
+ */
+#define SONY_IRDA_TIMED_SEND(dt,bitcount,t,p,high,low) \
+    do { \
+      unsigned int bitmask = (1<<(bitcount-1));  \
+      unsigned char len; \
+      IRDA_PULSE(p,t,tp,4,high,low);\
+      while (bitmask != 0)  { \
+          len = (dt & bitmask) ? 2 : 1; /* 1 is 2T 0 is T */ \
+          IRDA_PULSE(p,t,tp,len,high,low);\
+          bitmask >>= 1; \
+      } \
+      tp += (2*IRDA_BIT_ticks); /* 2 zeroed pulses */ \
+    } while(0)
 #endif /* IRDA_H_ */
