@@ -354,6 +354,7 @@ void Router(
             b = 1;
           break;
           // wait for pin transition or timeout
+          // TODO do not wait if timeout is on case nxtp>10*sec => t when 
       case t when timerafter(tp + nxtp) :> tp:
           nxtp = 10*sec;      //timeout
           if (pv == high)
