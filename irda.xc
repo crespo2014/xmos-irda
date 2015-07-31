@@ -10,6 +10,7 @@
 #include <platform.h>
 #include <rxtx.h>
 #include "irda.h"
+#include "serial.h"
 
 out port led_1 = XS1_PORT_1G;
 out port led_2 = XS1_PORT_1D;
@@ -712,8 +713,20 @@ void test_system()
   }
 }
 
+void serial_send_test()
+{
+  configure_clock_xcore(clk,UART_XCORE_CLOCK_DIV);     // dividing clock ticks
+  configure_in_port(led_1, clk);
+  start_clock(clk);
+  led_1 <: 1;   // initial state
+  
+  UART_CLOCKED_SEND(led_1,0x55,1,1,0);
+  sync(led_1);
+}
+
+
 int main()
 {
-  test_32bits_irda();
+  serial_send_test();
   return 0;
 }
