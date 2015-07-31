@@ -19,6 +19,20 @@
 
 /*
  * TODO
+ * Analize irda base on length of pulses
+ * Count time as 1/2 of bit len.  (n+1)/2 is the bit len
+ * 0 - 899us (2x) is 1
+ * 900 - 1199 (3x) is 2
+ * high pulse can have any length
+ * max low pulse len is 3.
+ * mas transations allowed is 20.
+ *
+ * information can be packed. in 2 or 4 bits each byte contains High len and low length as a pair.
+ * timeout is produce if t > 300us*7
+ */
+
+/*
+ * TODO
  * use clocked port for irda output
  * 36Khz - 27.77us 3x9us  - 100 (33% ton)
  * irda Pulse 600us 22*27 = 66*9us = 594
@@ -47,7 +61,8 @@
 
 #define IRDA_32b_CLK_DIV      (IRDA_CARRIER_T_ns/(32*XCORE_CLK_T_ns))
 #define IRDA_32b_CARRIER_T_ns (IRDA_32b_CLK_DIV*32*XCORE_CLK_T_ns) 
-#define IRDA_32b_WAVE         0xFF000000
+#define IRDA_32b_WAVE         0x000000FF
+#define IRDA_32b_WAVE_INV     0xFFFFFF00
 #define IRDA_32b_BIT_LEN      (IRDA_BIT_LEN_ns/IRDA_32b_CARRIER_T_ns + 1)   // one more 
 
 // Producing irda carrier without clocked output
@@ -56,6 +71,27 @@
 #define IRDA_CARRIER_GEN_TOFF_ticks   (IRDA_CARRIER_GEN_T_ticks-IRDA_CARRIER_GEN_TON_ticks)
 #define IRDA_BIT_ticks                (IRDA_BIT_LEN_ns/SYS_TIMER_T_ns)
 
+/*
+ * Emulate an irda data on pin
+ */
+#define SONY_IRDA_EMULATE_TX(t,tp,dt,bits,p,high,low) \
+  do { \
+    unsigned int bitmask = (1<<(bitcount-1));  \
+    unsigned char len; \
+    t when timerafter(tp) :> void; \
+    p <: high; tp+= (4*IRDA_BIT_ticks); \
+    t when timerafter(tp) :> void; \
+    p <: low; tp+= (IRDA_BIT_ticks); \
+    while (bitmask != 0)  { \
+      t when timerafter(tp) :> void; \
+      len = (dt & bitmask) ? 2 : 1; /* 1 is 2T 0 is T */ \
+      p <: high; tp+= (len*IRDA_BIT_ticks); \
+      t when timerafter(tp) :> void; \
+      p <: low; tp+= (IRDA_BIT_ticks); \
+      bitmask >>= 1; \
+      } \
+      tp += (2*IRDA_BIT_ticks); /* elarge last bit to be 3 bits long*/ \
+  } while(0)
 
 
 /*
@@ -67,6 +103,29 @@ do { \
   p <: IRDA_32b_WAVE; \
   }\
 } while(0)
+
+/*
+ * Send irda data using sony protocol
+ * bitcount : how many bits to send
+ * t : timer
+ * p : out port
+ */
+#define SONY_IRDA_32b_SEND(dt,bitcount,t,p) \
+  do { \
+    unsigned int bitmask = (1<<(bitcount-1));  \
+    unsigned char len; \
+    t when timerafter(tp) :> void; \
+    IRDA_32b_PULSE(p,4); /*send start bit */ \
+    tp += (5*IRDA_BIT_ticks); \
+    while (bitmask != 0)  { \
+      t when timerafter(tp) :> void; \
+      len = (dt & bitmask) ? 2 : 1; /* 1 is 2T 0 is T */ \
+      IRDA_32b_PULSE(p,len); \
+      tp += ((len+1)*IRDA_BIT_ticks); \
+      bitmask >>= 1; \
+      } \
+      tp += (2*IRDA_BIT_ticks); /* elarge last bit to be 3 bits long*/ \
+  } while (0)
 
 /*
  * Produce a irda pulse using system timer
@@ -173,21 +232,24 @@ Philips (1111.....)
       t when timerafter(__tp) :> void; \
     } while(0)
 
+/*
+ *  tp next send time point
+ */
 #define SONY_IRDA_SEND(dt,bitcount,t,p,high,low) \
     do { \
       unsigned int bitmask = (1<<(bitcount-1));  \
       unsigned char len; \
-      unsigned __tp; \
+      t when timerafter(tp) :> void; \
       IRDA_BIT_v2(p,4,high,low); /*send start bit */ \
-      t :> __tp; \
-      t when timerafter(__tp+IRDA_BIT_ticks) :> void; \
+      tp += (5*IRDA_BIT_ticks); \
       while (bitmask != 0)  { \
+          t when timerafter(tp) :> void; \
           len = (dt & bitmask) ? 2 : 1; /* 1 is 2T 0 is T */ \
           IRDA_BIT_v2(p,len ,high,low); \
-          IRDA_BIT_v2(p,1,low,low); \
+          tp += ((len+1)*IRDA_BIT_ticks); \
           bitmask >>= 1; \
       } \
-      IRDA_BIT_v2(p,2,low,low); /* elarge last bit to be 3 bits*/ \
+      tp += (2*IRDA_BIT_ticks); /* elarge last bit to be 3 bits long*/ \
     } while(0)
 
 /*
