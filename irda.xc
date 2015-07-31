@@ -288,19 +288,6 @@ void irda_send_loop()
   timer t;
   unsigned tp,count;
   led_1 <: 0 @count;
-//  for (;;)
-//  {
-//    for (int i =500;i>0;--i)
-//    {
-//    count += USER_CLK_PER_T;
-//    led_1 @count <: 1;
-//    }
-//    for (int i =500;i>0;--i)
-//    {
-//    count += USER_CLK_PER_T;
-//    led_1 @count <: 0;
-//    }
-//  }
   for (;;)
    {
      IRDA_BIT_v1(led_1,4,1,0);
@@ -560,8 +547,6 @@ void IRDA_freq_mul(in port p, chanend c)
   }
 }
 
-
-
 void printTime_v2(chanend c) {
     char t1;
     while (1) {
@@ -578,8 +563,6 @@ void printTime(chanend c) {
         printf("0 %d ", t0);
     }
 }
-
-
 
 void print_i(chanend c) {
     int t1;
@@ -662,26 +645,13 @@ void clocked_irda()
 {
 
    timer t;
-   unsigned tp1;
-   t:> tp1;
+   unsigned tp;
+   t:> tp;
    for (;;)
    {
-   tp1 += sec;
-   t when timerafter(tp1) :> void;
+   tp += sec;
    SONY_IRDA_SEND(0x55,2,t,led_1,1,0);
    }
-   tp1 += 1;
-
-   /*
-   t when timerafter(tp) :> void;
-   IRDA_BIT_v1(led_2,2,1,0);
-   tp += (3*IRDA_BIT_ticks);
-   t when timerafter(tp) :> void;
-   IRDA_BIT_v1(led_2,1,1,0);
-   tp += (2*IRDA_BIT_ticks);
-   t when timerafter(tp) :> void;
-   IRDA_BIT_v1(led_2,2,1,0);
-   */
 }
 
 void both()
@@ -694,34 +664,56 @@ void both()
   IRDA_PULSE(led_1,t,tp,1,1,0);
 }
 
-int main()
-{
-  interface tx_rx_if irda_rx;
-  interface fault_if fault;
-  chan c;
+out buffered port:32 irda_32  = XS1_PORT_1O;
 
+void test_32bits_irda()
+{
+  configure_clock_xcore(clk,IRDA_32b_CLK_DIV);     // dividing clock ticks
+  configure_in_port(irda_32, clk);
+  start_clock(clk);
+  printf("%d %d %d %d\n",IRDA_32b_CLK_DIV,IRDA_32b_CARRIER_T_ns,IRDA_32b_BIT_LEN,IRDA_BIT_ticks);
+  timer t;
+  unsigned int tp;
+  t :> tp;
+  tp += us;
+  SONY_IRDA_32b_SEND(0x5555,4,t,irda_32);
+  sync(irda_32);
+}
+
+void test_irda()
+{
+  chan c;
   configure_clock_xcore(clk,IRDA_XCORE_CLK_DIV);     // dividing clock ticks
   configure_in_port(led_1, clk);
-  //configure_port_clock_output(clk_pin, clk);
   start_clock(clk);
-  printf("%d %d %d %d\n",IRDA_CLK_T_ns,IRDA_CARRIER_CLK,IRDA_CARRIER_CLK_TON,IRDA_PULSE_PER_BIT);
-  printf("%d %d %d %d\n",IRDA_32b_CLK_DIV,IRDA_32b_CARRIER_T_ns,IRDA_32b_BIT_LEN,IRDA_BIT_ticks);
-
-  //clocked_irda();
-  //both();
+  printf("%d %d %d %d\n",IRDA_32b_CLK_DIV,IRDA_CARRIER_CLK,IRDA_CARRIER_CLK_TON,IRDA_PULSE_PER_BIT);
   par
   {
     timed_irda();
     print_h(c);
     irda_sony(gpio_irda_rx,c);
   }
-//  par
-//  {
-//    //irda_RX(irda_rx,gpio_irda_rx,IRDA_BIT_LEN_ns/SYS_TIMER_T_ns,0,fault);
-//    //irda_cmd(irda_rx,fault);
-//    irda_send_loop();
-//    IRDA_delta(gpio_irda_rx,c);
-//    print_us(c);
-//  }
+}
+
+void test_system()
+{
+  chan c;
+  configure_clock_xcore(clk,IRDA_XCORE_CLK_DIV);     // dividing clock ticks
+  configure_in_port(led_1, clk);
+  start_clock(clk);
+
+  par
+  {
+    //irda_RX(irda_rx,gpio_irda_rx,IRDA_BIT_LEN_ns/SYS_TIMER_T_ns,0,fault);
+    //irda_cmd(irda_rx,fault);
+    irda_send_loop();
+    IRDA_delta(gpio_irda_rx,c);
+    print_us(c);
+  }
+}
+
+int main()
+{
+  test_32bits_irda();
   return 0;
 }
