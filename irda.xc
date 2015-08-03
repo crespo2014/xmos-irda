@@ -690,7 +690,7 @@ void test_irda()
   printf("%d %d %d %d\n",IRDA_32b_CLK_DIV,IRDA_CARRIER_CLK,IRDA_CARRIER_CLK_TON,IRDA_PULSE_PER_BIT);
   par
   {
-    timed_irda();
+    clocked_irda();
     print_h(c);
     irda_sony(gpio_irda_rx,c);
   }
@@ -727,6 +727,6 @@ void serial_send_test()
 
 int main()
 {
-  serial_send_test();
+  test_irda();
   return 0;
 }

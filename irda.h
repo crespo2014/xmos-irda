@@ -158,9 +158,10 @@ do { \
 #define IRDA_BIT_v1(p,bitcount,high,low) \
   do { \
     unsigned int count; \
-    p <: 0 @count; \
-    for (int i = bitcount*IRDA_PULSE_PER_BIT; i > 0 ;--i) { \
+    p @ count <: high; count += IRDA_CARRIER_CLK_TON; \
+    for (int i = bitcount*IRDA_PULSE_PER_BIT;;--i) { \
       p @ count <: high; count += IRDA_CARRIER_CLK_TON; \
+      if (i < 1) break; \
       p @ count <: low; count += IRDA_CARRIER_CLK_TOFF; \
     } \
   } while(0)
@@ -174,12 +175,12 @@ do { \
   do { \
     unsigned int count; \
     unsigned int clk_count = bitcount*IRDA_CLK_PER_BIT;  \
-    p <: 0 @count; \
-    while(clk_count >= IRDA_CARRIER_CLK_TON) { \
-      p @ count <: high; count += IRDA_CARRIER_CLK_TON; \
+    p <: high @ count ; count += IRDA_CARRIER_CLK_TON; /* First pulse */\
+    for(;;) { \
       p @ count <: low; count += IRDA_CARRIER_CLK_TOFF; \
-      if (clk_count < IRDA_CARRIER_CLK) break; \
+      if (clk_count < IRDA_CARRIER_CLK) break; /* try < T + Ton*/\
       clk_count -= IRDA_CARRIER_CLK; \
+      p @ count <: high; count += IRDA_CARRIER_CLK_TON; \
     }\
   } while(0)
 
