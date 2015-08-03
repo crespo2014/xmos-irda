@@ -161,7 +161,7 @@ do { \
     p @ count <: high; count += IRDA_CARRIER_CLK_TON; \
     for (int i = bitcount*IRDA_PULSE_PER_BIT;;--i) { \
       p @ count <: high; count += IRDA_CARRIER_CLK_TON; \
-      if (i < 1) break; \
+      if (i <= 1) break; \
       p @ count <: low; count += IRDA_CARRIER_CLK_TOFF; \
     } \
   } while(0)

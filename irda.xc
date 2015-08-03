@@ -651,7 +651,7 @@ void clocked_irda()
    for (;;)
    {
    tp += sec;
-   SONY_IRDA_SEND(0x55,2,t,led_1,1,0);
+   SONY_IRDA_SEND(0x55,8,t,led_1,1,0);
    }
 }
 
