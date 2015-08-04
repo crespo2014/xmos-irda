@@ -158,11 +158,12 @@ do { \
 #define IRDA_BIT_v1(p,bitcount,high,low) \
   do { \
     unsigned int count; \
+    int i = bitcount*IRDA_PULSE_PER_BIT; \
     p @ count <: high; count += IRDA_CARRIER_CLK_TON; \
-    for (int i = bitcount*IRDA_PULSE_PER_BIT;;--i) { \
-      p @ count <: high; count += IRDA_CARRIER_CLK_TON; \
-      if (i <= 1) break; \
+    for (;;) { \
       p @ count <: low; count += IRDA_CARRIER_CLK_TOFF; \
+      --i; if (i == 0) break; \
+      p @ count <: high; count += IRDA_CARRIER_CLK_TON; \
     } \
   } while(0)
 
@@ -208,33 +209,6 @@ Philips (1111.....)
  * wait until 5bits time
  * send nbits data
  * wait (n+1) bits
- */
-#define SONY_IRDA_SEND_BAD(dt,bitcount,t,p,high,low) \
-    do { \
-      unsigned int bitmask = (1<<(bitcount-1));  \
-      unsigned int __tp;  \
-       unsigned int __tp2,tp3;  \
-      unsigned char len; \
-      t :> __tp;  \
-      tp3 = __tp; \
-      IRDA_BIT_v2(p,4,high,low); /*send start bit */ \
-      __tp = __tp + (4+1)*IRDA_BIT_ticks; \
-      t when timerafter(__tp) :> void; \
-      while (bitmask != 0)  { \
-          len = (dt & bitmask) ? 2 : 1; /* 1 is 2T 0 is T */ \
-          t :> __tp2;  \
-          printf("%u S\n",__tp2-tp3) ; \
-          IRDA_BIT_v2(p,len ,high,low); \
-          __tp = __tp + (len+1)*IRDA_BIT_ticks; \
-          t when timerafter(__tp) :> void; \
-          bitmask >>= 1; \
-      } \
-      __tp = __tp + 3*IRDA_BIT_ticks;  /* keep low for stop bit */ \
-      t when timerafter(__tp) :> void; \
-    } while(0)
-
-/*
- *  tp next send time point
  */
 #define SONY_IRDA_SEND(dt,bitcount,t,p,high,low) \
     do { \
