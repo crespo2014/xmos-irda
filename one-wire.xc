@@ -1,4 +1,7 @@
 /*
+ *  Created on: 10 Jul 2015
+ *      Author: lester.crespo
+ *
  * one-wire.xc
  *  unidirectional 1 wire protocol.
  *  We use two wires 1 for RX and other for TX.
@@ -30,9 +33,15 @@
  *                    ^   ^
  *  CHO_TX <-------- ROUTER <----- CH1_TX
  *
- *
- *  Created on: 10 Jul 2015
- *      Author: lester.crespo
+ * TODO  Switched Power Supply (Buck)
+ * power control task. ( Imax, Imin for switch transistor signal)
+ * adc input when power is on.
+ * Imax and delta as intensity control.
+ * At power off signal, adc must be stopped, all led switch turn off, power transistor go off).
+ * Status (ON, OFF) - 
+ * protection for long Ton times. (overcurrent protection, analize ton,toff time)
+ * Interface to set Imax or level intensity, read ton-toff, fault indicator, 
+ * Turn on ligth in a secuence base on walker speed. ( one motion sensor at enter point)
  */
 
 #include <timer.h>
@@ -125,36 +134,6 @@ inline unsigned char buff_push(struct frm_buff_t &buff,enum dest_e dst,struct tx
    return 0;
 }
 
-/*
- * Send a irda packet from msb to lsb
- * Send high for 3T then send 1 as high for 2T an 0 as high for 1T
- * end signal is low for 3T
- */
-//inline void irda_send(unsigned int v,unsigned char bitcount,unsigned char high,unsigned char low,out port p, unsigned int BIT_LEN)
-//{
-//  timer t;
-//  unsigned int tp;
-//  unsigned int len;
-//  unsigned int bitmask = 1 << (bitcount -1);
-//  // send start bit
-//  len = 4*BIT_LEN;
-//  IRDA_PULSE(27*us,tp,len,t,p,1,0);
-//  tp += BIT_LEN;
-//  t when timerafter(tp) :> void;
-//  // send data
-//  while (bitmask != 0)
-//  {
-//      len = BIT_LEN;
-//      if (v & bitmask)   //1 is 2T 0 is T
-//          len += BIT_LEN;
-//      IRDA_PULSE(27*us,tp,len,t,p,1,0);
-//      tp += BIT_LEN;
-//      t when timerafter(tp) :> void;
-//      bitmask >>= 1;
-//  }
-//  // keep low for stop bit
-//  t when timerafter(tp + 3*BIT_LEN) :> tp;
-//}
 
 /*
  * Packet router.
