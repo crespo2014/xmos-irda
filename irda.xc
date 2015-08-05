@@ -720,7 +720,8 @@ void serial_send_test()
   start_clock(clk);
   led_1 <: 1;   // initial state
   
-  UART_CLOCKED_SEND(led_1,0x55,1,1,0);
+  UART_CLOCKED_SEND(led_1,0xFF,1,1,0);
+  UART_CLOCKED_SEND(led_1,0x00,1,1,0);
   sync(led_1);
 }
 
