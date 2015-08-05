@@ -35,13 +35,13 @@
  */
 #define UART_CLOCKED_SEND(p,dt,baud,high,low) \
 do { \
-  unsigned count; unsigned mask = (1 << 7) \
+  unsigned count; unsigned mask = (1 << 7); \
   p <: low @ count;  /* start bit*/ \
   count += (UART_T_CLK*baud); \
   do { \
     p @ count <: (dt & mask) ? high : low; \
     count += (UART_T_CLK*baud); \
-    mask >>=1 \
+    mask >>=1; \
   } while (mask != 0); \
   p  @ count <: high;  /* stop bit*/ \
   count += (UART_T_CLK*baud); \

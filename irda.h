@@ -63,6 +63,7 @@
 #define IRDA_32b_CARRIER_T_ns (IRDA_32b_CLK_DIV*32*XCORE_CLK_T_ns) 
 #define IRDA_32b_WAVE         0x000000FF
 #define IRDA_32b_WAVE_INV     0xFFFFFF00
+#define IRDA_32b_WAVE_BLANK   0x0           // use to create a delay
 #define IRDA_32b_BIT_LEN      (IRDA_BIT_LEN_ns/IRDA_32b_CARRIER_T_ns + 1)   // one more 
 
 // Producing irda carrier without clocked output
@@ -95,7 +96,7 @@
 
 
 /*
-  Create an irda 36Khz pulse using a clocked buffered 32bist port
+  Create an irda 36Khz pulse using a clocked buffered 32bit port
 */
 #define IRDA_32b_PULSE(p,bits) \
 do { \
@@ -103,6 +104,20 @@ do { \
   p <: IRDA_32b_WAVE; \
   }\
 } while(0)
+
+/*
+ * Wait some cycles before send more data
+ * The receiver must synchronized when the signal change
+ * I mean it can not synchronize using internal clock at the first pulse
+ * it has to synchronize in each pulse
+ */
+#define IRDA_32b_WAIT(p,bits) \
+do { \
+  for (unsigned i = bits*IRDA_32b_BIT_LEN;i!=0;--i) { \
+  p <: IRDA_32b_WAVE_BLANK; \
+  }\
+} while(0)
+
 
 /*
  * Send irda data using sony protocol
@@ -116,15 +131,17 @@ do { \
     unsigned char len; \
     t when timerafter(tp) :> void; \
     IRDA_32b_PULSE(p,4); /*send start bit */ \
-    tp += (5*IRDA_BIT_ticks); \
+    IRDA_32b_WAIT(p,1); \
+   /* tp += (5*IRDA_BIT_ticks); */\
     while (bitmask != 0)  { \
       t when timerafter(tp) :> void; \
       len = (dt & bitmask) ? 2 : 1; /* 1 is 2T 0 is T */ \
       IRDA_32b_PULSE(p,len); \
-      tp += ((len+1)*IRDA_BIT_ticks); \
+      IRDA_32b_WAIT(p,1); \
+      /*tp += ((len+1)*IRDA_BIT_ticks);*/ \
       bitmask >>= 1; \
       } \
-      tp += (2*IRDA_BIT_ticks); /* elarge last bit to be 3 bits long*/ \
+      /*tp += (2*IRDA_BIT_ticks); */ /* elarge last bit to be 3 bits long*/ \
   } while (0)
 
 /*

@@ -728,6 +728,6 @@ void serial_send_test()
 
 int main()
 {
-  test_irda();
+  test_32bits_irda();
   return 0;
 }
