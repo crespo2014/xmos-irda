@@ -636,7 +636,7 @@ void timed_irda()
     for (;;)
     {
     tp += sec;
-    SONY_IRDA_TIMED_SEND(0x55,8,t,led_1,1,0);
+    SONY_IRDA_TIMED_SEND(0x12345678,32,t,led_1,1,0);
     }
     IRDA_PULSE(led_1,t,tp,1,1,0);
     tp += (2*IRDA_BIT_ticks);   // two stop bits
@@ -651,7 +651,7 @@ void clocked_irda()
    for (;;)
    {
    tp += sec;
-   SONY_IRDA_SEND(0x55,2,t,led_1,1,0);
+   SONY_IRDA_SEND(0x55,8,t,led_1,1,0);
    }
 }
 
@@ -690,7 +690,7 @@ void test_irda()
   printf("%d %d %d %d\n",IRDA_32b_CLK_DIV,IRDA_CARRIER_CLK,IRDA_CARRIER_CLK_TON,IRDA_PULSE_PER_BIT);
   par
   {
-    timed_irda();
+    clocked_irda();
     print_h(c);
     irda_sony(gpio_irda_rx,c);
   }
@@ -728,6 +728,6 @@ void serial_send_test()
 
 int main()
 {
-  serial_send_test();
+  test_irda();
   return 0;
 }
