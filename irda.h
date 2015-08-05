@@ -147,7 +147,7 @@ do { \
  * bits len
  * high, low levels
  */
-#define IRDA_PULSE(p,t,tp,bits,high,low) \
+#define IRDA_TIMED_PULSE(p,t,tp,bits,high,low) \
   do { \
     unsigned i = IRDA_BIT_ticks*bits;  \
     unsigned ttp = tp; \
@@ -178,7 +178,7 @@ do { \
  * Produce a irda pulse of the length of many bits
  * tests 590us 542 570
  */
-#define IRDA_BIT_v1(p,bitcount,high,low) \
+#define IRDA_CLOCKED_BIT_v1(p,bitcount,high,low) \
   do { \
     unsigned int count; \
     int i = bitcount*IRDA_PULSE_PER_BIT; \
@@ -195,7 +195,7 @@ do { \
  * Use clk per bits for stop condition
  * 570 - 620us
  */
-#define IRDA_BIT_v2(p,bitcount,high,low) \
+#define IRDA_CLOCKED_BIT_v2(p,bitcount,high,low) \
   do { \
     unsigned int count; \
     unsigned int clk_count = bitcount*IRDA_CLK_PER_BIT;  \

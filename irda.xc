@@ -729,9 +729,29 @@ void serial_send_test()
   sync(led_1);
 }
 
+void test_xscope()
+{
+  xscope_register(2,
+             XSCOPE_CONTINUOUS, "Continuous Value 1", XSCOPE_UINT, "Value",
+             XSCOPE_CONTINUOUS, "Continuous Value 2", XSCOPE_UINT, "Value");
+  unsigned int i;
+  timer t;
+  unsigned tp;
+  t :> tp;
+  for (;;)
+  {
+    tp += sec;
+    t when timerafter(tp) :> void;
+    for (i = 0; i < 100; i++) {
+      xscope_int(0, i*i);
+      xscope_int(2, i*i+2);
+    }
+  }
+}
+
 
 int main()
 {
-  test_clocked_irda();
+  test_xscope();
   return 0;
 }
