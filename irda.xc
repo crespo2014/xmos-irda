@@ -651,7 +651,7 @@ void clocked_irda()
    for (;;)
    {
    tp += sec;
-   SONY_IRDA_SEND(0x55,8,t,led_1,1,0);
+   SONY_IRDA_CLOCKED_SEND(0x55,8,t,led_1,1,0);
    }
 }
 
@@ -673,12 +673,16 @@ void test_32bits_irda()
   configure_in_port(irda_32, clk);
   start_clock(clk);
   printf("%d %d %d %d\n",IRDA_32b_CLK_DIV,IRDA_32b_CARRIER_T_ns,IRDA_32b_BIT_LEN,IRDA_BIT_ticks);
-  timer t;
-  unsigned int tp;
-  t :> tp;
-  tp += us;
   SONY_IRDA_32b_SEND(0x5555,4,t,irda_32);
   sync(irda_32);
+}
+
+void test_clocked_irda()
+{
+  configure_clock_xcore(clk,IRDA_XCORE_CLK_DIV);     // dividing clock ticks
+  configure_in_port(led_1, clk);
+  start_clock(clk);
+  SONY_IRDA_CLOCKED_SEND(0x55,8,t,led_1,1,0);
 }
 
 void test_irda()
@@ -728,6 +732,6 @@ void serial_send_test()
 
 int main()
 {
-  test_32bits_irda();
+  test_clocked_irda();
   return 0;
 }

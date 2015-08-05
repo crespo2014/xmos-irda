@@ -129,19 +129,15 @@ do { \
   do { \
     unsigned int bitmask = (1<<(bitcount-1));  \
     unsigned char len; \
-    t when timerafter(tp) :> void; \
     IRDA_32b_PULSE(p,4); /*send start bit */ \
     IRDA_32b_WAIT(p,1); \
-   /* tp += (5*IRDA_BIT_ticks); */\
     while (bitmask != 0)  { \
-      t when timerafter(tp) :> void; \
       len = (dt & bitmask) ? 2 : 1; /* 1 is 2T 0 is T */ \
       IRDA_32b_PULSE(p,len); \
       IRDA_32b_WAIT(p,1); \
-      /*tp += ((len+1)*IRDA_BIT_ticks);*/ \
       bitmask >>= 1; \
       } \
-      /*tp += (2*IRDA_BIT_ticks); */ /* elarge last bit to be 3 bits long*/ \
+      IRDA_32b_WAIT(p,2);  /* elarge last bit to be 3 bits long*/ \
   } while (0)
 
 /*
@@ -166,6 +162,16 @@ do { \
       i-=IRDA_CARRIER_GEN_T_ticks; \
     }\
     tp += ((bits+1)*IRDA_BIT_ticks); /* plus one stop bit*/ \
+  } while(0)
+
+/*
+ * Create a delay using a clocked irda out port
+ */
+#define IRDA_CLOCKED_BLANK_BIT(p,bits,low) \
+  do { \
+    unsigned int count; \
+    p <: low @ count ; \
+    p @ count+bits*IRDA_CLK_PER_BIT <: low   ; \
   } while(0)
 
 /*
@@ -202,6 +208,8 @@ do { \
     }\
   } while(0)
 
+
+
 /*
 TODO : read from irda and store data as time diff bettween transitions.
 and normalize to T.
@@ -227,21 +235,19 @@ Philips (1111.....)
  * send nbits data
  * wait (n+1) bits
  */
-#define SONY_IRDA_SEND(dt,bitcount,t,p,high,low) \
+#define SONY_IRDA_CLOCKED_SEND(dt,bitcount,t,p,high,low) \
     do { \
       unsigned int bitmask = (1<<(bitcount-1));  \
       unsigned char len; \
-      t when timerafter(tp) :> void; \
       IRDA_BIT_v2(p,4,high,low); /*send start bit */ \
-      tp += (5*IRDA_BIT_ticks); \
+      IRDA_CLOCKED_BLANK_BIT(p,1,low);  \
       while (bitmask != 0)  { \
-          t when timerafter(tp) :> void; \
           len = (dt & bitmask) ? 2 : 1; /* 1 is 2T 0 is T */ \
           IRDA_BIT_v2(p,len ,high,low); \
-          tp += ((len+1)*IRDA_BIT_ticks); \
+          IRDA_CLOCKED_BLANK_BIT(p,1,low);  \
           bitmask >>= 1; \
       } \
-      tp += (2*IRDA_BIT_ticks); /* elarge last bit to be 3 bits long*/ \
+      IRDA_CLOCKED_BLANK_BIT(p,2,low);  /* elarge last bit to be 3 bits long*/ \
     } while(0)
 
 /*
