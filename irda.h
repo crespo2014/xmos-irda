@@ -239,11 +239,11 @@ Philips (1111.....)
     do { \
       unsigned int bitmask = (1<<(bitcount-1));  \
       unsigned char len; \
-      IRDA_BIT_v2(p,4,high,low); /*send start bit */ \
+      IRDA_CLOCKED_BIT_v2(p,4,high,low); /*send start bit */ \
       IRDA_CLOCKED_BLANK_BIT(p,1,low);  \
       while (bitmask != 0)  { \
           len = (dt & bitmask) ? 2 : 1; /* 1 is 2T 0 is T */ \
-          IRDA_BIT_v2(p,len ,high,low); \
+          IRDA_CLOCKED_BIT_v2(p,len ,high,low); \
           IRDA_CLOCKED_BLANK_BIT(p,1,low);  \
           bitmask >>= 1; \
       } \
@@ -258,10 +258,10 @@ Philips (1111.....)
     do { \
       unsigned int bitmask = (1<<(bitcount-1));  \
       unsigned char len; \
-      IRDA_PULSE(p,t,tp,4,high,low);\
+      IRDA_TIMED_PULSE(p,t,tp,4,high,low);\
       while (bitmask != 0)  { \
           len = (dt & bitmask) ? 2 : 1; /* 1 is 2T 0 is T */ \
-          IRDA_PULSE(p,t,tp,len,high,low);\
+          IRDA_TIMED_PULSE(p,t,tp,len,high,low);\
           bitmask >>= 1; \
       } \
       tp += (2*IRDA_BIT_ticks); /* 2 zeroed pulses */ \

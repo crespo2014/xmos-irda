@@ -291,7 +291,7 @@ void irda_send_loop()
   led_1 <: 0 @count;
   for (;;)
    {
-     IRDA_BIT_v1(led_1,4,1,0);
+    IRDA_CLOCKED_BIT_v1(led_1,4,1,0);
 //   SONY_IRDA_SEND(0x55,8,t,led_1,1,0);
    t :> tp;
    t when timerafter(tp+100*us) :> tp;
@@ -627,44 +627,6 @@ void print_none(chanend c)
           c :> t1;
   }
 }
-
-void timed_irda()
-{
-    timer t;
-    unsigned int tp;
-    t:> tp;
-    for (;;)
-    {
-    tp += sec;
-    SONY_IRDA_TIMED_SEND(0x12345678,32,t,led_1,1,0);
-    }
-    IRDA_PULSE(led_1,t,tp,1,1,0);
-    tp += (2*IRDA_BIT_ticks);   // two stop bits
-    IRDA_PULSE(led_1,t,tp,2,1,0);
-}
-void clocked_irda()
-{
-
-   timer t;
-   unsigned tp;
-   t:> tp;
-   for (;;)
-   {
-   tp += sec;
-   SONY_IRDA_CLOCKED_SEND(0x55,8,t,led_1,1,0);
-   }
-}
-
-void both()
-{
-  timer t;
-  unsigned int tp;
-  IRDA_BIT_v1(led_2,1,1,0);
-  t:> tp;
-  tp += 1;
-  IRDA_PULSE(led_1,t,tp,1,1,0);
-}
-
 out buffered port:32 irda_32  = XS1_PORT_1O;
 
 void test_32bits_irda()
@@ -683,21 +645,6 @@ void test_clocked_irda()
   configure_in_port(led_1, clk);
   start_clock(clk);
   SONY_IRDA_CLOCKED_SEND(0x55,8,t,led_1,1,0);
-}
-
-void test_irda()
-{
-  chan c;
-  configure_clock_xcore(clk,IRDA_XCORE_CLK_DIV);     // dividing clock ticks
-  configure_in_port(led_1, clk);
-  start_clock(clk);
-  printf("%d %d %d %d\n",IRDA_32b_CLK_DIV,IRDA_CARRIER_CLK,IRDA_CARRIER_CLK_TON,IRDA_PULSE_PER_BIT);
-  par
-  {
-    clocked_irda();
-    print_h(c);
-    irda_sony(gpio_irda_rx,c);
-  }
 }
 
 void test_system()
@@ -741,7 +688,7 @@ void test_xscope()
   for (;;)
   {
     tp += sec;
-    t when timerafter(tp) :> void;
+    //t when timerafter(tp) :> void;
     for (i = 0; i < 100; i++) {
       xscope_int(0, i*i);
       xscope_int(2, i*i+2);
