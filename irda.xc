@@ -66,6 +66,55 @@ void irda_tx_buffered_port(client interface tx_rx_if tx,out port TX)
 }
 
 /*
+ * irda tx data supplier example
+ */
+void irda_tx_source(server interface irda_tx_if tx)
+{
+  unsigned int buff[4];
+  unsigned char rd,wr,i;
+  timer t;
+  unsigned int tp;
+  rd = 0;
+  wr = 0;
+  i = 0;
+  t :> tp;
+  tp += sec;
+  while(1)
+  {
+    select
+    {
+      case tx.get(unsigned int &data) -> unsigned char b :
+        if (rd == sizeof(buff)/sizeof(*buff) && rd != wr)
+           rd = 0;
+        if (rd != wr)
+        {
+          data = buff[rd];
+          rd++;
+          b = 1;
+        }
+        else
+          b = 0;
+        break;
+      case t when timerafter(tp):> void:
+        if (wr == sizeof(buff)/sizeof(*buff)  && rd != 0)
+        {
+          wr = 0;
+        }
+        if (rd != wr && wr != sizeof(buff)/sizeof(*buff))
+        {
+          buff[wr] = i++;
+          wr++;
+        }
+        break;
+    }
+  }
+}
+
+void dummy_irda_tx_source(server interface irda_tx_if tx)
+{
+
+}
+/*
  * Combinable irda tx fucntion using a timer
  * - produce many pulses and pick the next bit to send
  * - wait for more data
@@ -73,11 +122,11 @@ void irda_tx_buffered_port(client interface tx_rx_if tx,out port TX)
  *
  * out port is always swtiching bettween 1 and 0 to generated the carrier, except for stop bit
  */
-void irda_tx_timed(client interface irda_tx_if tx,out port TX,unsigned char low,unsigned char high)
+void irda_tx_timed(/*client interface irda_tx_if tx,*/out port TX,unsigned char low,unsigned char high)
 {
-    struct tx_frame_t frm;
-    struct tx_frame_t* movable pfrm = &frm;
-    unsigned char bitmask,pos,sending;
+//    struct tx_frame_t frm;
+//    struct tx_frame_t* movable pfrm = &frm;
+    unsigned char bitmask,pos;
     unsigned pulse;   // how many pulse to send
     unsigned char pv; // next port value - it reduce transition time
     unsigned char bits;   // bits to send.
@@ -85,27 +134,36 @@ void irda_tx_timed(client interface irda_tx_if tx,out port TX,unsigned char low,
     unsigned int tp,pulse_tp;   // time of start pulse
     unsigned int data;          // data to send max 32 bits (8x4bytes - 3 serial bytes max)
     //
-    sending = 0;
-    pos = 0xFF;
-    pv = 0;
+    bitmask = (1<<7);
+    t :> tp;
+    TX <: high;
+    pulse_tp = tp;
+    pv = low;
+    bitmask = (1<<7);
+    pulse = 4*IRDA_PULSE_PER_BIT-1;
+    pos = 0;
     data = 0x55;
-    TX <: low;
+//    sending = 0;
+//    pos = 0xFF;
+//    pv = 0;
+//    data = 0x55;
+//    TX <: low;
     while(1)
     {
       select
       {
-        case pos == 0xFF => tx.ondata():
-            if (tx.get(data) == 1)
-            {
-              t :> tp;
-              TX <: high;
-              pulse_tp = tp;
-              pv = low;
-              bitmask = (1<<7);
-              pulse = 4*IRDA_PULSE_PER_BIT-1;
-              pos = 0;
-            }
-            break;
+//        case pos == 0xFF => tx.ondata():
+//            if (tx.get(data) == 1)
+//            {
+//              t :> tp;
+//              TX <: high;
+//              pulse_tp = tp;
+//              pv = low;
+//              bitmask = (1<<7);
+//              pulse = 4*IRDA_PULSE_PER_BIT-1;
+//              pos = 0;
+//            }
+//            break;
         case pos != 0xFF => t when timerafter(tp) :> void:
             TX <: pv;
             if (pv == high)
@@ -121,16 +179,17 @@ void irda_tx_timed(client interface irda_tx_if tx,out port TX,unsigned char low,
                 if (bitmask == 0)  // all bits + stop have been sent
                 {
                   pos = 0xFF;
-                  if (tx.get(data) == 1)
-                  {
-                    t :> tp;
-                    TX <: high;
-                    pulse_tp = tp;
-                    pv = low;
-                    bitmask = (1<<7);
-                    pulse = 4*IRDA_PULSE_PER_BIT-1;
-                    pos = 0;
-                  }
+                  return ;
+//                  if (tx.get(data) == 1)
+//                  {
+//                    t :> tp;
+//                    TX <: high;
+//                    pulse_tp = tp;
+//                    pv = low;
+//                    bitmask = (1<<7);
+//                    pulse = 4*IRDA_PULSE_PER_BIT-1;
+//                    pos = 0;
+//                  }
                 }
                 else
                 {
@@ -161,6 +220,16 @@ void irda_tx_timed(client interface irda_tx_if tx,out port TX,unsigned char low,
     }
 
 }
+
+//void test_combinable()
+//{
+//  interface irda_tx_if if1;
+//  par
+//  {
+//    irda_tx_timed(if1,led_1,0,1);
+//    dummy_irda_tx_source(if1);
+//  }
+//}
 
 /**
  * IRDA receiver project.
@@ -817,6 +886,7 @@ void test_xscope()
 
 int main()
 {
-  test_xscope();
+  irda_tx_timed(led_1,1,0);
+  //test_combinable();
   return 0;
 }

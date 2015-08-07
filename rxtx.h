@@ -9,7 +9,7 @@
 #ifndef RXTX_H_
 #define RXTX_H_
 
-#define SYS_TIMER_T_ns  10
+#define SYS_TIMER_T_ns  100   //set to 100 for testing
 
 #define sec 100000000
 #define ms  100000
@@ -57,6 +57,11 @@ interface tx_rx_if {
     [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);  // get pointer to frame true if pointer is get
 };
 
+struct irda_tx_frame
+{
+    unsigned int dt;    // unsigned long long is a 64Bits type
+    unsigned char bits;
+};
 /*
  * Irda tx is able to send until 32bits of data
  */
