@@ -45,6 +45,123 @@ div =
 10 - 20ns     T = 40ns
 */
 
+/*
+ * Combinable Irda tx function using buffered clocked port
+ * it is not posible until we are able to wait on a clocked port
+ */
+void irda_tx_buffered_port(client interface tx_rx_if tx,out port TX)
+{
+//  struct tx_frame_t frm;
+//  struct tx_frame_t* movable pfrm = &frm;
+//  unsigned char bitmask,pos;
+//  pos = 0xFF; // no sending
+//  while(1)
+//  {
+//    select
+//    {
+//      case pos != 0xFF => when sync(TX):
+//          break;
+//    }
+//  }
+}
+
+/*
+ * Combinable irda tx fucntion using a timer
+ * - produce many pulses and pick the next bit to send
+ * - wait for more data
+ * - sending status is hold until the stop bit is send
+ *
+ * out port is always swtiching bettween 1 and 0 to generated the carrier, except for stop bit
+ */
+void irda_tx_timed(client interface irda_tx_if tx,out port TX,unsigned char low,unsigned char high)
+{
+    struct tx_frame_t frm;
+    struct tx_frame_t* movable pfrm = &frm;
+    unsigned char bitmask,pos,sending;
+    unsigned pulse;   // how many pulse to send
+    unsigned char pv; // next port value - it reduce transition time
+    unsigned char bits;   // bits to send.
+    timer t;
+    unsigned int tp,pulse_tp;   // time of start pulse
+    unsigned int data;          // data to send max 32 bits (8x4bytes - 3 serial bytes max)
+    //
+    sending = 0;
+    pos = 0xFF;
+    pv = 0;
+    data = 0x55;
+    TX <: low;
+    while(1)
+    {
+      select
+      {
+        case pos == 0xFF => tx.ondata():
+            if (tx.get(data) == 1)
+            {
+              t :> tp;
+              TX <: high;
+              pulse_tp = tp;
+              pv = low;
+              bitmask = (1<<7);
+              pulse = 4*IRDA_PULSE_PER_BIT-1;
+              pos = 0;
+            }
+            break;
+        case pos != 0xFF => t when timerafter(tp) :> void:
+            TX <: pv;
+            if (pv == high)
+            {
+              pulse--;
+              tp += IRDA_CARRIER_TON_ticks;
+              pv = low;
+            }
+            else // Toff zone
+            {
+              if (pulse == 0) // no more pulses 1 low bits needed
+              {
+                if (bitmask == 0)  // all bits + stop have been sent
+                {
+                  pos = 0xFF;
+                  if (tx.get(data) == 1)
+                  {
+                    t :> tp;
+                    TX <: high;
+                    pulse_tp = tp;
+                    pv = low;
+                    bitmask = (1<<7);
+                    pulse = 4*IRDA_PULSE_PER_BIT-1;
+                    pos = 0;
+                  }
+                }
+                else
+                {
+                  tp = pulse_tp + (bits+1)*IRDA_BIT_ticks;
+                  bitmask >>= 1;
+                  if (bitmask == 0)  // no more bits to send
+                  {
+                    tp = pulse_tp + (bits+3)*IRDA_BIT_ticks;
+                  }
+                  else
+                  {
+                    pulse_tp = pulse_tp + (bits+1)*IRDA_BIT_ticks;
+                    bits = ((data & bitmask) == bitmask) ? 2 : 1;
+                    pulse = bits*IRDA_PULSE_PER_BIT;
+                    pv = high;
+                    tp = pulse_tp;
+                  }
+                }
+              }
+              else
+              {
+                tp += IRDA_CARRIER_TOFF_ticks;
+                pv = high;
+              }
+            }
+            break;
+      }
+    }
+
+}
+
 /**
  * IRDA receiver project.
  * Hardware:

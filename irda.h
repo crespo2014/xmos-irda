@@ -67,10 +67,10 @@
 #define IRDA_32b_BIT_LEN      (IRDA_BIT_LEN_ns/IRDA_32b_CARRIER_T_ns + 1)   // one more 
 
 // Producing irda carrier without clocked output
-#define IRDA_CARRIER_GEN_T_ticks      (IRDA_CARRIER_T_ns/SYS_TIMER_T_ns)
-#define IRDA_CARRIER_GEN_TON_ticks    IRDA_CARRIER_GEN_T_ticks/4
-#define IRDA_CARRIER_GEN_TOFF_ticks   (IRDA_CARRIER_GEN_T_ticks-IRDA_CARRIER_GEN_TON_ticks)
-#define IRDA_BIT_ticks                (IRDA_BIT_LEN_ns/SYS_TIMER_T_ns)
+#define IRDA_CARRIER_T_ticks      (IRDA_CARRIER_T_ns/SYS_TIMER_T_ns)
+#define IRDA_CARRIER_TON_ticks    IRDA_CARRIER_T_ticks/4
+#define IRDA_CARRIER_TOFF_ticks   (IRDA_CARRIER_T_ticks-IRDA_CARRIER_TON_ticks)
+#define IRDA_BIT_ticks            (IRDA_BIT_LEN_ns/SYS_TIMER_T_ns)
 
 /*
  * Emulate an irda data on pin

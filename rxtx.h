@@ -56,6 +56,15 @@ interface tx_rx_if {
     [[notification]] slave void ondata();       // data waiting to be read
     [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);  // get pointer to frame true if pointer is get
 };
+
+/*
+ * Irda tx is able to send until 32bits of data
+ */
+interface irda_tx_if {
+    [[notification]] slave void ondata();       // data waiting to be read
+    [[clears_notification]] unsigned char get(unsigned int &data);  // get pointer to frame true if pointer is get
+};
+
 /*
  * Fault reporting interface
  */
