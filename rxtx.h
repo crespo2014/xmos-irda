@@ -9,7 +9,7 @@
 #ifndef RXTX_H_
 #define RXTX_H_
 
-#define SYS_TIMER_T_ns  100   //set to 100 for testing
+#define SYS_TIMER_T_ns  10   //set to 100 for testing
 
 #define sec 100000000
 #define ms  100000
@@ -67,7 +67,7 @@ struct irda_tx_frame
  */
 interface irda_tx_if {
     [[notification]] slave void ondata();       // data waiting to be read
-    [[clears_notification]] unsigned char get(unsigned int &data);  // get pointer to frame true if pointer is get
+    [[clears_notification]] unsigned char get(struct irda_tx_frame  * movable &old_p);  // get pointer to frame true if pointer is get
 };
 
 /*

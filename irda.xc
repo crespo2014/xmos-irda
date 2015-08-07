@@ -83,12 +83,12 @@ void irda_tx_source(server interface irda_tx_if tx)
   {
     select
     {
-      case tx.get(unsigned int &data) -> unsigned char b :
+      case tx.get(struct irda_tx_frame  * movable &old_p) -> unsigned char b :
         if (rd == sizeof(buff)/sizeof(*buff) && rd != wr)
            rd = 0;
         if (rd != wr)
         {
-          data = buff[rd];
+          //data = buff[rd];
           rd++;
           b = 1;
         }
@@ -124,8 +124,8 @@ void dummy_irda_tx_source(server interface irda_tx_if tx)
  */
 void irda_tx_timed(/*client interface irda_tx_if tx,*/out port TX,unsigned char low,unsigned char high)
 {
-//    struct tx_frame_t frm;
-//    struct tx_frame_t* movable pfrm = &frm;
+    struct irda_tx_frame frm;
+    struct irda_tx_frame* movable pfrm = &frm;
     unsigned char bitmask,pos;
     unsigned pulse;   // how many pulse to send
     unsigned char pv; // next port value - it reduce transition time
@@ -134,12 +134,13 @@ void irda_tx_timed(/*client interface irda_tx_if tx,*/out port TX,unsigned char 
     unsigned int tp,pulse_tp;   // time of start pulse
     unsigned int data;          // data to send max 32 bits (8x4bytes - 3 serial bytes max)
     //
-    bitmask = (1<<7);
     t :> tp;
     TX <: high;
     pulse_tp = tp;
+    tp += IRDA_CARRIER_TON_ticks;
     pv = low;
-    bitmask = (1<<7);
+    bitmask = (1<<3);
+    bits = 4;
     pulse = 4*IRDA_PULSE_PER_BIT-1;
     pos = 0;
     data = 0x55;
@@ -886,7 +887,7 @@ void test_xscope()
 
 int main()
 {
-  irda_tx_timed(led_1,1,0);
+  irda_tx_timed(led_1,0,1);
   //test_combinable();
   return 0;
 }

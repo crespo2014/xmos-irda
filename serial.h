@@ -9,6 +9,7 @@
 #ifndef SERIAL_H_
 #define SERIAL_H_
 
+#include "irda.h"
 
 /*
  * TODO
@@ -28,6 +29,9 @@
 #define UART_BASE_BIT_LEN_ns  8680    //for 115200 use a divisor to get the desired baud rate
 #define UART_XCORE_CLOCK_DIV  217
 #define UART_T_CLK            (UART_BASE_BIT_LEN_ns/(XCORE_CLK_T_ns*UART_XCORE_CLOCK_DIV))    // how many clocks to create freq
+
+#define UART_BASE_BIT_LEN_ticks    (UART_BASE_BIT_LEN_ns/SYS_TIMER_T_ns)
+#define UART_IRDA_PULSE_PER_BIT    (UART_BASE_BIT_LEN_ns/IRDA_CARRIER_T_ns)
 
 /*
  * Send a byte throught a clocked serial port
