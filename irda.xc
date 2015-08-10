@@ -47,22 +47,51 @@ div =
 
 /*
  * Combinable Irda tx function using buffered clocked port
- * it is not posible until we are able to wait on a clocked port
+ * States :
+ * Idle
+ * Sending (generating pulse, waiting for next pulse)
  */
-void irda_tx_buffered_port(client interface tx_rx_if tx,out port TX)
+//[[combinable]]
+void irda_32b_tx(/*client interface tx_rx_if tx_if,*/out port tx)
 {
-//  struct tx_frame_t frm;
-//  struct tx_frame_t* movable pfrm = &frm;
-//  unsigned char bitmask,pos;
-//  pos = 0xFF; // no sending
-//  while(1)
-//  {
-//    select
-//    {
-//      case pos != 0xFF => when sync(TX):
-//          break;
-//    }
-//  }
+  struct tx_frame_t frm;
+  struct tx_frame_t* movable pfrm = &frm;
+  unsigned int bitmask;
+  unsigned pulsecount;      // how many pulse to send
+  unsigned int data;
+  unsigned int pv = IRDA_32b_WAVE;
+  timer t;
+  unsigned int tp,tp_bit_start;
+  unsigned char bits;   // how many bits are we sending
+
+  bitmask = (1 << 7);
+  data = 0x55;
+  pulsecount = 4*IRDA_32b_BIT_LEN;
+  t :> tp;
+  tp += IRDA_32b_WAVE_ticks;
+
+  while(1)
+  {
+    select
+    {
+      case t when timerafter(tp) :> void:
+        tx <: pv;
+        pulsecount--;
+        if (pulsecount ==0)
+        {
+          if (bitmask == 0) // all data plus stop sent
+          {
+            return;
+          }
+          bitmask >>=1 ;
+          if (bitmask == 0) // no more data, send STOP
+          {
+            tp = tp_bit_start + (bits + 3)* IRDA_BIT_ticks;
+          }
+        }
+        break;
+    }
+  }
 }
 
 /*

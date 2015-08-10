@@ -64,7 +64,8 @@
 #define IRDA_32b_WAVE         0x000000FF
 #define IRDA_32b_WAVE_INV     0xFFFFFF00
 #define IRDA_32b_WAVE_BLANK   0x0           // use to create a delay
-#define IRDA_32b_BIT_LEN      (IRDA_BIT_LEN_ns/IRDA_32b_CARRIER_T_ns + 1)   // one more 
+#define IRDA_32b_BIT_LEN      (IRDA_BIT_LEN_ns/IRDA_32b_CARRIER_T_ns + 1)   // one more
+#define IRDA_32b_WAVE_ticks   (IRDA_32b_CARRIER_T_ns/SYS_TIMER_T_ns)
 
 // Producing irda carrier without clocked output
 #define IRDA_CARRIER_T_ticks      (IRDA_CARRIER_T_ns/SYS_TIMER_T_ns)
