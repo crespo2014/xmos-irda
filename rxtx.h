@@ -83,7 +83,7 @@ interface fault_if {
     client interface tx_rx_if irda_rx,
     client interface fault_if fault);
 
-[[combinable]] extern void Router(
+[[distributable]] extern void Router(
     server interface tx_rx_if ch0_tx,
     server interface tx_rx_if ch1_tx,
     client interface tx_rx_if ch0_rx,

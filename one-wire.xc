@@ -160,7 +160,7 @@ inline unsigned char buff_push(struct frm_buff_t &buff,enum dest_e dst,struct tx
  *
  * cmd interface will be like a RX, it will pick from Rx, process, signal, wait for purge
  */
-[[combinable]]
+[[distributable]]
 void Router(
     server interface tx_rx_if ch0_tx,
     server interface tx_rx_if ch1_tx,

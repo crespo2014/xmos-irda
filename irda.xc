@@ -52,7 +52,7 @@ div =
  * Sending (generating pulse, waiting for next pulse)
  */
 //[[combinable]]
-void irda_32b_tx(/*client interface tx_rx_if tx_if,*/out buffered port:32 tx)
+void irda_32b_tx_comb(/*client interface tx_rx_if tx_if,*/out buffered port:32 tx)
 {
 //  struct tx_frame_t frm;
 //  struct tx_frame_t* movable pfrm = &frm;
@@ -66,7 +66,7 @@ void irda_32b_tx(/*client interface tx_rx_if tx_if,*/out buffered port:32 tx)
   printf("%d %d %d %d\n",IRDA_32b_CLK_DIV,IRDA_32b_CARRIER_T_ns,IRDA_32b_BIT_LEN,IRDA_BIT_ticks);
   pv = IRDA_32b_WAVE;
   sending = 1;
-  bitmask = (1 << 7);
+  bitmask = (1 << 2);
   data = 0x55;
   bits = 4;
   pulsecount = bits*IRDA_32b_BIT_LEN;
@@ -868,11 +868,13 @@ void print_none(chanend c)
   }
 }
 out buffered port:32 irda_32  = XS1_PORT_1O;
+out port clockOut  = XS1_PORT_1N;
 
 void test_32bits_irda()
 {
   configure_clock_xcore(clk,IRDA_32b_CLK_DIV);     // dividing clock ticks
   configure_in_port(irda_32, clk);
+  configure_port_clock_output(clockOut, clk);
   start_clock(clk);
   printf("%d %d %d %d\n",IRDA_32b_CLK_DIV,IRDA_32b_CARRIER_T_ns,IRDA_32b_BIT_LEN,IRDA_BIT_ticks);
   SONY_IRDA_32b_SEND(0x5555,4,t,irda_32);
@@ -942,8 +944,10 @@ int main()
 {
   configure_clock_xcore(clk,IRDA_32b_CLK_DIV);     // dividing clock ticks
    configure_in_port(irda_32, clk);
+   configure_port_clock_output(clockOut, clk);
    start_clock(clk);
-  irda_32b_tx(irda_32);
+  irda_32b_tx_comb(irda_32);
+  sync(irda_32);
   //irda_tx_timed(led_1,0,1);
   //test_combinable();
   return 0;
