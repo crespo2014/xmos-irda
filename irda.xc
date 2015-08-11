@@ -52,44 +52,68 @@ div =
  * Sending (generating pulse, waiting for next pulse)
  */
 //[[combinable]]
-void irda_32b_tx(/*client interface tx_rx_if tx_if,*/out port tx)
+void irda_32b_tx(/*client interface tx_rx_if tx_if,*/out buffered port:32 tx)
 {
-  struct tx_frame_t frm;
-  struct tx_frame_t* movable pfrm = &frm;
-  unsigned int bitmask;
-  unsigned pulsecount;      // how many pulse to send
-  unsigned int data;
-  unsigned int pv = IRDA_32b_WAVE;
+//  struct tx_frame_t frm;
+//  struct tx_frame_t* movable pfrm = &frm;
+  unsigned int bitmask,data;    // bitmask indicate currently sending bits
+  unsigned int pulsecount;      // how many pulse to send
+  unsigned int pv;
   timer t;
   unsigned int tp,tp_bit_start;
-  unsigned char bits;   // how many bits are we sending
+  unsigned char bits,sending;   // how many bits are we sending
 
+  printf("%d %d %d %d\n",IRDA_32b_CLK_DIV,IRDA_32b_CARRIER_T_ns,IRDA_32b_BIT_LEN,IRDA_BIT_ticks);
+  pv = IRDA_32b_WAVE;
+  sending = 1;
   bitmask = (1 << 7);
   data = 0x55;
-  pulsecount = 4*IRDA_32b_BIT_LEN;
+  bits = 4;
+  pulsecount = bits*IRDA_32b_BIT_LEN;
   t :> tp;
   tp += IRDA_32b_WAVE_ticks;
+  tp_bit_start = tp;
 
   while(1)
   {
     select
     {
-      case t when timerafter(tp) :> void:
+      case sending !=0 => t when timerafter(tp) :> void:
         tx <: pv;
-        pulsecount--;
-        if (pulsecount ==0)
+        if (pulsecount != 0)  // send next pulse
         {
-          if (bitmask == 0) // all data plus stop sent
-          {
-            return;
-          }
-          bitmask >>=1 ;
-          if (bitmask == 0) // no more data, send STOP
-          {
-            tp = tp_bit_start + (bits + 3)* IRDA_BIT_ticks;
-          }
+          pulsecount--;
+          tp += IRDA_32b_WAVE_ticks;
+          pv = IRDA_32b_WAVE;
+          break;
         }
-        break;
+        if (bits != 0)    // send stop bit
+        {
+          tp += IRDA_32b_WAVE_ticks;
+          pv = IRDA_32b_WAVE_BLANK;
+          tp_bit_start = tp_bit_start + (bits + 1)* IRDA_BIT_ticks;
+          bits = 0;
+          break;
+        }
+        tp = tp_bit_start;
+        if (bitmask != 0)     // send data bits
+        {
+          pv = IRDA_32b_WAVE;
+          bits = (data & bitmask) ? 2 : 1;
+          pulsecount = bits*IRDA_32b_BIT_LEN;
+          bitmask >>=1 ;
+          break;
+        }
+        if (sending == 1)
+        {
+          // no more bits, one stop already sent, we need two more stops
+          pv = IRDA_32b_WAVE_BLANK;
+          tp = tp_bit_start + 2*IRDA_BIT_ticks;
+          sending = 2;    // next time go to idle
+          break;
+        }
+        sending = 0;    // end
+        return;
     }
   }
 }
@@ -916,7 +940,11 @@ void test_xscope()
 
 int main()
 {
-  irda_tx_timed(led_1,0,1);
+  configure_clock_xcore(clk,IRDA_32b_CLK_DIV);     // dividing clock ticks
+   configure_in_port(irda_32, clk);
+   start_clock(clk);
+  irda_32b_tx(irda_32);
+  //irda_tx_timed(led_1,0,1);
   //test_combinable();
   return 0;
 }

@@ -55,6 +55,7 @@
 #define IRDA_CARRIER_CLK_TON   (IRDA_CARRIER_CLK/4)
 #define IRDA_CARRIER_CLK_TOFF  (IRDA_CARRIER_CLK - IRDA_CARRIER_CLK_TON)
 
+
 #define IRDA_BIT_LEN_ns     (600*1000)
 #define IRDA_CLK_PER_BIT    (IRDA_BIT_LEN_ns/IRDA_CLK_T_ns)     // carrier clocks per bit
 #define IRDA_PULSE_PER_BIT  (IRDA_BIT_LEN_ns/IRDA_CARRIER_T_ns)                     // carrier pulse per bit
