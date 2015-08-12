@@ -59,4 +59,16 @@ interface serial_rx
   void setbaud(unsigned char baud);
 };
 
+/*
+ * For byte to byte send interface.
+ * Avoid bloquing on channel.
+ * we use a ready to send trigger
+ */
+interface serial_tx_if
+{
+  [[notification]] slave void ready();                  // a push cmd will be sucessfull
+  [[guarded]] [[clears_notification]] void push(unsigned char dt);  // send this data
+  void setbaud(unsigned char baud);
+};
+
 #endif /* SERIAL_H_ */

@@ -7,7 +7,11 @@
 
 #include "serial.h"
 #include "rxtx.h"
-#include "xs1.h"
+#include <timer.h>
+#include <xs1.h>
+#include <stdio.h>
+#include <xscope.h>
+#include <platform.h>
 
 //TODO give a gap between bytes to allow recovery from wrong synchronization
 // not good for speed.
@@ -152,7 +156,7 @@ void serial_rx_cmb(unsigned char baudrate,in port rx)
           }
           else
           {
-            // not valid start
+            st = 0; // not valid start
           }
         } else if (st == 2) //reading data
         {
@@ -165,6 +169,7 @@ void serial_rx_cmb(unsigned char baudrate,in port rx)
           if (pv == low)
           {
             //store byte
+            printf("%d\n",dt);
           }
           else
           {
@@ -175,5 +180,57 @@ void serial_rx_cmb(unsigned char baudrate,in port rx)
         break;
     }
   }
-
 }
+
+/*
+ * Serial tx timed
+ */
+void serial_tx_timed_cmb(server interface serial_tx_if cmd,out port tx)
+{
+  unsigned char baudrate;
+  unsigned char st;   // status 0 - idle, 1 - send start, 2 - send data, 3 - send stop, 4 - end
+  unsigned char data,bitmask;
+  unsigned int tp;
+  timer t;
+
+  //init
+  baudrate = 1;
+  cmd.ready();
+  while(1)
+  {
+    select
+    {
+      case st ==0 => cmd.push(unsigned char dt):
+        data = dt;
+        st = 1;
+        t :> tp;
+        break;
+      case cmd.setbaud(unsigned char baud):
+        baudrate = baud;
+        break;
+      case st !=0 => t when timerafter(tp) :> void:
+          if (st == 1)
+          {
+            tx <: 1;    //start bit
+            st = 2;
+            bitmask = 1;  // lsb to msb
+          }else if (st == 2)
+          {
+            if (data & bitmask) tx <: 1;
+            else tx <: 0;
+            bitmask<<= 1;
+            if (bitmask == 0) st = 3;
+          }else if (st == 3)
+          {
+            tx <: 0;
+          }else
+          {
+            st = 0;
+            cmd.ready();
+          }
+          tp += (UART_BASE_BIT_LEN_ticks*baudrate);
+        break;
+    }
+  }
+}
+
