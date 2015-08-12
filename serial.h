@@ -52,10 +52,13 @@ do { \
   p  @ count <: high;  /* end of stop bit*/ \
 }while(0)
 
-interface serial_rx
+/*
+ * Serial rx will write to a chan.
+ * A buffer will hold data until cr to send to cmd interface
+ */
+interface serial_rx_if
 {
-  [[notification]] slave void ondata();       // data waiting to be read
-  [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);  // get pointer to frame true if pointer is get
+  void error();       // invalid character received
   void setbaud(unsigned char baud);
 };
 
@@ -63,6 +66,7 @@ interface serial_rx
  * For byte to byte send interface.
  * Avoid bloquing on channel.
  * we use a ready to send trigger
+ * A buffer will buffered all data comming from cmd channel
  */
 interface serial_tx_if
 {
