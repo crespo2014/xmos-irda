@@ -52,4 +52,11 @@ do { \
   p  @ count <: high;  /* end of stop bit*/ \
 }while(0)
 
+interface serial_rx
+{
+  [[notification]] slave void ondata();       // data waiting to be read
+  [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);  // get pointer to frame true if pointer is get
+  void setbaud(unsigned char baud);
+};
+
 #endif /* SERIAL_H_ */

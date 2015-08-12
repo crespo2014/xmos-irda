@@ -9,6 +9,11 @@
 #include "rxtx.h"
 #include "xs1.h"
 
+//TODO give a gap between bytes to allow recovery from wrong synchronization
+// not good for speed.
+// sending cr until get OK will synchronize the communication. do not send cr to fast
+// write 0x00 (clear the line) and CR two times
+
 /*
  * Serial tx over irda led
  * Combinable function
@@ -107,3 +112,68 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
     }
 
   }
+/*
+ * Combinable serial rx interface
+ * rx interface
+ *
+ * TODO echo flag , interface with tx for echo
+ */
+void serial_rx_cmb(unsigned char baudrate,in port rx)
+{
+  const unsigned char low = 0;
+  const unsigned char high = 1;
+  unsigned char pv;
+  unsigned char bitmask;
+  unsigned char st;   // status 0 idle waiting start, 1 start , 3 - reading, 3 waiting stop
+  timer t;
+  unsigned int tp;
+  unsigned char dt;
+  rx :> pv;
+  st = 1;
+  while(1)
+  {
+    select
+    {
+      case st == 0 => rx when pinseq(high) :> pv: // wait for start
+        t :> tp;
+        tp += ((UART_BASE_BIT_LEN_ticks/2)*baudrate);
+        st = 1;
+        bitmask = 0;    // LSB to MSB
+        dt = 0;
+        break;
+      case st != 0 => t when timerafter(tp) :> void:    // only read if it is not idle
+        rx :> pv;
+        tp += (UART_BASE_BIT_LEN_ticks*baudrate);
+        if (st == 1)  // reading start
+        {
+          if (pv == high)
+          {
+            bitmask = 1;
+          }
+          else
+          {
+            // not valid start
+          }
+        } else if (st == 2) //reading data
+        {
+          if (pv == high)
+            dt = dt | bitmask;
+          bitmask <<=1;
+          if (bitmask == 0) st = 3;   // all data has been read
+        } else if (st == 3) // reading stop
+        {
+          if (pv == low)
+          {
+            //store byte
+          }
+          else
+          {
+            // error clear everything try sending NOK
+          }
+          st = 0;
+        }
+        break;
+    }
+  }
+
+}
