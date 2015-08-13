@@ -240,3 +240,25 @@ void serial_tx_timed_cmb(server interface serial_tx_if cmd,out port tx)
   }
 }
 
+void serial_test(client interface serial_tx_if tx,chanend rx_c,client interface serial_rx_if rx)
+{
+  unsigned char dt;
+  tx.push(0x55);
+  while(1)
+  {
+    select
+    {
+      case 0 => tx.ready():
+        break;
+      case rx_c :> dt:
+        printf("%d\n",dt);
+        break;
+      case rx.error():
+        rx.ack();
+        break;
+    }
+  }
+}
+
+
+

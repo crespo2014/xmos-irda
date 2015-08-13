@@ -268,4 +268,8 @@ Philips (1111.....)
       } \
       tp += (2*IRDA_BIT_ticks); /* 2 zeroed pulses */ \
     } while(0)
+
+
+ void irda_32b_tx_comb(/*client interface tx_rx_if tx_if,*/out buffered port:32 tx);
+
 #endif /* IRDA_H_ */
