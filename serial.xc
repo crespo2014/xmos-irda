@@ -149,7 +149,7 @@ void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if)
         break;
       case st != 0 => t when timerafter(tp) :> void:    // only read if it is not idle
         rx :> pv;
-        printf("%d:",pv);
+        printf("%d:%d-%d",pv,bitmask,dt);
         tp += (UART_BASE_BIT_LEN_ticks*baudrate);
         if (st == 1)  // reading start
         {
@@ -166,9 +166,9 @@ void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if)
         {
           if (pv == high)
             dt |= bitmask;
-          printf("-%d-",dt);
-          bitmask <<=1;
-          if (bitmask == 0) st = 3;   // all data has been read
+          if (bitmask == 0x80) st = 3;
+          bitmask <<= 1;
+          //if (bitmask == 0) st = 3;   // all data has been read
         } else if (st == 3) // reading stop
         {
           if (pv == low)
