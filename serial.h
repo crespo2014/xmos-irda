@@ -58,7 +58,8 @@ do { \
  */
 interface serial_rx_if
 {
-  void error();       // invalid character received
+  [[notification]] slave void error();       // invalid character received
+  [[clears_notification]] void ack();
   void setbaud(unsigned char baud);
 };
 

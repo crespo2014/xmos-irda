@@ -122,10 +122,11 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
  *
  * TODO echo flag , interface with tx for echo
  */
-void serial_rx_cmb(unsigned char baudrate,in port rx)
+void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if)
 {
   const unsigned char low = 0;
   const unsigned char high = 1;
+  unsigned char baudrate;
   unsigned char pv;
   unsigned char bitmask;
   unsigned char st;   // status 0 idle waiting start, 1 start , 3 - reading, 3 waiting stop
@@ -156,6 +157,7 @@ void serial_rx_cmb(unsigned char baudrate,in port rx)
           }
           else
           {
+            rx_if.error();
             st = 0; // not valid start
           }
         } else if (st == 2) //reading data
@@ -168,15 +170,19 @@ void serial_rx_cmb(unsigned char baudrate,in port rx)
         {
           if (pv == low)
           {
-            //store byte
-            printf("%d\n",dt);
+            c <: dt;
           }
           else
           {
-            // error clear everything try sending NOK
+            rx_if.error();  // error clear everything try sending NOK
           }
           st = 0;
         }
+        break;
+      case rx_if.ack():
+          break;
+      case rx_if.setbaud(unsigned char baud):
+        baudrate = baud;
         break;
     }
   }
