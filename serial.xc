@@ -129,12 +129,13 @@ void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if)
   unsigned char baudrate;
   unsigned char pv;
   unsigned char bitmask;
-  unsigned char st;   // status 0 idle waiting start, 1 start , 3 - reading, 3 waiting stop
+  unsigned char st;   // status 0 idle waiting start, 1 start , 2 - reading, 3 waiting stop
   timer t;
   unsigned int tp;
   unsigned char dt;
   rx :> pv;
-  st = 1;
+  st = 0;
+  baudrate = 1;
   while(1)
   {
     select
@@ -143,17 +144,18 @@ void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if)
         t :> tp;
         tp += ((UART_BASE_BIT_LEN_ticks/2)*baudrate);
         st = 1;
-        bitmask = 0;    // LSB to MSB
+        bitmask = 1;    // LSB to MSB
         dt = 0;
         break;
       case st != 0 => t when timerafter(tp) :> void:    // only read if it is not idle
         rx :> pv;
+        printf("%d:",pv);
         tp += (UART_BASE_BIT_LEN_ticks*baudrate);
         if (st == 1)  // reading start
         {
           if (pv == high)
           {
-            bitmask = 1;
+            st = 2;
           }
           else
           {
@@ -163,7 +165,8 @@ void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if)
         } else if (st == 2) //reading data
         {
           if (pv == high)
-            dt = dt | bitmask;
+            dt |= bitmask;
+          printf("-%d-",dt);
           bitmask <<=1;
           if (bitmask == 0) st = 3;   // all data has been read
         } else if (st == 3) // reading stop
@@ -194,71 +197,63 @@ void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if)
 void serial_tx_timed_cmb(server interface serial_tx_if cmd,out port tx)
 {
   unsigned char baudrate;
-  unsigned char st;   // status 0 - idle, 1 - send start, 2 - send data, 3 - send stop, 4 - end
+  unsigned char st;   // status 0 - idle, 1 - sending data, 2 - sending stop,
   unsigned char data,bitmask;
   unsigned int tp;
+  unsigned char pv;   // next output value
   timer t;
 
   //init
   baudrate = 1;
+  st = 0;
+  tx <: 0;
   cmd.ready();
   while(1)
   {
     select
     {
-      case st ==0 => cmd.push(unsigned char dt):
+      case st == 0 => cmd.push(unsigned char dt):    // call to this function is going to be ignore
         data = dt;
         st = 1;
+        pv = 1;       // start bit
+        bitmask = 1;  // lsb to msb
         t :> tp;
+        tp += (UART_BASE_BIT_LEN_ticks*baudrate);
         break;
       case cmd.setbaud(unsigned char baud):
         baudrate = baud;
         break;
       case st !=0 => t when timerafter(tp) :> void:
-          if (st == 1)
+        tx <: pv;
+        //printf("%d.",pv);
+        tp += (UART_BASE_BIT_LEN_ticks*baudrate);
+        if (st == 1)
+        {
+          if (bitmask == 0) // no more data to send
           {
-            tx <: 1;    //start bit
+            pv = 0;
             st = 2;
-            bitmask = 1;  // lsb to msb
-          }else if (st == 2)
-          {
-            if (data & bitmask) tx <: 1;
-            else tx <: 0;
-            bitmask<<= 1;
-            if (bitmask == 0) st = 3;
-          }else if (st == 3)
-          {
-            tx <: 0;
-          }else
-          {
-            st = 0;
-            cmd.ready();
           }
-          tp += (UART_BASE_BIT_LEN_ticks*baudrate);
+          else
+          {
+            if ((data & bitmask) == bitmask)
+              pv = 1;
+            else
+              pv = 0;
+            bitmask<<= 1;
+          }
+        }
+        else if (st == 2)
+        {
+          st = 0;
+          cmd.ready();
+        }
         break;
     }
   }
 }
 
-void serial_test(client interface serial_tx_if tx,chanend rx_c,client interface serial_rx_if rx)
-{
-  unsigned char dt;
-  tx.push(0x55);
-  while(1)
-  {
-    select
-    {
-      case 0 => tx.ready():
-        break;
-      case rx_c :> dt:
-        printf("%d\n",dt);
-        break;
-      case rx.error():
-        rx.ack();
-        break;
-    }
-  }
-}
+
 
 
 
