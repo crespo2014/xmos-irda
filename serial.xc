@@ -124,8 +124,6 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
  */
 void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if)
 {
-  const unsigned char low = 0;
-  const unsigned char high = 1;
   unsigned char baudrate;
   unsigned char pv;
   unsigned char bitmask;
@@ -140,7 +138,7 @@ void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if)
   {
     select
     {
-      case st == 0 => rx when pinseq(high) :> pv: // wait for start
+      case st == 0 => rx when pinseq(1) :> pv: // wait for start
         t :> tp;
         tp += ((UART_BASE_BIT_LEN_ticks/2)*baudrate);
         st = 1;
@@ -149,11 +147,11 @@ void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if)
         break;
       case st != 0 => t when timerafter(tp) :> void:    // only read if it is not idle
         rx :> pv;
-        printf("%d:%d-%d",pv,bitmask,dt);
+        printf("%d:%d-%d\n",pv,bitmask,dt);
         tp += (UART_BASE_BIT_LEN_ticks*baudrate);
         if (st == 1)  // reading start
         {
-          if (pv == high)
+          if (pv == 1)
           {
             st = 2;
           }
@@ -164,14 +162,14 @@ void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if)
           }
         } else if (st == 2) //reading data
         {
-          if (pv == high)
+          if (pv == 1)
             dt |= bitmask;
           if (bitmask == 0x80) st = 3;
           bitmask <<= 1;
           //if (bitmask == 0) st = 3;   // all data has been read
         } else if (st == 3) // reading stop
         {
-          if (pv == low)
+          if (pv == 0)
           {
             c <: dt;
           }
