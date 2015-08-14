@@ -191,6 +191,43 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
     }
   }
 }
+/*
+ * Serial
+ * Combinable, Timed TX with internal buffer
+ */
+[[combinable]] void serial_tx_ctb(streaming chanend ch,
+    server interface serial_tx_v2_if cmd,
+    out port tx)
+{
+  unsigned char buff[16];   //mask is 0x0F
+  unsigned char buff_wr;
+  unsigned char buff_count; // how many bytes in the buffer
+  unsigned char data;
+  unsigned char bitmask;
+  unsigned char baudrate;
+  unsigned int tp;
+  unsigned char pv;   // next output value
+  unsigned char st;   // status 0 - idle, 1 - sending data, 2 - sending stop,
+  timer t;
+  //init
+  baudrate = 1;
+  st = 0;
+  tx <: 0;
+  buff_wr = 0;
+  buff_count = 0;
+  while(1)
+  {
+    select
+    {
+      case cmd.ack():
+        break;
+      case cmd.setbaud(unsigned char baud):
+        baudrate = baud;
+        break;
+    }
+  }
+}
+
 
 /*
  * Serial tx timed
@@ -254,6 +291,11 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
  * This a buffer for serial port
  * it stores incoming data until CR is received. then a notification to cmd task is done.
  * Data has to be collected before the next byte is received.
+ *
+ * TODO
+ * Using streaming channel will speed up communications. but it avoid combinable task live on the same core
+ * TX with channel should contain a buffer and a error trigger when buffer overflows.
+ * RX write to the channel, the baud rate can be set if bytes do not arrive to fast ( anyway buffer side is peek all bytes faster).
  */
 
 void serial_buffer(server interface serial_buffer_if cmd,

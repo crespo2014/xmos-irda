@@ -76,6 +76,13 @@ interface serial_tx_if
   void setbaud(unsigned char baud);
 };
 
+interface serial_tx_v2_if
+{
+  [[notification]] slave void overflow();          // a push cmd will be sucessfull
+  [[clears_notification]] void ack();  // send this data
+  void setbaud(unsigned char baud);
+};
+
 /*
  * Interface for serial buffers
  */
@@ -96,6 +103,10 @@ extern void serial_buffer(server interface serial_buffer_if cmd,
     chanend rx,
     client interface serial_rx_if rx_if,
     client interface serial_tx_if tx_if);
+
+[[combinable]] extern void serial_tx_ctb(streaming chanend ch,
+    server interface serial_tx_v2_if cmd,
+    out port tx);
 
 
 #endif /* SERIAL_H_ */
