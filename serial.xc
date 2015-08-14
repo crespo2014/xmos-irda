@@ -250,6 +250,86 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
   }
 }
 
+/*
+ * This a buffer for serial port
+ * it stores incoming data until CR is received. then a notification to cmd task is done.
+ * Data has to be collected before the next byte is received.
+ */
+
+void serial_buffer(server interface serial_buffer_if cmd,
+    chanend rx,
+    client interface serial_rx_if rx_if,
+    client interface serial_tx_if tx_if)
+{
+  unsigned char   tx_buff[20];
+  unsigned char tx_wr;
+  unsigned char tx_count;
+  struct tx_frame_t rx_buff;
+  struct tx_frame_t  * movable rx_ptr = &rx_buff;
+  unsigned char rx_st;  // rx buffer status 0 - written, 1 - overflow , 2 - cr received
+  unsigned char rx_dt;
+  rx_ptr[0].len = 0;
+  rx_ptr[1].len = 0;
+  while(1)
+  {
+    select
+    {
+      case rx :> rx_dt:
+        if (rx_dt == '\r')
+        {
+          if (rx_st == 0)
+          {
+            rx_st = 2;
+            cmd.onRX();
+          }
+          else
+          {
+            //error
+            rx_st = 0;
+            rx_ptr->len = 0;
+          }
+        } else
+        {
+          if (rx_ptr->len < sizeof(rx_ptr->dt))
+          {
+            rx_ptr->dt[rx_ptr->len] = rx_dt;
+            rx_ptr->len++;
+          }
+          else
+            rx_st = 1;
+        }
+        break;
+      case cmd.get(struct tx_frame_t  * movable &old_p) -> unsigned char b:
+        if (rx_st == 2)
+        {
+          struct tx_frame_t  * movable tmp;
+          tmp = move(old_p);
+          old_p = move(rx_ptr);
+          rx_ptr = move(tmp);
+          b = 1;
+          rx_ptr->len = 0;
+          rx_st = 0;
+        }
+        else
+          b = 0;
+        break;
+      case cmd.TX(unsigned char c):
+        if (tx_count < sizeof(tx_buff))
+        {
+          tx_buff[tx_wr] = c;
+          tx_wr++;
+          if (tx_wr == sizeof(tx_buff)) tx_wr = 0;
+          tx_count++;
+        }
+        break;
+      case cmd.setbaud(unsigned char baud):
+        rx_if.setbaud(baud);
+        tx_if.setbaud(baud);
+        break;
+    }
+  }
+}
+
 
 
 

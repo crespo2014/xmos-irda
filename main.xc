@@ -33,18 +33,18 @@ out port clockOut  = XS1_PORT_1N;
 //out port clk_pin = XS1_PORT_1G;
 clock    clk      = XS1_CLKBLK_1;
 
-void serial_test(client interface serial_tx_if tx,chanend rx_c,client interface serial_rx_if rx)
+[[combinable]] void serial_test(client interface serial_tx_if tx,chanend rx_c,client interface serial_rx_if rx)
 {
   unsigned char dt;
-  tx.push(0xAA);
   while(1)
   {
     select
     {
-      case 0 => tx.ready():
+      case tx.ready():
+        tx.push('H');
         break;
       case rx_c :> dt:
-        printf("%X\n",dt);
+        printf("%c\n",dt);
         break;
       case rx.error():
         rx.ack();
