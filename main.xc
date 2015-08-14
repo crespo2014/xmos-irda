@@ -17,6 +17,15 @@
 out port led_1 = XS1_PORT_1G;
 out port led_2 = XS1_PORT_1D;
 in port gpio_irda_rx = XS1_PORT_1H;
+out port gpio_clock = XS1_PORT_1I;
+in port gpio_ch0_rx = XS1_PORT_1K;
+out port gpio_ch0_tx = XS1_PORT_1B;
+in port gpio_ch1_rx = XS1_PORT_1A;
+out port gpio_ch1_tx = XS1_PORT_1F;
+out port gpio_irda_tx = XS1_PORT_1C;
+
+//in port gpio_irda_rx = XS1_PORT_1H;
+out port gpio_fault = XS1_PORT_32A;
 
 out buffered port:32 irda_32  = XS1_PORT_1O;
 out port clockOut  = XS1_PORT_1N;
@@ -27,7 +36,7 @@ clock    clk      = XS1_CLKBLK_1;
 void serial_test(client interface serial_tx_if tx,chanend rx_c,client interface serial_rx_if rx)
 {
   unsigned char dt;
-  tx.push(0x55);
+  tx.push(0xAA);
   while(1)
   {
     select
@@ -35,7 +44,7 @@ void serial_test(client interface serial_tx_if tx,chanend rx_c,client interface 
       case 0 => tx.ready():
         break;
       case rx_c :> dt:
-        printf("%d\n",dt);
+        printf("%X\n",dt);
         break;
       case rx.error():
         rx.ack();
@@ -52,7 +61,7 @@ void main_serial()
   par
   {
     serial_test(tx,rx_c,rx);
-    serial_rx_cmb(gpio_irda_rx,rx_c,rx);
+    serial_rx_cmb(gpio_irda_rx,rx_c,rx,led_1);
     serial_tx_timed_cmb(tx,led_2);
 
   }

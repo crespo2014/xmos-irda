@@ -78,7 +78,7 @@ interface serial_tx_if
 
 void serial_test(client interface serial_tx_if tx,chanend rx_c,client interface serial_rx_if rx);
 void serial_tx_timed_cmb(server interface serial_tx_if cmd,out port tx);
-void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if);
+void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if,out port deb);
 void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned char baud_rate,unsigned char low,unsigned char high);
 
 

@@ -122,7 +122,8 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
  *
  * TODO echo flag , interface with tx for echo
  */
-void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if)
+
+void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if,out port deb)
 {
   unsigned char baudrate;
   unsigned char pv;
@@ -134,26 +135,30 @@ void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if)
   rx :> pv;
   st = 0;
   baudrate = 1;
+  deb <: 0;
   while(1)
   {
     select
     {
-      case st == 0 => rx when pinseq(1) :> pv: // wait for start
+      case st == 0 => rx when pinseq(1) :> void: // wait for start
         t :> tp;
-        tp += ((UART_BASE_BIT_LEN_ticks/2)*baudrate);
+        deb <: 1;
+        deb <: 0;
+        tp += (baudrate*(UART_BASE_BIT_LEN_ticks/2));
         st = 1;
-        bitmask = 1;    // LSB to MSB
-        dt = 0;
         break;
       case st != 0 => t when timerafter(tp) :> void:    // only read if it is not idle
         rx :> pv;
-        printf("%d:%d-%d\n",pv,bitmask,dt);
+        deb <: 1;
+        deb <: 0;
         tp += (UART_BASE_BIT_LEN_ticks*baudrate);
         if (st == 1)  // reading start
         {
           if (pv == 1)
           {
             st = 2;
+            bitmask = 1;    // LSB to MSB
+            dt = 0;
           }
           else
           {
@@ -227,21 +232,18 @@ void serial_tx_timed_cmb(server interface serial_tx_if cmd,out port tx)
         tp += (UART_BASE_BIT_LEN_ticks*baudrate);
         if (st == 1)
         {
-          if (bitmask == 0) // no more data to send
-          {
-            pv = 0;
-            st = 2;
-          }
+          if ((data & bitmask) == bitmask)
+            pv = 1;
           else
-          {
-            if ((data & bitmask) == bitmask)
-              pv = 1;
-            else
-              pv = 0;
-            bitmask<<= 1;
-          }
+            pv = 0;
+          if (bitmask == 0x80) st = 2;
+          bitmask<<= 1;
         }
         else if (st == 2)
+        {
+          pv = 0;
+          st = 3;
+        } else
         {
           st = 0;
           cmd.ready();
