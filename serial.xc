@@ -122,8 +122,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
  *
  * TODO echo flag , interface with tx for echo
  */
-
-void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if,out port deb)
+[[combinable]] void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if,out port deb)
 {
   unsigned char baudrate;
   unsigned char pv;
@@ -171,7 +170,6 @@ void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if,out 
             dt |= bitmask;
           if (bitmask == 0x80) st = 3;
           bitmask <<= 1;
-          //if (bitmask == 0) st = 3;   // all data has been read
         } else if (st == 3) // reading stop
         {
           if (pv == 0)
@@ -197,7 +195,7 @@ void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if,out 
 /*
  * Serial tx timed
  */
-void serial_tx_timed_cmb(server interface serial_tx_if cmd,out port tx)
+[[combinable]] void serial_tx_timed_cmb(server interface serial_tx_if cmd,out port tx)
 {
   unsigned char baudrate;
   unsigned char st;   // status 0 - idle, 1 - sending data, 2 - sending stop,
@@ -216,11 +214,11 @@ void serial_tx_timed_cmb(server interface serial_tx_if cmd,out port tx)
     select
     {
       case st == 0 => cmd.push(unsigned char dt):    // call to this function is going to be ignore
+        t :> tp;
         data = dt;
         st = 1;
         pv = 1;       // start bit
         bitmask = 1;  // lsb to msb
-        t :> tp;
         tp += (UART_BASE_BIT_LEN_ticks*baudrate);
         break;
       case cmd.setbaud(unsigned char baud):
@@ -228,7 +226,6 @@ void serial_tx_timed_cmb(server interface serial_tx_if cmd,out port tx)
         break;
       case st !=0 => t when timerafter(tp) :> void:
         tx <: pv;
-        //printf("%d.",pv);
         tp += (UART_BASE_BIT_LEN_ticks*baudrate);
         if (st == 1)
         {

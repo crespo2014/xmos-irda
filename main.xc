@@ -53,7 +53,7 @@ void serial_test(client interface serial_tx_if tx,chanend rx_c,client interface 
   }
 }
 
-void main_serial()
+int main()
 {
   chan rx_c;
   interface serial_tx_if tx;
@@ -61,11 +61,13 @@ void main_serial()
   par
   {
     serial_test(tx,rx_c,rx);
+    [[combine]] par
+    {
     serial_rx_cmb(gpio_irda_rx,rx_c,rx,led_1);
     serial_tx_timed_cmb(tx,led_2);
-
+    }
   }
-
+  return 0;
 }
 
 int main_irda_clocked_tx(clock clk,out buffered port:32 p32)
@@ -82,8 +84,3 @@ int main_irda_clocked_tx(clock clk,out buffered port:32 p32)
 }
 
 
-int main()
-{
-  main_serial();
-  return 0;
-}
