@@ -127,12 +127,13 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
   unsigned char baudrate;
   unsigned char pv;
   unsigned char bitmask;
-  unsigned char st;   // status 0 idle waiting start, 1 start , 2 - reading, 3 waiting stop
+  unsigned char st;   // status 0 idle waiting start, 1 - 10 data, 11 - wait for initial stop
   timer t;
   unsigned int tp;
   unsigned char dt;
   rx :> pv;
-  st = 0;
+  st = 11;
+  t :> tp;
   baudrate = 1;
   deb <: 0;
   while(1)
@@ -164,14 +165,18 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
             rx_if.error();
             st = 0; // not valid start
           }
-        } else if (st == 2) //reading data
+        } else if (st < 10) //reading data
         {
           if (pv == 1)
             dt |= bitmask;
-          if (bitmask == 0x80) st = 3;
           bitmask <<= 1;
-        } else if (st == 3) // reading stop
+          st++;
+        } else if (st == 10) // waiting for stop
         {
+//          if (dt == SERIAL_LOW)
+//            st = 0;
+//          dt = 0;
+
           if (pv == SERIAL_LOW)
           {
             c <: dt;
@@ -181,6 +186,10 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
             rx_if.error();  // error clear everything try sending NOK
           }
           st = 0;
+        } else
+        {
+          if (pv == SERIAL_LOW)
+            st = 0;
         }
         break;
       case rx_if.ack():
@@ -202,16 +211,16 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
   unsigned char buff[16];   //mask is 0x0F
   unsigned char buff_wr;
   unsigned char buff_count; // how many bytes in the buffer
-  unsigned char data,rcv_dt;
+ // unsigned char rcv_dt;
+  unsigned short data;     // next output value is the LSB
   unsigned char baudrate;
   unsigned int tp;
-  unsigned char pv;   // next output value
   unsigned char st;   // status 0 - idle, 1 - sending data, 2 - sending stop,
   timer t;
   //init
   baudrate = 1;
-  st = 0;
-  tx <: SERIAL_LOW;
+  st = 11;
+  data = SERIAL_LOW;
   buff_wr = 0;
   buff_count = 0;
   while(1)
@@ -223,8 +232,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
       case cmd.setbaud(unsigned char baud):
         baudrate = baud;
         break;
-      case ch :> rcv_dt:
-        printf("%x\n",rcv_dt);
+      case ch :> unsigned char rcv_dt:
         if (buff_count < 16)
         {
           buff[buff_wr] = rcv_dt;
@@ -236,40 +244,29 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
         if (st == 0)
         {
           st = 11;    // start a new transmition
-          pv = SERIAL_LOW;   //kepp it
+          data = SERIAL_LOW;  // first bit to be send
           t :> tp;
           tp += (UART_BASE_BIT_LEN_ticks*baudrate/2);
         }
         break;
       case st !=0 => t when timerafter(tp) :> void:
-        tx <: pv;
-        //printf("%d",pv);
+        tx <: >>data;
         tp += (UART_BASE_BIT_LEN_ticks*baudrate);
-        if (st < 9)  // 1 .. 8 send bits
+        if (st < 11)  // 1 .. 8 send bits
         {
-         // printf("%x\n",data);
-          pv = data & 1;
-          data >>= 1;
           st++;
-//          if ((data & bitmask) == bitmask)
-//            pv = SERIAL_HIGH;
-//          else
-//            pv = SERIAL_LOW;
-//          if (bitmask == 0x80) st = 2;
-//          bitmask<<= 1;
         }
-        else if (st < 11)
-        {
-          pv = SERIAL_LOW;
-          st++;
-        } else
+        else
         {
           if (buff_count != 0)
           {
             data = buff[(buff_wr + 16 - buff_count)& 0xF];
-            printf("%x\n",data);
+            data<<=1;   // make space for start bit
+            if (SERIAL_LOW == 0)
+              data |= 1;    // add starbit as 1
+            else
+              data |= 0xE00;   // add stop bit as 1
             st = 1;
-            pv = SERIAL_HIGH;       // start bit
             tp += (UART_BASE_BIT_LEN_ticks*baudrate);
             buff_count--;
           } else

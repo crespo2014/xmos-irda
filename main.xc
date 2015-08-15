@@ -72,16 +72,17 @@ clock    clk      = XS1_CLKBLK_1;
   unsigned tp;
   t :> tp;
   tp += sec;
-  tx_c <: (unsigned char)0x55;
+  tx_c <: (unsigned char) 'O';
+  tx_c <: (unsigned char) 'K';
+  tx_c <: (unsigned char) '\r';
   while(1)
   {
     select
     {
       case t when timerafter(tp) :> void:
-//        tx_c <: 'O';
-//        tx_c <: 'K';
-//        tx_c <: '\r';
-        tx_c <: (unsigned char)0x55;
+        tx_c <: (unsigned char) 'O';
+        tx_c <: (unsigned char) 'K';
+        tx_c <: (unsigned char) '\r';
         tp += sec;
         break;
       case rx_c :> dt:
