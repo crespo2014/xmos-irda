@@ -33,6 +33,10 @@
 #define UART_BASE_BIT_LEN_ticks    (UART_BASE_BIT_LEN_ns/SYS_TIMER_T_ns)
 #define UART_IRDA_PULSE_PER_BIT    (UART_BASE_BIT_LEN_ns/IRDA_CARRIER_T_ns)
 
+
+#define SERIAL_HIGH 0
+#define SERIAL_LOW  1
+
 /*
  * Send a byte throught a clocked serial port
  * baud - divisor for base rate of 115200

@@ -139,7 +139,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
   {
     select
     {
-      case st == 0 => rx when pinseq(1) :> void: // wait for start
+      case st == 0 => rx when pinseq(SERIAL_HIGH) :> void: // wait for start
         t :> tp;
         deb <: 1;
         deb <: 0;
@@ -153,7 +153,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
         tp += (UART_BASE_BIT_LEN_ticks*baudrate);
         if (st == 1)  // reading start
         {
-          if (pv == 1)
+          if (pv == SERIAL_HIGH)
           {
             st = 2;
             bitmask = 1;    // LSB to MSB
@@ -172,7 +172,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
           bitmask <<= 1;
         } else if (st == 3) // reading stop
         {
-          if (pv == 0)
+          if (pv == SERIAL_LOW)
           {
             c <: dt;
           }
@@ -202,7 +202,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
   unsigned char buff[16];   //mask is 0x0F
   unsigned char buff_wr;
   unsigned char buff_count; // how many bytes in the buffer
-  unsigned char data;
+  unsigned char data,rcv_dt;
   unsigned char bitmask;
   unsigned char baudrate;
   unsigned int tp;
@@ -212,7 +212,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
   //init
   baudrate = 1;
   st = 0;
-  tx <: 0;
+  tx <: SERIAL_LOW;
   buff_wr = 0;
   buff_count = 0;
   while(1)
@@ -223,6 +223,55 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
         break;
       case cmd.setbaud(unsigned char baud):
         baudrate = baud;
+        break;
+      case ch :> rcv_dt:
+        if (buff_count != 16)
+        {
+          buff[buff_wr] = rcv_dt;
+          buff_wr = (buff_wr + 1) & 0x0F;
+          buff_count++;
+        }
+        else
+          cmd.overflow();
+        if (st == 0)
+        {
+          st = 3;    // start a new transmition
+          t :> tp;
+          tp += (UART_BASE_BIT_LEN_ticks*baudrate);
+        }
+        break;
+      case st !=0 => t when timerafter(tp) :> void:
+        tx <: pv;
+        tp += (UART_BASE_BIT_LEN_ticks*baudrate);
+        if (st < 9)  // 1 .. 8 send bits
+        {
+          pv = data & 1;
+          data >>= 1;
+          st++;
+//          if ((data & bitmask) == bitmask)
+//            pv = SERIAL_HIGH;
+//          else
+//            pv = SERIAL_LOW;
+//          if (bitmask == 0x80) st = 2;
+//          bitmask<<= 1;
+        }
+        else if (st == 9)
+        {
+          pv = SERIAL_LOW;
+          st = 3;
+        } else
+        {
+          if (buff_count != 0)
+          {
+            data = buff[(buff_wr + 16 - buff_count)& 0xF];
+            st = 1;
+            pv = SERIAL_HIGH;       // start bit
+            bitmask = 1;  // lsb to msb
+            tp += (UART_BASE_BIT_LEN_ticks*baudrate);
+            buff_count--;
+            st = 1;
+          }
+        }
         break;
     }
   }
