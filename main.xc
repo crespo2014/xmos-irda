@@ -74,7 +74,6 @@ clock    clk      = XS1_CLKBLK_1;
   tp += sec;
   tx_c <: (unsigned char) 'O';
   tx_c <: (unsigned char) 'K';
-  tx_c <: (unsigned char) '\r';
   tx_c <: (unsigned char) '\n';
   while(1)
   {
@@ -83,14 +82,14 @@ clock    clk      = XS1_CLKBLK_1;
       case t when timerafter(tp) :> void:
         tx_c <: (unsigned char) 'O';
         tx_c <: (unsigned char) 'K';
-        tx_c <: (unsigned char) '\r';
+        tx_c <: (unsigned char) '\n';
         tp += sec;
         break;
       case rx_c :> dt:
         printf("%c",dt);
         break;
       case tx.overflow():
-        printf(".");
+        printf(".\n");
         tx.ack();
         break;
       case rx.error():

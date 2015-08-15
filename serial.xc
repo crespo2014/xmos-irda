@@ -135,7 +135,6 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
   pv = SERIAL_LOW;
   st = 0;
   baudrate = 1;
-  deb <: 0;
   while(1)
   {
     select
@@ -195,7 +194,6 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
             pv = SERIAL_LOW;
           }
           st = 0;
-
         }
         break;
       case rx_if.ack():
@@ -217,7 +215,6 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
   unsigned char buff[16];   //mask is 0x0F
   unsigned char buff_wr;
   unsigned char buff_count; // how many bytes in the buffer
- // unsigned char rcv_dt;
   unsigned short data;     // next output value is the LSB
   unsigned char baudrate;
   unsigned int tp;
@@ -252,7 +249,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
           st = 11;    // start a new transmition
           data = SERIAL_LOW;  // first bit to be send
           t :> tp;
-          tp += (UART_BASE_BIT_LEN_ticks*baudrate/2);
+          //tp += (UART_BASE_BIT_LEN_ticks*baudrate/2);
         }
         break;
       case st !=0 => t when timerafter(tp) :> void:
