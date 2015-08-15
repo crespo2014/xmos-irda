@@ -72,25 +72,27 @@ clock    clk      = XS1_CLKBLK_1;
   unsigned tp;
   t :> tp;
   tp += sec;
+  tx_c <: (unsigned char)0x55;
   while(1)
   {
     select
     {
       case t when timerafter(tp) :> void:
-        tx_c <: 'O';
-        tx_c <: 'K';
-        tx_c <: '\r';
+//        tx_c <: 'O';
+//        tx_c <: 'K';
+//        tx_c <: '\r';
+        tx_c <: (unsigned char)0x55;
         tp += sec;
         break;
       case rx_c :> dt:
         printf("%c\n",dt);
         break;
       case tx.overflow():
-        printf("e");
+        printf(".\n");
         tx.ack();
         break;
       case rx.error():
-        printf("e");
+        printf("*\n");
         rx.ack();
         break;
     }
@@ -102,6 +104,7 @@ int main1()
   chan rx_c;
   interface serial_tx_if tx;
   interface serial_rx_if rx;
+  po_1F <: SERIAL_LOW;
   par
   {
     serial_test(tx,rx_c,rx);

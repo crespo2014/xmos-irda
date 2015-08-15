@@ -203,7 +203,6 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
   unsigned char buff_wr;
   unsigned char buff_count; // how many bytes in the buffer
   unsigned char data,rcv_dt;
-  unsigned char bitmask;
   unsigned char baudrate;
   unsigned int tp;
   unsigned char pv;   // next output value
@@ -225,26 +224,30 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
         baudrate = baud;
         break;
       case ch :> rcv_dt:
-        if (buff_count != 16)
+        printf("%x\n",rcv_dt);
+        if (buff_count < 16)
         {
           buff[buff_wr] = rcv_dt;
-          buff_wr = (buff_wr + 1) & 0x0F;
+          buff_wr = (buff_wr + 1) & 0xF;
           buff_count++;
         }
         else
           cmd.overflow();
         if (st == 0)
         {
-          st = 3;    // start a new transmition
+          st = 11;    // start a new transmition
+          pv = SERIAL_LOW;   //kepp it
           t :> tp;
-          tp += (UART_BASE_BIT_LEN_ticks*baudrate);
+          tp += (UART_BASE_BIT_LEN_ticks*baudrate/2);
         }
         break;
       case st !=0 => t when timerafter(tp) :> void:
         tx <: pv;
+        //printf("%d",pv);
         tp += (UART_BASE_BIT_LEN_ticks*baudrate);
         if (st < 9)  // 1 .. 8 send bits
         {
+         // printf("%x\n",data);
           pv = data & 1;
           data >>= 1;
           st++;
@@ -255,22 +258,22 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
 //          if (bitmask == 0x80) st = 2;
 //          bitmask<<= 1;
         }
-        else if (st == 9)
+        else if (st < 11)
         {
           pv = SERIAL_LOW;
-          st = 3;
+          st++;
         } else
         {
           if (buff_count != 0)
           {
             data = buff[(buff_wr + 16 - buff_count)& 0xF];
+            printf("%x\n",data);
             st = 1;
             pv = SERIAL_HIGH;       // start bit
-            bitmask = 1;  // lsb to msb
             tp += (UART_BASE_BIT_LEN_ticks*baudrate);
             buff_count--;
-            st = 1;
-          }
+          } else
+            st = 0;
         }
         break;
     }
