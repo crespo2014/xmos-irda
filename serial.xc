@@ -340,7 +340,8 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
 
 void buffer_v1(
     server interface buffer_v1_if cmd,
-    streaming chanend rx)
+    streaming chanend rx,
+    streaming chanend tx)
 {
   struct tx_frame_t rx_buff;
   struct tx_frame_t  * movable rx_ptr = &rx_buff;
@@ -351,6 +352,7 @@ void buffer_v1(
     select
     {
       case rx :> unsigned char dt:
+        tx <: dt;
         if (dt == '\r')
         {
           if (rx_st == 0)
@@ -389,6 +391,13 @@ void buffer_v1(
         else
           b = 0;
         break;
+      case cmd.push(unsigned char* dt,unsigned char count):
+          while (count--)
+          {
+            tx <: *dt;
+            dt++;
+          }
+          break;
     }
   }
 }

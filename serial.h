@@ -114,10 +114,12 @@ extern void serial_buffer(server interface serial_buffer_if cmd,
 
 interface buffer_v1_if
 {
+  void push(unsigned char* dt,unsigned char count);
   [[notification]] slave void onRX(); // CR received a buffer is ready to be pick
   [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);
 };
 extern void buffer_v1(server interface buffer_v1_if cmd,
-    streaming chanend rx);
+    streaming chanend rx,
+    streaming chanend tx);
 
 #endif /* SERIAL_H_ */

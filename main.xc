@@ -137,25 +137,26 @@ int main2()
  * Command dummy.
  * reply prompt on enter and ok if there is data
  */
-void serial_cmd(streaming chanend tx_c,
+void serial_cmd(
     client interface serial_tx_v2_if tx,
     client interface buffer_v1_if buff,
     client interface serial_rx_if rx)
 {
   struct tx_frame_t rx_buff;
   struct tx_frame_t  * movable rx_ptr = &rx_buff;
-  tx_c <: (unsigned char)'>';
+  buff.push(">",1);
   while(1)
   {
     select
     {
       case buff.onRX():
         buff.get(rx_ptr);
-        tx_c <: (unsigned char)'O';
-        tx_c <: (unsigned char)'K';
-        tx_c <: (unsigned char)'\n';
-        tx_c <: (unsigned char)'\r';
-        tx_c <: (unsigned char)'>';
+        buff.push("OK\n\r>",5);
+//        tx_c <: (unsigned char)'O';
+//        tx_c <: (unsigned char)'K';
+//        tx_c <: (unsigned char)'\n';
+//        tx_c <: (unsigned char)'\r';
+//        tx_c <: (unsigned char)'>';
         break;
       case tx.overflow():
         tx.ack();
@@ -181,8 +182,8 @@ int main()
   interface buffer_v1_if   buff;
   par
   {
-    buffer_v1(buff,rx_c);
-    serial_cmd(tx_c,tx,buff,rx);
+    buffer_v1(buff,rx_c,tx_c);
+    serial_cmd(tx,buff,rx);
     [[combine]] par
     {
     serial_rx_cmb(pi_1H,rx_c,rx,po_1I);
