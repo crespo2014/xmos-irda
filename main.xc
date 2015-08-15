@@ -33,7 +33,8 @@ out port clockOut  = XS1_PORT_1N;
 //out port clk_pin = XS1_PORT_1G;
 clock    clk      = XS1_CLKBLK_1;
 
-[[combinable]] void serial_test(client interface serial_tx_if tx,chanend rx_c,client interface serial_rx_if rx)
+[[combinable]] void serial_test(client interface serial_tx_if tx,
+    streaming chanend rx_c,client interface serial_rx_if rx)
 {
   unsigned char dt;
   timer t;
@@ -62,7 +63,7 @@ clock    clk      = XS1_CLKBLK_1;
 }
 
 [[combinable]] void serial_test_v2(
-    chanend rx_c,
+    streaming chanend rx_c,
     streaming chanend tx_c,
     client interface serial_rx_if rx,
     client interface serial_tx_v2_if tx)
@@ -72,9 +73,6 @@ clock    clk      = XS1_CLKBLK_1;
   unsigned tp;
   t :> tp;
   tp += sec;
-  tx_c <: (unsigned char) 'O';
-  tx_c <: (unsigned char) 'K';
-  tx_c <: (unsigned char) '\n';
   while(1)
   {
     select
@@ -86,7 +84,7 @@ clock    clk      = XS1_CLKBLK_1;
         tp += sec;
         break;
       case rx_c :> dt:
-        printf("%c",dt);
+        printf("%c\n",dt);
         break;
       case tx.overflow():
         printf(".\n");
@@ -102,7 +100,7 @@ clock    clk      = XS1_CLKBLK_1;
 
 int main1()
 {
-  chan rx_c;
+  streaming chan rx_c;
   interface serial_tx_if tx;
   interface serial_rx_if rx;
   par
@@ -117,15 +115,74 @@ int main1()
   return 0;
 }
 
-int main()
+int main2()
 {
-  chan rx_c;
+  streaming chan rx_c;
   streaming chan tx_c;
   interface serial_rx_if rx;
   interface serial_tx_v2_if tx;
   par
   {
     serial_test_v2(rx_c,tx_c,rx,tx);
+    [[combine]] par
+    {
+    serial_rx_cmb(pi_1H,rx_c,rx,po_1I);
+    serial_tx_ctb(tx_c,tx,po_1F);
+    }
+  }
+  return 0;
+}
+
+/*
+ * Command dummy.
+ * reply prompt on enter and ok if there is data
+ */
+void serial_cmd(streaming chanend tx_c,
+    client interface serial_tx_v2_if tx,
+    client interface buffer_v1_if buff,
+    client interface serial_rx_if rx)
+{
+  struct tx_frame_t rx_buff;
+  struct tx_frame_t  * movable rx_ptr = &rx_buff;
+  tx_c <: (unsigned char)'>';
+  while(1)
+  {
+    select
+    {
+      case buff.onRX():
+        buff.get(rx_ptr);
+        tx_c <: (unsigned char)'O';
+        tx_c <: (unsigned char)'K';
+        tx_c <: (unsigned char)'\n';
+        tx_c <: (unsigned char)'\r';
+        tx_c <: (unsigned char)'>';
+        break;
+      case tx.overflow():
+        tx.ack();
+        printf("tx\n");
+        break;
+      case rx.error():
+        printf("rx\n");
+        rx.ack();
+        break;
+    }
+  }
+
+}
+
+
+
+int main()
+{
+  streaming chan rx_c;
+  streaming chan tx_c;
+  interface serial_rx_if rx;
+  interface serial_tx_v2_if tx;
+  interface buffer_v1_if   buff;
+  par
+  {
+    buffer_v1(buff,rx_c);
+    serial_cmd(tx_c,tx,buff,rx);
     [[combine]] par
     {
     serial_rx_cmb(pi_1H,rx_c,rx,po_1I);

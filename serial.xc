@@ -122,7 +122,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
  *
  * TODO echo flag , interface with tx for echo
  */
-[[combinable]] void serial_rx_cmb(in port rx,chanend c,server interface serial_rx_if rx_if,out port deb)
+[[combinable]] void serial_rx_cmb(in port rx,streaming chanend c,server interface serial_rx_if rx_if,out port deb)
 {
   unsigned char baudrate;
   unsigned char pv;
@@ -189,7 +189,6 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
           }
           else
           {
-            printf("%x",dt);
             rx_if.error();  // error clear everything try sending NOK
             pv = SERIAL_LOW;
           }
@@ -334,6 +333,61 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
           st = 0;
           cmd.ready();
         }
+        break;
+    }
+  }
+}
+
+void buffer_v1(
+    server interface buffer_v1_if cmd,
+    streaming chanend rx)
+{
+  struct tx_frame_t rx_buff;
+  struct tx_frame_t  * movable rx_ptr = &rx_buff;
+  unsigned char rx_st;  // rx buffer status 0 - written, 1 - overflow , 2 - cr received
+  rx_ptr->len = 0;
+  while(1)
+  {
+    select
+    {
+      case rx :> unsigned char dt:
+        if (dt == '\r')
+        {
+          if (rx_st == 0)
+          {
+            rx_st = 2;
+            cmd.onRX();
+          }
+          else
+          {
+            //error
+            rx_st = 0;
+            rx_ptr->len = 0;
+          }
+        } else
+        {
+          if (rx_ptr->len < sizeof(rx_ptr->dt))
+          {
+            rx_ptr->dt[rx_ptr->len] = dt;
+            rx_ptr->len++;
+          }
+          else
+            rx_st = 1;
+        }
+        break;
+      case cmd.get(struct tx_frame_t  * movable &old_p) -> unsigned char b:
+        if (rx_st == 2)
+        {
+          struct tx_frame_t  * movable tmp;
+          tmp = move(old_p);
+          old_p = move(rx_ptr);
+          rx_ptr = move(tmp);
+          b = 1;
+          rx_ptr->len = 0;
+          rx_st = 0;
+        }
+        else
+          b = 0;
         break;
     }
   }
