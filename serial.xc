@@ -127,25 +127,30 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
   unsigned char baudrate;
   unsigned char pv;
   unsigned char bitmask;
-  unsigned char st;   // status 0 idle waiting start, 1 - 10 data, 11 - wait for initial stop
+  unsigned char st;   // status 0 - waiting to be pv, waiting start, 1 - 10 data,
   timer t;
   unsigned int tp;
   unsigned char dt;
-  rx :> pv;
-  st = 11;
-  t :> tp;
+  // idle waiting for pv
+  pv = SERIAL_LOW;
+  st = 0;
   baudrate = 1;
   deb <: 0;
   while(1)
   {
     select
     {
-      case st == 0 => rx when pinseq(SERIAL_HIGH) :> void: // wait for start
-        t :> tp;
-        deb <: 1;
-        deb <: 0;
-        tp += (baudrate*(UART_BASE_BIT_LEN_ticks/2));
-        st = 1;
+      case st == 0 => rx when pinseq(pv) :> void: // wait for start
+        if (pv == SERIAL_HIGH)
+        {
+          t :> tp;
+          deb <: 1;
+          deb <: 0;
+          tp += (baudrate*(UART_BASE_BIT_LEN_ticks/2));
+          st = 1;
+        }
+        else
+          pv = SERIAL_HIGH;
         break;
       case st != 0 => t when timerafter(tp) :> void:    // only read if it is not idle
         rx :> pv;
@@ -164,6 +169,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
           {
             rx_if.error();
             st = 0; // not valid start
+            pv = SERIAL_HIGH;
           }
         } else if (st < 10) //reading data
         {
@@ -180,16 +186,16 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
           if (pv == SERIAL_LOW)
           {
             c <: dt;
+            pv = SERIAL_HIGH;   // wait for high next time
           }
           else
           {
+            printf("%x",dt);
             rx_if.error();  // error clear everything try sending NOK
+            pv = SERIAL_LOW;
           }
           st = 0;
-        } else
-        {
-          if (pv == SERIAL_LOW)
-            st = 0;
+
         }
         break;
       case rx_if.ack():

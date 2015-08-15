@@ -75,6 +75,7 @@ clock    clk      = XS1_CLKBLK_1;
   tx_c <: (unsigned char) 'O';
   tx_c <: (unsigned char) 'K';
   tx_c <: (unsigned char) '\r';
+  tx_c <: (unsigned char) '\n';
   while(1)
   {
     select
@@ -86,14 +87,14 @@ clock    clk      = XS1_CLKBLK_1;
         tp += sec;
         break;
       case rx_c :> dt:
-        printf("%c\n",dt);
+        printf("%c",dt);
         break;
       case tx.overflow():
-        printf(".\n");
+        printf(".");
         tx.ack();
         break;
       case rx.error():
-        printf("*\n");
+        printf("?\n");
         rx.ack();
         break;
     }
@@ -105,7 +106,6 @@ int main1()
   chan rx_c;
   interface serial_tx_if tx;
   interface serial_rx_if rx;
-  po_1F <: SERIAL_LOW;
   par
   {
     serial_test(tx,rx_c,rx);
