@@ -168,7 +168,7 @@ void serial_cmd(
 
 
 
-int main()
+int main3()
 {
   streaming chan rx_c;
   streaming chan tx_c;
