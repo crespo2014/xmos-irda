@@ -211,7 +211,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
     server interface serial_tx_v2_if cmd,
     out port tx)
 {
-  unsigned char buff[16];   //mask is 0x0F
+  unsigned char buff[32];   //mask is 0x1F
   unsigned char buff_wr;
   unsigned char buff_count; // how many bytes in the buffer
   unsigned short data;     // next output value is the LSB
@@ -235,10 +235,10 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
         baudrate = baud;
         break;
       case ch :> unsigned char rcv_dt:
-        if (buff_count < 16)
+        if (buff_count < sizeof(buff))
         {
           buff[buff_wr] = rcv_dt;
-          buff_wr = (buff_wr + 1) & 0xF;
+          buff_wr = (buff_wr + 1) & (sizeof(buff)-1);
           buff_count++;
         }
         else
@@ -262,7 +262,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
         {
           if (buff_count != 0)
           {
-            data = buff[(buff_wr + 16 - buff_count)& 0xF];
+            data = buff[(buff_wr + sizeof(buff) - buff_count)& (sizeof(buff)-1)];
             data<<=1;   // make space for start bit
             if (SERIAL_LOW == 0)
               data |= 1;    // add starbit as 1
@@ -376,6 +376,7 @@ void buffer_v1(
           else
             rx_st = 1;
         }
+        printf(">0x%X %c\n",dt,dt);
         break;
       case cmd.get(struct tx_frame_t  * movable &old_p) -> unsigned char b:
         if (rx_st == 2)
@@ -394,6 +395,7 @@ void buffer_v1(
       case cmd.push(unsigned char* dt,unsigned char count):
           while (count--)
           {
+            printf("<0x%X %c\n",*dt,*dt);
             tx <: *dt;
             dt++;
           }

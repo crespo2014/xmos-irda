@@ -151,12 +151,7 @@ void serial_cmd(
     {
       case buff.onRX():
         buff.get(rx_ptr);
-        buff.push("OK\n\r>",5);
-//        tx_c <: (unsigned char)'O';
-//        tx_c <: (unsigned char)'K';
-//        tx_c <: (unsigned char)'\n';
-//        tx_c <: (unsigned char)'\r';
-//        tx_c <: (unsigned char)'>';
+        buff.push("OK\r\n>",5);
         break;
       case tx.overflow():
         tx.ack();
