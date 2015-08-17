@@ -152,6 +152,12 @@ extern void irda_TX(
 #define ROUTE_OVERFLOW      (1<<9)        // all buffers are full
 #define RX_BIT_OVERFLOW     (1<<10)       // irda bits overflow
 
+// Port sharer interface
+interface out_port_if {
+  void set();
+  void clear();
+};
+
 #endif /* RXTX_H_ */
 
 
