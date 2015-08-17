@@ -489,7 +489,14 @@ void serial_buffer(server interface serial_buffer_if cmd,
   }
 }
 
-
+/*
+TODO. 
+Remove channels from rx and tx.
+Redifine RX as (push(dt), error, ack )
+TX as (ondata,get(dt&), error,ack )
+distribuitable buffer for rx and tx (onrx,read (one or many) ,write(many),put(),error,ack, )
+does a distributable task support events?
+*/
 
 
 
