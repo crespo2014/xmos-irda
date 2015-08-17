@@ -71,7 +71,6 @@ void port_sharer(server interface out_port_if i[n], unsigned n,out port p)
       port_val |= (1 << j);
       p <: port_val;
       break;
-    }
     case i[int j].clear():
       port_val &= (~(1 << j));
       p <: port_val;

@@ -498,5 +498,88 @@ distribuitable buffer for rx and tx (onrx,read (one or many) ,write(many),put(),
 does a distributable task support events?
 */
 
+[[distributable]]
+void buffer_v3(client interface rx_if_v3 rx,
+    client interface tx_if_v3 tx,
+    server interface buffer_v3_if cmd)
+{
+  while(1)
+  {
+    select
+    {
+      case cmd.push(unsigned int dt) -> unsigned char b:
+          b = tx.push(dt);
+          break;
+    }
+  }
+};
 
+[[combinable]] void serial_tx_v3(server interface tx_if_v3 cmd,out port tx)
+{
+  unsigned char buff[32];   //mask is 0x1F
+  unsigned char buff_wr;
+  unsigned char buff_count; // how many bytes in the buffer
+  unsigned short data;     // next output value is the LSB
+  unsigned char baudrate;
+  unsigned int tp;
+  unsigned char st;   // status 0 - idle, 1 - sending data, 2 - sending stop,
+  timer t;
+  //init
+  baudrate = 1;
+  st = 11;
+  data = SERIAL_LOW;
+  buff_wr = 0;
+  buff_count = 0;
+  while(1)
+  {
+    select
+    {
+      case cmd.setSpeed(unsigned int baud):
+        baudrate = baud;
+        break;
+      case cmd.push(unsigned int dt) -> unsigned char b:
+        if (buff_count < sizeof(buff))
+        {
+          buff[buff_wr] = dt;
+          buff_wr = (buff_wr + 1) & (sizeof(buff)-1);
+          buff_count++;
+          b = 0;
+        }
+        else
+          b = 1;
+        if (st == 0)
+        {
+          st = 11;             // start a new transmition
+          data = SERIAL_LOW;  // first bit to be send
+          t :> tp;
+          //tp += (UART_BASE_BIT_LEN_ticks*baudrate/2);
+        }
+        break;
+      case st !=0 => t when timerafter(tp) :> void:
+        tx <: >>data;
+        tp += (UART_BASE_BIT_LEN_ticks*baudrate);
+        if (st < 11)  // 1 .. 8 send bits
+        {
+          st++;
+        }
+        else
+        {
+          if (buff_count != 0)
+          {
+            data = buff[(buff_wr + sizeof(buff) - buff_count)& (sizeof(buff)-1)];
+            data<<=1;   // make space for start bit
+            if (SERIAL_LOW == 0)
+              data |= 1;    // add starbit as 1
+            else
+              data |= 0xE00;   // add stop bit as 1
+            st = 1;
+            tp += (UART_BASE_BIT_LEN_ticks*baudrate);
+            buff_count--;
+          } else
+            st = 0;
+        }
+        break;
+    }
+  }
+}
 

@@ -158,6 +158,38 @@ interface out_port_if {
   void clear();
 };
 
+/*
+ * Interface suporting buffered
+ * Channel less
+ */
+interface rx_if_v3
+{
+  void push(unsigned int dt);
+  [[notification]] slave void error();
+  [[clears_notification]] void ack();
+  void setSpeed(unsigned int baud);       // baud rate or line speed
+};
+
+/*
+ * Keep buffer on tx task
+ */
+interface tx_if_v3
+{
+  unsigned char push(unsigned int dt); // 0 - ok 1 -overflow
+  void setSpeed(unsigned int baud);       // baud rate or line speed
+};
+
+interface buffer_v3_if
+{
+  [[notification]] slave void onRX();
+  [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);
+  [[clears_notification]] unsigned int pull();  // for irda
+  unsigned char push(unsigned int dt);
+  unsigned char write(const unsigned char* dt,unsigned char len);
+  unsigned char printf(const char* str);
+
+};
+
 #endif /* RXTX_H_ */
 
 
