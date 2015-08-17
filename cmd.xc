@@ -6,6 +6,10 @@
  *
  * Core task.
  * It handle all commands received, and execute the desire command
+ 
+ TODO : Sharing a multibits port.
+ a distributable task bringing 8 interfaces with set clear.
+ holding current port value.
  */
 
 #include <timer.h>
