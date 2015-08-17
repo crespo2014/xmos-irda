@@ -56,3 +56,26 @@ inline unsigned char buff4_push(struct frm_buff_4_t &buff,struct tx_frame_t  * m
   buff.use_count++;
   return 1;
 }
+
+/*
+Shared port task
+*/
+[[distributable]]
+void port_sharer(server interface out_port_if i[n], unsigned n,out port p)
+{
+  unsigned port_val = 0;
+  while (1) {
+    select {
+    // Wait for a client to send an output request
+    case i[int j].set():
+      port_val |= (1 << j);
+      p <: port_val;
+      break;
+    }
+    case i[int j].clear():
+      port_val &= (~(1 << j));
+      p <: port_val;
+      break;
+    }
+  }
+}
