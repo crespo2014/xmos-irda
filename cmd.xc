@@ -64,7 +64,7 @@ void command(client interface buffer_v1_if   serial,
 }
 
 
-unsafe int  main()
+unsafe int  main5()
 {
   enum cmd_e cmd;
   unsigned char j;    //arguments start here

@@ -201,4 +201,94 @@ int main_irda_clocked_tx(clock clk,out buffered port:32 p32)
   return 0;
 }
 
+/*
+ * Use internal timer for timeouts.
+ * use port timer for transitions timed.
+ */
+interface in_port_if
+{
+  [[notification]] slave void onChange();
+  [[clears_notification]] void get(unsigned char& dt,unsigned int& tp);
+  [[clears_notification]] unsigned char getPort();
+  //void trackingOn();
+  //void trackingOff();
+};
+
+void waitport(in port p,server interface in_port_if cmd[1])
+{
+  unsigned char pv;
+  unsigned int tp;
+  timer t;
+  p :> pv;
+  t :> tp;
+  while(1)
+  {
+    select
+    {
+       case cmd[int i].getPort()-> unsigned char ret:
+         ret = pv;
+         break;
+      case p when pinsneq(pv):> pv:
+        t :> tp;
+        for (int i=0;i<1;++i)
+          cmd[i].onChange();
+        break;
+      case cmd[int i].get(unsigned char& dt,unsigned int& tp_):
+        dt = tp;
+        tp_= tp;
+        break;
+    }
+  }
+}
+
+void testport(client interface in_port_if cmd,out port p)
+{
+  while(1)
+  {
+    select
+    {
+      case cmd.onChange():
+        unsigned char v = cmd.getPort();
+        p <: v;
+        //printf("%X\n",v);
+        break;
+    }
+  }
+}
+
+
+void portUpdate(out port p)
+{
+  unsigned char v;
+  unsigned int tp;
+  v = 0;
+  timer t;
+  t :> tp;
+  while(1)
+  {
+    select {
+      case t when timerafter(tp) :> void:
+        p <: v;
+        v++;
+        tp += us;
+        break;
+    }
+  }
+}
+in port p = XS1_PORT_4A;
+out port p2 = XS1_PORT_4B;
+out port pc = XS1_PORT_4C;
+
+int main()
+{
+  interface in_port_if ip[1];
+  par
+  {
+      portUpdate(p2);
+      testport(ip[0],pc);
+      waitport(p,ip);
+  }
+  return 0;
+}
+
 
