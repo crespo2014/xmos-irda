@@ -82,4 +82,11 @@ void port_sharer(server interface out_port_if i[n], unsigned n,out port p)
     }
   }
 }
+/*
+TODO. Port sharer for input. 
+Hold the last time and value of the port
+keep a notification mask, when port changes if mask is one then notify to task. task will peek data
+adjust time differents between task timer and port timer.
+interface enable_notifycation,onchange,getlast,getTime(for initial synchronization),
 
+*/
