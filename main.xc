@@ -196,6 +196,7 @@ int main_irda_clocked_tx(clock clk,out buffered port:32 p32)
    start_clock(clk);
   irda_32b_tx_comb(p32);
   sync(p32);
+  p_1G <: 0;
   //irda_tx_timed(led_1,0,1);
   //test_combinable();
   return 0;
@@ -214,7 +215,7 @@ interface in_port_if
   //void trackingOff();
 };
 
-void waitport(in port p/*,server interface in_port_if cmd[2]*/,chanend c[])
+void waitport(in port p/*,server interface in_port_if cmd[2]*/,streaming chanend c[])
 {
   unsigned char pv,pv1;
   unsigned int tp;
@@ -229,6 +230,7 @@ void waitport(in port p/*,server interface in_port_if cmd[2]*/,chanend c[])
 //         ret = pv;
 //         break;
       case p when pinsneq(pv):> pv1:
+        p_1G <: 1;
         t :> tp;
         unsigned char mod = pv1 ^ pv;
         int i =0;
@@ -239,6 +241,7 @@ void waitport(in port p/*,server interface in_port_if cmd[2]*/,chanend c[])
           ++i;
         }
         pv = pv1;
+        p_1G <: 0;
         break;
 //      case cmd[int i].get(unsigned char& dt,unsigned int& tp_):
 //        dt = tp;
@@ -262,7 +265,7 @@ void testport(client interface in_port_if cmd,out port p)
   }
 }
 
-void testport_v2(chanend ch,out port p)
+void testport_v2(streaming chanend ch,out port p)
 {
   while(1)
   {
@@ -302,10 +305,14 @@ out port pd = XS1_PORT_4D;
  * Test done
  * 620ns to propagate from one port to another with only one task
  * two task give it 1us, but second task lost transitions
+ *
+ * Using channels there is not lost of data, but response time is long
+ *
+ * 60ns to detect port changes
  */
 int main()
 {
-  chan c[2];
+  streaming chan c[2];
   //interface in_port_if ip[2];
   par
   {
