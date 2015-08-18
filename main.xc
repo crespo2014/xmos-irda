@@ -208,15 +208,15 @@ int main_irda_clocked_tx(clock clk,out buffered port:32 p32)
 interface in_port_if
 {
   [[notification]] slave void onChange();
-  [[clears_notification]] void get(unsigned char& dt,unsigned int& tp);
+//  [[clears_notification]] void get(unsigned char& dt,unsigned int& tp);
   [[clears_notification]] unsigned char getPort();
   //void trackingOn();
   //void trackingOff();
 };
 
-void waitport(in port p,server interface in_port_if cmd[2])
+void waitport(in port p/*,server interface in_port_if cmd[2]*/,chanend c[])
 {
-  unsigned char pv;
+  unsigned char pv,pv1;
   unsigned int tp;
   timer t;
   p :> pv;
@@ -225,18 +225,25 @@ void waitport(in port p,server interface in_port_if cmd[2])
   {
     select
     {
-       case cmd[int i].getPort()-> unsigned char ret:
-         ret = pv;
-         break;
-      case p when pinsneq(pv):> pv:
+//       case cmd[int i].getPort()-> unsigned char ret:
+//         ret = pv;
+//         break;
+      case p when pinsneq(pv):> pv1:
         t :> tp;
-        for (int i=0;i<2;++i)
-          cmd[i].onChange();
+        unsigned char mod = pv1 ^ pv;
+        int i =0;
+        while (mod !=0 && i <2)
+        {
+          if (mod & 1) c[i] <: pv;
+          mod >>=1;
+          ++i;
+        }
+        pv = pv1;
         break;
-      case cmd[int i].get(unsigned char& dt,unsigned int& tp_):
-        dt = tp;
-        tp_= tp;
-        break;
+//      case cmd[int i].get(unsigned char& dt,unsigned int& tp_):
+//        dt = tp;
+//        tp_= tp;
+//        break;
     }
   }
 }
@@ -249,6 +256,19 @@ void testport(client interface in_port_if cmd,out port p)
     {
       case cmd.onChange():
         unsigned char v = cmd.getPort();
+        p <: v;
+        break;
+    }
+  }
+}
+
+void testport_v2(chanend ch,out port p)
+{
+  while(1)
+  {
+    select
+    {
+      case ch :> unsigned char v:
         p <: v;
         break;
     }
@@ -285,13 +305,14 @@ out port pd = XS1_PORT_4D;
  */
 int main()
 {
-  interface in_port_if ip[2];
+  chan c[2];
+  //interface in_port_if ip[2];
   par
   {
       portUpdate(p2);
-      testport(ip[0],pc);
-      testport(ip[1],pd);
-      waitport(p,ip);
+      testport_v2(c[0],pc);
+      testport_v2(c[1],pd);
+      waitport(p,c);
   }
   return 0;
 }
