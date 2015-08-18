@@ -214,7 +214,7 @@ interface in_port_if
   //void trackingOff();
 };
 
-void waitport(in port p,server interface in_port_if cmd[1])
+void waitport(in port p,server interface in_port_if cmd[2])
 {
   unsigned char pv;
   unsigned int tp;
@@ -230,7 +230,7 @@ void waitport(in port p,server interface in_port_if cmd[1])
          break;
       case p when pinsneq(pv):> pv:
         t :> tp;
-        for (int i=0;i<1;++i)
+        for (int i=0;i<2;++i)
           cmd[i].onChange();
         break;
       case cmd[int i].get(unsigned char& dt,unsigned int& tp_):
@@ -250,7 +250,6 @@ void testport(client interface in_port_if cmd,out port p)
       case cmd.onChange():
         unsigned char v = cmd.getPort();
         p <: v;
-        //printf("%X\n",v);
         break;
     }
   }
@@ -278,14 +277,20 @@ void portUpdate(out port p)
 in port p = XS1_PORT_4A;
 out port p2 = XS1_PORT_4B;
 out port pc = XS1_PORT_4C;
-
+out port pd = XS1_PORT_4D;
+/*
+ * Test done
+ * 620ns to propagate from one port to another with only one task
+ * two task give it 1us, but second task lost transitions
+ */
 int main()
 {
-  interface in_port_if ip[1];
+  interface in_port_if ip[2];
   par
   {
       portUpdate(p2);
       testport(ip[0],pc);
+      testport(ip[1],pd);
       waitport(p,ip);
   }
   return 0;
