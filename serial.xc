@@ -427,8 +427,7 @@ void serial_buffer(server interface serial_buffer_if cmd,
   struct tx_frame_t  * movable rx_ptr = &rx_buff;
   unsigned char rx_st;  // rx buffer status 0 - written, 1 - overflow , 2 - cr received
   unsigned char rx_dt;
-  rx_ptr[0].len = 0;
-  rx_ptr[1].len = 0;
+  rx_ptr->len = 0;
   while(1)
   {
     select
@@ -503,12 +502,49 @@ void buffer_v3(client interface rx_if_v3 rx,
     client interface tx_if_v3 tx,
     server interface buffer_v3_if cmd)
 {
+  struct tx_frame_t rx_buff;
+  struct tx_frame_t  * movable rx_ptr = &rx_buff;
+  unsigned char rx_st;  // rx buffer status 0 - written, 1 - overflow , 2 - cr received
   while(1)
   {
     select
     {
+      case cmd.pull() -> unsigned int dt:
+          dt = 0; // to be implemented with irda buffer
+          break;
+      case cmd.get(struct tx_frame_t  * movable &old_p) -> unsigned char b:
+          if (rx_st == 2)
+          {
+            struct tx_frame_t  * movable tmp;
+            tmp = move(old_p);
+            old_p = move(rx_ptr);
+            rx_ptr = move(tmp);
+            b = 1;
+            rx_ptr->len = 0;
+            rx_st = 0;
+          }
+          else
+            b = 0;
+          break;
       case cmd.push(unsigned int dt) -> unsigned char b:
           b = tx.push(dt);
+          break;
+      case cmd.write(const unsigned char* dt,unsigned char len) ->  unsigned char b:
+          while(len)
+          {
+            if (tx.push(*dt) != 0) break;
+            len--;
+            dt++;
+          }
+          b = len;
+          break;
+      case cmd.printf(const char* dt) ->  unsigned char b:
+          while (*dt != 0)
+          {
+            if (tx.push(*dt) != 0) break;
+            dt++;
+          }
+          b = *dt;
           break;
     }
   }

@@ -75,11 +75,11 @@ void port_sharer(server interface out_port_if i[n], unsigned n,out port p)
       port_val &= (~(1 << j));
       p <: port_val;
       break;
-    }
     case i[int j].update(unsigned char v):
      port_val = (port_val & (~(1 << j))) | v ? (1 << j) : 0 ;
      p <: port_val;
      break;
+    }
   }
 }
 

@@ -156,6 +156,7 @@ extern void irda_TX(
 interface out_port_if {
   void set();
   void clear();
+  void update(unsigned char v);
 };
 
 /*
