@@ -16,6 +16,76 @@
  * synchronize both i2c to one timer.
  */
 
+/*
+ * 4Bits port
+ * 4.7us T is 100Khz
+ * 1.3us T is 400Khz   hold clock
+ *
+ * Idle SDA =1 SCL = 1
+ * Start SDA =0 (0.6us - 4us)
+ * SCL = 0 SDA = X, SCL = 1 (T) , SCL = 0
+ * SDA = 1  release it STOP
+ * SCL = 1 ( read ACK from SDA)
+ * SCL = 0
+ *
+ * Clock signal.
+ * low for 2T high for T (0.6us - 4us)
+ * 1.3us +  0.6us = 2.5us = 400Khz
+ *
+ *
+ */
+
+#include <timer.h>
+#include <xs1.h>
+#include <stdio.h>
+#include <xscope.h>
+#include <platform.h>
+#include "rxtx.h"
+
+enum i2c_st {
+  idle,     // SDA = 1 SCL = 1
+  start,    // SDA =0, wait T/2 and read back.
+  addr,
+  wack,
+  data,
+  rd,
+  wait,   // waiting on port event
+  wait2,  // still waiting on port after T/2
+  timeout,
+};
+
+#define I2C_SDA1  1
+#define I2C_SCL1  2
+#define I2C_SDA2  4
+#define I2C_SCL2  8
+#define I2C_MASK1 3
+#define I2C_MASK2 12
+
+
+void i2c_dual(port p)
+{
+  timer t;
+  unsigned char st;
+  unsigned char pv,nv;
+  unsigned int tp;
+  const unsigned int T=4*us;
+  set_port_drive_low(p);
+  set_port_pull_up(p);
+  pv = 0xFF;
+  p <: pv;
+  while(1)
+  {
+    select
+    {
+      case p when pinsneq(pv) :> nv:
+        // check if slave is waiting on ping
+        break;
+      case t when timerafter(tp) :> void:
+        // if waiting for ping then timeout at 2
+        break;
+    }
+  }
+}
 
 const unsigned T = 1000;
 void i2c_start()
