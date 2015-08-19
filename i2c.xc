@@ -5,7 +5,17 @@
  *      Author: lester.crespo
  */
 
+/*
 //TODO use the i2c lib provided
+ * Configure port as pull up and
+ * and set set_port_drive_low() it means do not drive on 1
+ * use a 4bit port to control two i2c
+ * do not use share port to avoid delays
+ *
+ * made it combinable with buffers usign timers.
+ * synchronize both i2c to one timer.
+ */
+
 
 const unsigned T = 1000;
 void i2c_start()

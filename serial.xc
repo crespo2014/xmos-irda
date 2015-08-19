@@ -566,6 +566,8 @@ void buffer_v3(client interface rx_if_v3 rx,
   data = SERIAL_LOW;
   buff_wr = 0;
   buff_count = 0;
+  set_port_drive_low(tx);
+  set_port_pull_up(tx);
   while(1)
   {
     select
