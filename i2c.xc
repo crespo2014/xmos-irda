@@ -65,16 +65,36 @@
 #include <platform.h>
 #include "rxtx.h"
 
+/*
+ * main state (idle, start,addr,data_wr, data_ack, data_rd, stop)
+ * substates (transition, update/prepare, send(clk) )
+ *
+ * how many data to read/write
+ * each byte requered a ack.
+ * each frame required read or write count bytes
+ *
+ * push a i2c frame will return data in the same frame
+ * cmd interfaz only send i2c one by one, but it need to be asynchronious
+ */
+
+struct i2c_frm
+{
+    unsigned short addr;  //including r/w bit
+    unsigned char  dt[20];  // read or written data
+    unsigned char  len;     // how many bytes to read or send
+};
+
 enum i2c_st {
   idle,     // SDA = 1 SCL = 1
-  start,    // SDA =0, wait T/2 and read back.
-  addr,
-  wack,
-  data,
-  rd,
-  wait,   // waiting on port event
-  wait2,  // still waiting on port after T/2
-  timeout,
+  start,    // start sent SDA =0
+  data_w0,   // data transition sent  (?,0)
+  data_w1,   // data has been written (X,0)
+  data_w2,   // data has been send    (X,1)
+  rd_w0,      // prepare for read     (1,0)
+  rd_w1,      // ask read (1,1)
+  rd_w2,      // reading while (?,0), read if (?,1).
+  stp_w0,     // stop prepare (0,1)
+  stp_w1,     // stop sent  (1,1)
 };
 
 #define I2C_SDA1  1
