@@ -836,13 +836,7 @@ void print_b(chanend c) {
     }
 }
 
-void print_h(chanend c) {
-    unsigned t1;
-    while (1) {
-        c :> t1;
-        printf("%x\n", t1);
-    }
-}
+
 
 void print_char(chanend c) {
     char t1;

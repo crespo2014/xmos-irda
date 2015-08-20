@@ -337,22 +337,32 @@ void send_fast_loop(out buffered port:8 p16,clock clk)
   configure_in_port(p16, clk);
   //configure_port_clock_output(clk_out, clk);
   start_clock(clk);
+  timer t;
+  unsigned int tp;
   while(1)
   {
-    p16 <:  (unsigned char)0x55;
-    p16 <:  (unsigned char)0x00;
-    p16 <:  (unsigned char)0x00;
-    p16 <:  (unsigned char)0x00;
-    p16 <:  (unsigned char)0x00;
-    p16 <:  (unsigned char)0x00;
-    p16 <:  (unsigned char)0x00;
-    p16 <:  (unsigned char)0x00;
+    select
+    {
+      case t when timerafter(tp) :> void:
+        p16 <:  (unsigned char)0x55;
+        p16 <:  (unsigned char)0x00;
+        tp += (10*us);
+        break;
+    }
   }
 }
 
-void recv_fast_loop(in port p)
+void print_h(streaming chanend c) {
+    unsigned char t1;
+    while (1) {
+        c :> t1;
+        printf("%x\n", t1);
+    }
+}
+
+void recv_fast_loop(in port p,streaming chanend c)
 {
-  unsigned dt;
+  unsigned int dt;
   unsigned char d[8];
   while(1)
   {
@@ -367,19 +377,14 @@ void recv_fast_loop(in port p)
         p :> d[5];
         p :> d[6];
         p :> d[7];
-//        p :> d;
-//        dt = (dt << 1) | d;
-//        p :> d;
-//        dt = (dt << 1) | d;
-//        p :> d;
-//        dt = (dt << 1) | d;
-//        p :> d;
-//        dt = (dt << 1) | d;
-//        p :> d;
-//        dt = (dt << 1) | d;
-//        p :> d;
-//        dt = (dt << 1) | d;
-        printf("%X\n",d[0]+d[1]*2+d[2]*4+d[3]*8+d[4]*16+d[5]*32+d[6]*64+d[7]*128);
+        unsigned idx =8;
+        dt = 0;
+        do
+        {
+          --idx;
+          dt = dt*2 + d[idx];
+        } while (idx !=0);
+        c <: (unsigned char)dt;
         break;
     }
   }
@@ -387,9 +392,11 @@ void recv_fast_loop(in port p)
 
 int main()
 {
+  streaming chan c;
   par {
     send_fast_loop(tx_16,clk);
-    recv_fast_loop(pi_1H);
+    recv_fast_loop(pi_1H,c);
+    print_h(c);
   }
   return 0;
 }
