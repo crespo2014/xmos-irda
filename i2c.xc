@@ -32,6 +32,29 @@
  * low for 2T high for T (0.6us - 4us)
  * 1.3us +  0.6us = 2.5us = 400Khz
  *
+ * Bus stages.
+ * idle
+ * initial position (?,0) or star position.
+ * send/rec  ?,1
+ * start reading   ?,1 valid only if
+ * reading   ?,?  valid only if SCL==1
+ *
+ * Phases.
+ * Idle (1,1)
+ * Start (0,1)
+ * Check Start (?,?) = (0,1)
+ * Transition point (0,0)
+ * Writing from transition point
+ * (X,0)
+ * (X,1)
+ * (X,0) -- transition point
+ * Reading from transition point
+ * (1,0)
+ * (1,1)
+ * --- wait for (?,?) (?,1) then it is valid
+ * (1,0) -- transition point
+ * Sop condition from transition
+ * (0,0) - (0,1) - (1,1)
  *
  */
 
