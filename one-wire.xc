@@ -408,39 +408,6 @@ void Router(
 }
 
 /*
- * Irda frame transmitter
- * id - device id
- * subid - irda device id
- * bit   - bitcount.
- * data - 4 bytes from lsb to msb (Bit are send from MSb to LSB using a bit mask)
- */
-void irda_TX(client interface tx_rx_if tx,out port TX,unsigned bitlen,unsigned char low,unsigned char high)
-{
-  struct tx_frame_t frm;
-  struct tx_frame_t* movable pfrm = &frm;
-  timer t;
-  TX <: low;
-  for(;;)     // do not make it combinable, because send data take a while
-  {
-    select
-    {
-      case tx.ondata():
-      // peek and send data
-      while (tx.get(pfrm) == 1)
-      {
-        // send data
-        if (pfrm->len == 7 &&  pfrm->dt[2] > 0)
-        {
-          unsigned int dt = pfrm->dt[3] | (pfrm->dt[4] << 8) | (pfrm->dt[5] << 16 ) | (pfrm->dt[6] << 24);
-          //SONY_IRDA_SEND(dt,pfrm->dt[2],bitlen,t,TX,high,low);
-        }
-      }
-      break;
-    } // select
-  }  // for
-}
-
-/*
  * Transmition channel 0
  */
 #define MAX_FRAME 4

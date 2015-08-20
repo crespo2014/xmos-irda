@@ -104,8 +104,8 @@ out buffered port:8 tx_16  = XS1_PORT_1P;
     }
   }
 }
-
-int main1()
+/*
+int main()
 {
   streaming chan rx_c;
   interface serial_tx_if tx;
@@ -121,8 +121,13 @@ int main1()
   }
   return 0;
 }
+*/
 
-int main2()
+/*
+ * send ok every second
+ */
+/*
+int main()
 {
   streaming chan rx_c;
   streaming chan tx_c;
@@ -139,6 +144,7 @@ int main2()
   }
   return 0;
 }
+*/
 
 /*
  * Command dummy.
@@ -158,7 +164,7 @@ void serial_cmd(
     {
       case buff.onRX():
         buff.get(rx_ptr);
-        buff.push("OK\r\n>",5);
+        buff.push("OK\n\r>",5);
         break;
       case tx.overflow():
         tx.ack();
@@ -174,8 +180,10 @@ void serial_cmd(
 }
 
 
-
-int main3()
+/*
+ * Buffered serial input with command prompt reply
+ */
+int main()
 {
   streaming chan rx_c;
   streaming chan tx_c;
@@ -389,7 +397,7 @@ void recv_fast_loop(in port p,streaming chanend c)
     }
   }
 }
-
+/*
 int main()
 {
   streaming chan c;
@@ -400,4 +408,5 @@ int main()
   }
   return 0;
 }
+*/
 
