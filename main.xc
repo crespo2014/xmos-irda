@@ -333,7 +333,7 @@ int main()
 // test the fastest communication
 void send_fast_loop(out buffered port:8 p16,clock clk)
 {
-  configure_clock_xcore(clk,1);     // dividing clock ticks
+  configure_clock_xcore(clk,2);     // dividing clock ticks
   configure_in_port(p16, clk);
   //configure_port_clock_output(clk_out, clk);
   start_clock(clk);
@@ -341,40 +341,45 @@ void send_fast_loop(out buffered port:8 p16,clock clk)
   {
     p16 <:  (unsigned char)0x55;
     p16 <:  (unsigned char)0x00;
+    p16 <:  (unsigned char)0x00;
+    p16 <:  (unsigned char)0x00;
+    p16 <:  (unsigned char)0x00;
+    p16 <:  (unsigned char)0x00;
+    p16 <:  (unsigned char)0x00;
+    p16 <:  (unsigned char)0x00;
   }
 }
 
 void recv_fast_loop(in port p)
 {
   unsigned dt;
-  unsigned char d;
-  d = 0;
+  unsigned char d[8];
   while(1)
   {
     select
     {
       case p when pinseq(1) :> void:
-        p :> d;
-        dt = (dt << 1) | d;
-        p :> d;
-        dt = (dt << 1) | d;
-        p :> d;
-        dt = (dt << 1) | d;
-        p :> d;
-        dt = (dt << 1) | d;
-        p :> d;
-        dt = (dt << 1) | d;
-        p :> d;
-        dt = (dt << 1) | d;
-        p :> d;
-        dt = (dt << 1) | d;
-        p :> d;
-        dt = (dt << 1) | d;
-        p :> d;
-        dt = (dt << 1) | d;
-        p :> d;
-        dt = (dt << 1) | d;
-        printf("%X\n",dt);
+        p :> d[0];
+        p :> d[1];
+        p :> d[2];
+        p :> d[3];
+        p :> d[4];
+        p :> d[5];
+        p :> d[6];
+        p :> d[7];
+//        p :> d;
+//        dt = (dt << 1) | d;
+//        p :> d;
+//        dt = (dt << 1) | d;
+//        p :> d;
+//        dt = (dt << 1) | d;
+//        p :> d;
+//        dt = (dt << 1) | d;
+//        p :> d;
+//        dt = (dt << 1) | d;
+//        p :> d;
+//        dt = (dt << 1) | d;
+        printf("%X\n",d[0]+d[1]*2+d[2]*4+d[3]*8+d[4]*16+d[5]*32+d[6]*64+d[7]*128);
         break;
     }
   }
