@@ -24,14 +24,21 @@ in port p_1A = XS1_PORT_1A;
 out port po_1F = XS1_PORT_1F;
 out port p_1C = XS1_PORT_1C;
 
+in port p = XS1_PORT_4A;
+out port p2 = XS1_PORT_4B;
+out port pc = XS1_PORT_4C;
+out port pd = XS1_PORT_4D;
+
 //in port gpio_irda_rx = XS1_PORT_1H;
 out port gpio_fault = XS1_PORT_32A;
 
-out buffered port:32 irda_32  = XS1_PORT_1O;
+out buffered port:32 irda_32  = XS1_PORT_1O;    //LSb to MSB
 out port clockOut  = XS1_PORT_1N;
 
 //out port clk_pin = XS1_PORT_1G;
 clock    clk      = XS1_CLKBLK_1;
+
+out buffered port:8 tx_16  = XS1_PORT_1P;
 
 [[combinable]] void serial_test(client interface serial_tx_if tx,
     streaming chanend rx_c,client interface serial_rx_if rx)
@@ -297,10 +304,7 @@ void portUpdate(out port p)
     }
   }
 }
-in port p = XS1_PORT_4A;
-out port p2 = XS1_PORT_4B;
-out port pc = XS1_PORT_4C;
-out port pd = XS1_PORT_4D;
+
 /*
  * Test done
  * 620ns to propagate from one port to another with only one task
@@ -310,6 +314,7 @@ out port pd = XS1_PORT_4D;
  *
  * 60ns to detect port changes
  */
+/*
 int main()
 {
   streaming chan c[2];
@@ -323,5 +328,64 @@ int main()
   }
   return 0;
 }
+*/
 
+// test the fastest communication
+void send_fast_loop(out buffered port:8 p16,clock clk)
+{
+  configure_clock_xcore(clk,1);     // dividing clock ticks
+  configure_in_port(p16, clk);
+  //configure_port_clock_output(clk_out, clk);
+  start_clock(clk);
+  while(1)
+  {
+    p16 <:  (unsigned char)0x55;
+    p16 <:  (unsigned char)0x00;
+  }
+}
+
+void recv_fast_loop(in port p)
+{
+  unsigned dt;
+  unsigned char d;
+  d = 0;
+  while(1)
+  {
+    select
+    {
+      case p when pinseq(1) :> void:
+        p :> d;
+        dt = (dt << 1) | d;
+        p :> d;
+        dt = (dt << 1) | d;
+        p :> d;
+        dt = (dt << 1) | d;
+        p :> d;
+        dt = (dt << 1) | d;
+        p :> d;
+        dt = (dt << 1) | d;
+        p :> d;
+        dt = (dt << 1) | d;
+        p :> d;
+        dt = (dt << 1) | d;
+        p :> d;
+        dt = (dt << 1) | d;
+        p :> d;
+        dt = (dt << 1) | d;
+        p :> d;
+        dt = (dt << 1) | d;
+        printf("%X\n",dt);
+        break;
+    }
+  }
+}
+
+int main()
+{
+  par {
+    send_fast_loop(tx_16,clk);
+    recv_fast_loop(pi_1H);
+  }
+  return 0;
+}
 
