@@ -352,7 +352,6 @@ void buffer_v1(
     select
     {
       case rx :> unsigned char dt:
-        tx <: dt;
         if (dt == '\r')
         {
           if (rx_st == 0)
@@ -368,6 +367,7 @@ void buffer_v1(
           }
         } else
         {
+          tx <: dt;
           if (rx_ptr->len < sizeof(rx_ptr->dt))
           {
             rx_ptr->dt[rx_ptr->len] = dt;
@@ -509,6 +509,32 @@ void buffer_v3(client interface rx_if_v3 rx,
   {
     select
     {
+//      case rx.push(unsigned int dt):
+//        if (dt == '\r')
+//        {
+//         if (rx_st == 0)
+//         {
+//           rx_st = 2;
+//           cmd.onRX();
+//         }
+//         else
+//         {
+//           //error
+//           rx_st = 0;
+//           rx_ptr->len = 0;
+//         }
+//        } else
+//        {
+//         tx <: dt;
+//         if (rx_ptr->len < sizeof(rx_ptr->dt))
+//         {
+//           rx_ptr->dt[rx_ptr->len] = dt;
+//           rx_ptr->len++;
+//         }
+//         else
+//           rx_st = 1;
+//        }
+//        break;
       case cmd.pull() -> unsigned int dt:
           dt = 0; // to be implemented with irda buffer
           break;
@@ -566,8 +592,11 @@ void buffer_v3(client interface rx_if_v3 rx,
   data = SERIAL_LOW;
   buff_wr = 0;
   buff_count = 0;
+  /*
+   * it does not work with xs1, not pull resistor available
   set_port_drive_low(tx);
   set_port_pull_up(tx);
+  */
   while(1)
   {
     select
