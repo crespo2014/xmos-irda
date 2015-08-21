@@ -333,7 +333,7 @@ int main()
 // test the fastest communication
 void send_fast_loop(out buffered port:8 p16,clock clk)
 {
-  configure_clock_xcore(clk,2);     // dividing clock ticks
+  configure_clock_xcore(clk,4);     // dividing clock ticks
   configure_in_port(p16, clk);
   //configure_port_clock_output(clk_out, clk);
   start_clock(clk);
