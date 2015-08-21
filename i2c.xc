@@ -82,19 +82,42 @@ struct i2c_frm
     unsigned short addr;  //including r/w bit
     unsigned char  dt[20];  // read or written data
     unsigned char  len;     // how many bytes to read or send
+    unsigned char ack;    // 1 = command sucessfull
 };
 
 enum i2c_st {
   idle,     // SDA = 1 SCL = 1
   start,    // start sent SDA =0
-  data_w0,   // data transition sent  (?,0)
-  data_w1,   // data has been written (X,0)
-  data_w2,   // data has been send    (X,1)
-  rd_w0,      // prepare for read     (1,0)
-  rd_w1,      // ask read (1,1)
-  rd_w2,      // reading while (?,0), read if (?,1).
-  stp_w0,     // stop prepare (0,1)
-  stp_w1,     // stop sent  (1,1)
+  addr,
+  addr_ack,
+  wr_dt,        // sending
+  wr_dt_ack,
+  rd_dt,
+  rd_dt_ack,
+  stp,        //
+};
+
+/*
+ * I2c substatus
+ */
+enum i2c_sub_st
+{
+  transition,   // SCL is 0, but SDA is unknown
+  updated,      // SCL = 0 , SDA has desired value
+  send,         // SCL has been set to 1 ( we can read now if scl keep as 1)
+};
+
+// All information about i2c device
+struct i2c_chn
+{
+    struct i2c_frm frm;
+    struct i2c_frm* movable pfrm;
+    enum i2c_st st;
+    enum i2c_sub_st sub_st;
+    unsigned char bit_count;  // for rd/rw byte
+    unsigned char byte_pos;   // for rd/wr buffer
+    unsigned short baud;    // to support different rates on bus.
+    unsigned short baud_count;    //set to baud, when reach zero the channel is update
 };
 
 #define I2C_SDA1  1
@@ -108,6 +131,8 @@ enum i2c_st {
 void i2c_dual(port p)
 {
   timer t;
+  struct i2c_chn i2c[2];
+
   unsigned char st;
   unsigned char pv,nv;
   unsigned int tp;
@@ -115,58 +140,20 @@ void i2c_dual(port p)
   set_port_drive_low(p);
   set_port_pull_up(p);
   pv = 0xFF;
+  nv = 0xFF;
+  st = 0;   // idle
   p <: pv;
+  t :> tp;
   while(1)
   {
     select
     {
-      case p when pinsneq(pv) :> nv:
-        // check if slave is waiting on ping
+      case st == 0 => p when pinsneq(nv) :> nv:
+        // keep pins value updated to avoid reading from port
         break;
-      case t when timerafter(tp) :> void:
+      case st != 0 => t when timerafter(tp) :> void:
         // if waiting for ping then timeout at 2
         break;
     }
   }
-}
-
-const unsigned T = 1000;
-void i2c_start()
-{
-
-}
-
-void i2c_address_7bit(unsigned addr)
-{
-
-}
-
-void i2c_send_bit(char bit)
-{
-
-}
-
-void i2c_send_byte(char data)
-{
-
-}
-
-void i2c_wait_start()
-{
-
-}
-
-unsigned i2c_read_address_7()
-{
-    return 0;
-}
-
-char i2c_read_bit()
-{
-    return 0;
-}
-
-unsigned i2c_read_byte()
-{
-    return 0;
 }
