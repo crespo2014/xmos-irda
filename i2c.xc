@@ -81,8 +81,10 @@ struct i2c_frm
 {
     unsigned short addr;  //including r/w bit
     unsigned char  dt[20];  // read or written data
-    unsigned char  len;     // how many bytes to read or send
-    unsigned char ack;    // 1 = command sucessfull
+    unsigned char  rdlen;   // how many bytes to read
+    unsigned char  wrlen;   // how many bytes of data to write
+    unsigned char  ack;    // 1 = command sucessfull
+    unsigned char  rdwr;   // 1 write 0 read
 };
 
 enum i2c_st {
@@ -93,8 +95,9 @@ enum i2c_st {
   wr_dt,        // sending
   wr_dt_ack,
   rd_dt,
-  rd_dt_ack,
+ // rd_dt_ack,
   stp,        //
+  done,
 };
 
 /*
@@ -105,6 +108,7 @@ enum i2c_sub_st
   transition,   // SCL is 0, but SDA is unknown
   updated,      // SCL = 0 , SDA has desired value
   send,         // SCL has been set to 1 ( we can read now if scl keep as 1)
+  //ack,          // waiting for ack
 };
 
 // All information about i2c device
@@ -158,11 +162,43 @@ inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,uns
           }
           else
           {
+            //read ack
+            pv |= sda_mask;
+            pthis->st = addr_ack;
+            pthis->sub_st = updated;
+          }
+          break;
+        case addr_ack:
+          switch (pthis->sub_st)
+          {
+          case updated:
+            pv |= scl_mask;
+            pthis->sub_st = send;
+            break;
+          case send:
+            // check that clock is high
+            if (nv & scl_mask)
+            {
+              if (nv & sda_mask)
+              {
+                //nack
+                pthis->pfrm->ack = 0;
+                pthis->st = done;
+              }
+              else
+              {
+                pthis->st = wr_dt;
+                pthis->sub_st = transition;
+                pv &= (~scl_mask);
+              }
+            }
+            break;
 
           }
           break;
         }
         break;
+        case addr_ack:
       case wr_dt:
         break;
       case rd_dt:
