@@ -114,7 +114,7 @@ struct i2c_chn
     struct i2c_frm* movable pfrm;
     enum i2c_st st;
     enum i2c_sub_st sub_st;
-    unsigned char bit_count;  // for rd/rw byte
+    unsigned char bit_mask;  // for rd/rw byte
     unsigned char byte_pos;   // for rd/wr buffer
     unsigned short baud;    // to support different rates on bus.
     unsigned short baud_count;    //set to baud, when reach zero the channel is update
@@ -127,6 +127,62 @@ struct i2c_chn
 #define I2C_MASK1 3
 #define I2C_MASK2 12
 
+inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,unsigned char sda_mask,unsigned char scl_mask)
+{
+  if (pthis->st != idle)
+  {
+    if (pthis->baud_count == 0)
+    {
+      pthis->baud_count = pthis->baud;
+      switch (pthis->st)
+      {
+      case  addr:
+        switch (pthis->sub_st)
+        {
+        case transition:  //set next bit value.
+          if (pfrm->addr & bit_mask) pv |= sda_mask;
+          else
+            pv &= (~sda_mask);
+          pthis->sub_st = updated;
+          break;
+        case updated:
+          pv |= scl_mask;
+          pthis->sub_st = send;
+          break;
+        case send:
+          pv &= (~scl_mask);
+          if (pthis->bit_mask < 0x80)
+          {
+            pthis->bit_mask <<=1;
+            pthis->sub_st = transition;
+          }
+          else
+          {
+
+          }
+          break;
+        }
+        break;
+      case wr_dt:
+        break;
+      case rd_dt:
+        break;
+      case wr_dt_ack:
+        break;
+      case rd_dt_ack:
+        break;
+      case addr_ack:
+        break;
+      case start:
+        break;
+      case stp:
+        break;
+      }
+    }
+    else
+      pthis->baud_count--;
+  }
+}
 
 void i2c_dual(port p)
 {
@@ -152,6 +208,8 @@ void i2c_dual(port p)
         // keep pins value updated to avoid reading from port
         break;
       case st != 0 => t when timerafter(tp) :> void:
+        p <: pv;
+
         // if waiting for ping then timeout at 2
         break;
     }

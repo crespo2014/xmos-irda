@@ -183,7 +183,7 @@ void serial_cmd(
 /*
  * Buffered serial input with command prompt reply
  */
-int main()
+int main_12()
 {
   streaming chan rx_c;
   streaming chan tx_c;
@@ -201,6 +201,32 @@ int main()
     }
   }
   return 0;
+}
+
+/*
+ * This function is optimize.
+ * printf is called only ones. using two jump
+ * a different argument is passed
+ */
+int main_opt()
+{
+  int i;
+  p_1A :> i;
+  switch(i)
+  {
+  case 0:printf("1");
+  break;
+  case 1:printf("2");
+  break;
+  case 2:printf("3");
+  break;
+  case 3:printf("4");
+  break;
+  case 4:printf("5");
+  break;
+  case 5:printf("6");
+  break;
+  }
 }
 
 int main_irda_clocked_tx(clock clk,out buffered port:32 p32)
