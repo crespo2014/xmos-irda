@@ -91,11 +91,9 @@ enum i2c_st {
   idle,     // SDA = 1 SCL = 1
   start,    // start sent SDA =0
   addr,
-  addr_ack,
+  second_start,
   wr_dt,        // sending
-  wr_dt_ack,
   rd_dt,
- // rd_dt_ack,
   stp,        //
   done,
 };
@@ -108,7 +106,9 @@ enum i2c_sub_st
   transition,   // SCL is 0, but SDA is unknown
   updated,      // SCL = 0 , SDA has desired value
   send,         // SCL has been set to 1 ( we can read now if scl keep as 1)
-  //ack,          // waiting for ack
+  ack_sda,      // waiting for ack
+  ack_scl,
+  ack_rd,
 };
 
 // All information about i2c device
@@ -144,7 +144,7 @@ inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,uns
         switch (pthis->sub_st)
         {
         case transition:  //set next bit value.
-          if (pfrm->addr & bit_mask) pv |= sda_mask;
+          if (pthis->pfrm->addr & pthis->bit_mask) pv |= sda_mask;
           else
             pv &= (~sda_mask);
           pthis->sub_st = updated;
@@ -164,50 +164,45 @@ inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,uns
           {
             //read ack
             pv |= sda_mask;
-            pthis->st = addr_ack;
-            pthis->sub_st = updated;
+            pthis->sub_st = ack_sda;
           }
           break;
-        case addr_ack:
-          switch (pthis->sub_st)
+        case ack_sda:
+          pv |= sda_mask;
+          pthis->sub_st = ack_scl;
+          break;
+        case ack_scl:
+          pv |= scl_mask;
+          pthis->sub_st = ack_rd;
+          break;
+        case ack_rd:
+          // check that clock is high
+          if (v & scl_mask)
           {
-          case updated:
-            pv |= scl_mask;
-            pthis->sub_st = send;
-            break;
-          case send:
-            // check that clock is high
-            if (nv & scl_mask)
-            {
-              if (nv & sda_mask)
-              {
-                //nack
-                pthis->pfrm->ack = 0;
-                pthis->st = done;
-              }
-              else
-              {
-                pthis->st = wr_dt;
-                pthis->sub_st = transition;
-                pv &= (~scl_mask);
-              }
-            }
-            break;
-
+           if (v & sda_mask)
+           {
+             //nack
+             pthis->pfrm->ack = 0;
+             pthis->st = done;
+           }
+           else
+           {
+             if (pthis->pfrm->wrlen != 0)
+               pthis->st = wr_dt;
+             else
+               pthis->st = rd_dt;
+             pthis->byte_pos = 0;
+             pthis->bit_mask = 1;
+             pthis->sub_st = transition;
+             pv &= (~scl_mask);
+           }
           }
           break;
         }
         break;
-        case addr_ack:
       case wr_dt:
         break;
       case rd_dt:
-        break;
-      case wr_dt_ack:
-        break;
-      case rd_dt_ack:
-        break;
-      case addr_ack:
         break;
       case start:
         break;

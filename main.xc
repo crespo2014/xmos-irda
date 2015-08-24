@@ -183,7 +183,7 @@ void serial_cmd(
 /*
  * Buffered serial input with command prompt reply
  */
-int main_12()
+int main()
 {
   streaming chan rx_c;
   streaming chan tx_c;
