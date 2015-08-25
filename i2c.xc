@@ -100,22 +100,19 @@ enum i2c_st {
 
 /*
  * I2c substatus
+ * Reading and generating signals have identical states
  */
 enum i2c_sub_st
 {
-  updated,      // SCL = 0 , SDA has desired value
-  prepared,     // for start, stop we need a transition on scl 1
-  send,         // SCL has been set to 1 ( we can read now if scl keep as 1)
-  ack_sda,      // waiting for ack
-  ack_scl,
-  ack_rd,
   sda_set,      // sda has the desire value
   sda_signal,   // a signal is going to be generated or a data will be read
   sda_signal_ready,   // ready to generated signal
   scl_up,       // clock is 1
   scl_down,     // clock just go down ,SCL is 0, but SDA is unknown
-  scl_keep,     // keep clock high
-  sda_up_down,  // start stop to be applied
+  // read or signal generator
+  read_prepared,
+  read_send,
+  read_done,    // it is different to clock down
 };
 
 // All information about i2c device
@@ -155,19 +152,11 @@ inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,uns
       {
         pv &= (~scl_mask);
         pthis->sub_st = scl_down;  // next data to be calculate
-      } else if (pthis->sub_st = sda_signal)
+      } else if (pthis->sub_st = read_prepared)
       {
-        pv |= sda_mask;
-        pthis->sub_st = sda_signal_ready;
-      } else if (pthis->sub_st = sda_signal_ready)
-      {
-        pv |= scl_mask;
-        pthis->sub_st = scl_keep;
+        pv |= scl_mask;  // SCL =1
+        pthis->sub_st = read_send;
         pthis->baud_count = 0;
-      } else if (pthis->sub_st = sda_up_down)
-      {
-        pv &= (~scl_mask);
-        pthis->sub_st = scl_down;
       } else
       switch (pthis->st)
       {
@@ -179,65 +168,35 @@ inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,uns
           {
             // no more data to send
             pv |= sda_mask;
-            pthis->sub_st = sda_signal_ready;
+            pthis->sub_st = read_prepared;
           }
-
-
-          //set next bit value.
-          if (pthis->pfrm->addr & pthis->bit_mask) pv |= sda_mask;
           else
-            pv &= (~sda_mask);
-          pthis->sub_st = updated;
-          break;
-        case scl_keep:    //tim eto read ack
-          break;
-        case updated:
-          pv |= scl_mask;
-          pthis->sub_st = send;
-          break;
-        case send:
-          pv &= (~scl_mask);
-          if (pthis->bit_mask < 0x80)
           {
+            //set next bit value.
+            if (pthis->pfrm->addr & pthis->bit_mask) pv |= sda_mask;
+            else
+              pv &= (~sda_mask);
+            pthis->sub_st = sda_set;
             pthis->bit_mask <<=1;
-            pthis->sub_st = transition;
+          }
+          break;
+        case read_send:    //read ack
+          if (v & sda_mask)
+          {
+            //nack
+            pthis->pfrm->ack = 0;
+            pthis->st = done; //TODO send stop bit
           }
           else
           {
-            //read ack
-            pv |= sda_mask;
-            pthis->sub_st = ack_sda;
-          }
-          break;
-        case ack_sda:
-          pv |= sda_mask;
-          pthis->sub_st = ack_scl;
-          break;
-        case ack_scl:
-          pv |= scl_mask;
-          pthis->sub_st = ack_rd;
-          break;
-        case ack_rd:
-          // check that clock is high . realy
-          if (v & scl_mask)
-          {
-           if (v & sda_mask)
-           {
-             //nack
-             pthis->pfrm->ack = 0;
-             pthis->st = done;
-           }
-           else
-           {
-             if (pthis->pfrm->wrlen != 0)
-               pthis->st = wr_dt;
-             else
-               pthis->st = rd_dt;
-             pthis->byte_pos = 0;
-             pthis->bit_mask = 1;
-             pthis->sub_st = transition;
-             pv &= (~scl_mask);
-           }
+            if (pthis->pfrm->wrlen != 0)
+              pthis->st = wr_dt;
+            else
+              pthis->st = rd_dt;
+            pthis->byte_pos = 0;
+            pthis->bit_mask = 1;
+            pthis->sub_st = transition;
+            pv &= (~scl_mask);
           }
           break;
         }
