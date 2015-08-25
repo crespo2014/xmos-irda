@@ -93,9 +93,8 @@ enum i2c_st {
   addr,
   second_start,
   wr_dt,        // sending
-  rd_dt,
+  rd_dt,       //reading
   stp,        //
-  done,
 };
 
 /*
@@ -185,39 +184,36 @@ inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,uns
           {
             //nack
             pthis->pfrm->ack = 0;
-            pthis->st = done; //TODO send stop bit
+            pthis->st = stp; //TODO send stop bit
+            pthis->sub_st = scl_down;
           }
           else
           {
-            if (pthis->pfrm->wrlen != 0)
+            if (pthis->pfrm->wrlen != 0)    // we need to send data
               pthis->st = wr_dt;
             else
               pthis->st = rd_dt;
             pthis->byte_pos = 0;
             pthis->bit_mask = 1;
-            pthis->sub_st = transition;
-            pv &= (~scl_mask);
+            pthis->sub_st = scl_down;
           }
+          pv &= (~scl_mask);
           break;
         }
         break;
       case second_start:
         switch (pthis->sub_st)
         {
-        case clk_0:
-          pv |= sda_mask;   //sda = 1
-          pthis->sub_st = sda_signal;
+        case read_send:  // sda 1, scl 1
+          pv &= (~sda_mask);   //sda = 0
+          pthis->sub_st = read_done;
           break;
-        case updated:
-          pv |= scl_mask;
-          pthis->sub_st = prepared;
-          break;
-        case prepared:
-          pv &= (~sda_mask);
-          pthis->sub_st = send;
-          break;
-        case send:
+        case read_done:
           pv &= (~scl_mask);
+          pthis->byte_pos = 0;
+          pthis->bit_mask = 1;
+          pthis->sub_st = scl_down;
+          pthis->st = wr_dt;
           break;
         }
         break;
@@ -226,8 +222,35 @@ inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,uns
       case rd_dt:
         break;
       case start:
+        switch (pthis->sub_st)
+        {
+        case read_send:  // sda 1, scl 1
+          pv &= (~sda_mask);   //sda = 0
+          pthis->sub_st = read_done;
+          break;
+        case read_done:
+          pv &= (~scl_mask);
+          pthis->bit_mask = 1;
+          pthis->sub_st = scl_down;
+          pthis->st = addr;
+          break;
+        }
         break;
       case stp:
+        switch (pthis->sub_st)
+        {
+        case scl_down:
+          pv &= (~sda_mask);   //sda = 0
+          pthis->sub_st = read_prepared;
+          break;
+        case read_send:  // sda 1, scl 1
+          pv |= sda_mask;
+          pthis->sub_st = read_done;
+          break;
+        case read_done:
+          pthis->st = idle;
+          break;
+        }
         break;
       }
     }
