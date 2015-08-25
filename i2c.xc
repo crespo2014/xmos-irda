@@ -87,9 +87,13 @@ struct i2c_frm
     unsigned char  rdwr;   // 1 write 0 read
 };
 
+
+/*
+ * Status.
+ * idle - to start transmition set sda=0, st = addr, sub_st = clk_up, bitmask
+ */
 enum i2c_st {
   idle,     // SDA = 1 SCL = 1
-  start,    // start sent SDA =0
   addr,
   second_start,
   wr_dt,        // sending
@@ -104,13 +108,11 @@ enum i2c_st {
 enum i2c_sub_st
 {
   sda_set,      // sda has the desire value
-  sda_signal,   // a signal is going to be generated or a data will be read
-  sda_signal_ready,   // ready to generated signal
   scl_up,       // clock is 1
   scl_down,     // clock just go down ,SCL is 0, but SDA is unknown
   // read or signal generator
-  read_prepared,
-  read_send,
+  read_prepared,   // a signal is going to be generated or a data will be read
+  read_send,        // ready to generate the signal
   read_done,    // it is different to clock down
 };
 
@@ -142,16 +144,16 @@ inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,uns
     {
       pthis->baud_count = pthis->baud;
       //do commun routines
-      if (pthis->sub_st = sda_set)
+      if (pthis->sub_st == sda_set)
       {
         pv |= scl_mask;
         pthis->sub_st = scl_up;
       }
-      else if (pthis->sub_st = scl_up)
+      else if (pthis->sub_st == scl_up)
       {
         pv &= (~scl_mask);
         pthis->sub_st = scl_down;  // next data to be calculate
-      } else if (pthis->sub_st = read_prepared)
+      } else if (pthis->sub_st == read_prepared)
       {
         pv |= scl_mask;  // SCL =1
         pthis->sub_st = read_send;
@@ -206,13 +208,9 @@ inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,uns
         {
         case read_send:  // sda 1, scl 1
           pv &= (~sda_mask);   //sda = 0
-          pthis->sub_st = read_done;
-          break;
-        case read_done:
-          pv &= (~scl_mask);
+          pthis->sub_st = scl_up;   // it will be scl down
           pthis->byte_pos = 0;
           pthis->bit_mask = 1;
-          pthis->sub_st = scl_down;
           pthis->st = wr_dt;
           break;
         }
@@ -220,21 +218,6 @@ inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,uns
       case wr_dt:
         break;
       case rd_dt:
-        break;
-      case start:
-        switch (pthis->sub_st)
-        {
-        case read_send:  // sda 1, scl 1
-          pv &= (~sda_mask);   //sda = 0
-          pthis->sub_st = read_done;
-          break;
-        case read_done:
-          pv &= (~scl_mask);
-          pthis->bit_mask = 1;
-          pthis->sub_st = scl_down;
-          pthis->st = addr;
-          break;
-        }
         break;
       case stp:
         switch (pthis->sub_st)
@@ -245,10 +228,7 @@ inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,uns
           break;
         case read_send:  // sda 1, scl 1
           pv |= sda_mask;
-          pthis->sub_st = read_done;
-          break;
-        case read_done:
-          pthis->st = idle;
+          pthis->sub_st = idle;
           break;
         }
         break;
