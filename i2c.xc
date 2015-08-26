@@ -265,13 +265,15 @@ inline static void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char 
         {
           if (pthis->bit_mask == 0)
           {
-
+            pv &= (~pthis->sda_mask);
+            p <: pv;
+            pthis->sub_st = ack_send;
           }
           else
           {
-            pv |= pthis->scl_mask;
             pthis->sub_st == read_send;
           }
+          pv |= pthis->scl_mask;
         } else if (pthis->sub_st == read_send)
         {
           //check clock before read
@@ -282,9 +284,10 @@ inline static void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char 
           pthis->bit_mask <<= 1;
           if (pthis->bit_mask == 0)
           {
-            pthis->pfrm->dt[pthis->pfrm->pos++] = dt;
-            //send ack.
+            pthis->pfrm->dt[pthis->pfrm->pos++] = pthis->dt;
           }
+          pthis->sub_st = read_done;
+          pv &= (~pthis->scl_mask);
         } else if (pthis->sub_st == ack_send)
         {
           if (pthis->byte_count != 0)
@@ -335,6 +338,15 @@ void i2c_dual(port p)
   pv = 0xFF;
   nv = 0xFF;
   st = 0;   // idle
+  // testing data
+  i2c[0].st = wr1;
+  i2c[0].sub_st = scl_up;
+  i2c[0].frm.pos = 0;
+  i2c[0].frm.wr1_len = 1;
+  i2c[0].frm.wr2_len = 0;
+  i2c[0].frm.rd_len = 0;
+  i2c[0].frm.dt[0] = 1;
+  st = 1;
   p <: pv;
   t :> tp;
   while(1)
@@ -349,7 +361,7 @@ void i2c_dual(port p)
         for (int i=2;i!=0;)
         {
           --i;
-          i2c_step(&i2c[i],nv,pv,p);
+          if (i2c[i].st != idle) i2c_step(&i2c[i],nv,pv,p);
         }
         st = (i2c[0].st != idle) | (i2c[1].st != idle);
         tp += T;

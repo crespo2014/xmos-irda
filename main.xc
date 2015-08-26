@@ -13,6 +13,7 @@
 #include <rxtx.h>
 #include "irda.h"
 #include "serial.h"
+#include "i2c.h"
 
 out port p_1G = XS1_PORT_1G;
 out port p_1D = XS1_PORT_1D;
@@ -27,7 +28,7 @@ out port p_1C = XS1_PORT_1C;
 in port p = XS1_PORT_4A;
 out port p2 = XS1_PORT_4B;
 out port pc = XS1_PORT_4C;
-out port pd = XS1_PORT_4D;
+port pd = XS1_PORT_4D;
 
 //in port gpio_irda_rx = XS1_PORT_1H;
 out port gpio_fault = XS1_PORT_32A;
@@ -183,7 +184,7 @@ void serial_cmd(
 /*
  * Buffered serial input with command prompt reply
  */
-int main()
+int main_123()
 {
   streaming chan rx_c;
   streaming chan tx_c;
@@ -200,6 +201,12 @@ int main()
     serial_tx_ctb(tx_c,tx,po_1F);
     }
   }
+  return 0;
+}
+
+int main()
+{
+  i2c_dual(pd);
   return 0;
 }
 
@@ -227,6 +234,7 @@ int main_opt()
   case 5:printf("6");
   break;
   }
+  return 0;
 }
 
 int main_irda_clocked_tx(clock clk,out buffered port:32 p32)
