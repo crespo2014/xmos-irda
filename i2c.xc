@@ -107,11 +107,11 @@ enum i2c_st {
  */
 enum i2c_sub_st
 {
-  sda_set,      // sda has the desire value
+//  sda_set,      // sda has the desire value
   scl_up,       // clock is 1
   scl_down,     // clock just go down ,SCL is 0, but SDA is unknown
   // read or signal generator
-  read_prepared,   // a signal is going to be generated or a data will be read
+  //read_prepared,   // a signal is going to be generated or a data will be read
   read_send,        // ready to generate the signal
   read_done,    // it is different to clock down
   // ack sending
@@ -145,7 +145,7 @@ struct i2c_chn
 #define I2C_MASK1 3
 #define I2C_MASK2 12
 
-inline static void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv)
+inline static void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,port p)
 {
 #pragma fallthrough
   if (pthis->st != idle)
@@ -154,21 +154,24 @@ inline static void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char 
     {
       pthis->baud_count = pthis->baud;
       //do commun routines
-      if (pthis->sub_st == sda_set)
-      {
-        pv |= pthis->scl_mask;
-        pthis->sub_st = scl_up;
-      }
-      else if (pthis->sub_st == scl_up)
+//      if (pthis->sub_st == sda_set)
+//      {
+//        pv |= pthis->scl_mask;
+//        pthis->sub_st = scl_up;
+//      }
+//      else
+      if (pthis->sub_st == scl_up)
       {
         pv &= (~pthis->scl_mask);
         pthis->sub_st = scl_down;  // next data to be calculate
-      } else if (pthis->sub_st == read_prepared)
-      {
-        pv |= pthis->scl_mask;  // SCL =1
-        pthis->sub_st = read_send;
-        pthis->baud_count = 0;
-      } else
+      }
+//      else if (pthis->sub_st == read_prepared)
+//      {
+//        pv |= pthis->scl_mask;  // SCL =1
+//        pthis->sub_st = read_send;
+//        pthis->baud_count = 0;
+//      }
+      else
       switch (pthis->st)
       {
       case  wr1:
@@ -180,7 +183,9 @@ inline static void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char 
           {
             // ack
             pv |= pthis->sda_mask;
-            pthis->sub_st = read_prepared;
+            p <: pv;  // update sda allowed if scl = 0
+            pv |= pthis->scl_mask;  // SCL =1
+            pthis->sub_st = read_send;
           }
           else
           {
@@ -189,9 +194,11 @@ inline static void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char 
               pv |= pthis->sda_mask;
             else
               pv &= (~pthis->sda_mask);
-            pthis->sub_st = sda_set;
             pthis->bit_mask <<=1;
             pthis->baud_count = 0;  //set value fast
+            p <: pv;  // update sda allowed if scl = 0
+            pv |= pthis->scl_mask;
+            pthis->sub_st = scl_up;
           }
           break;
         case read_send:    //read ack
@@ -241,8 +248,10 @@ inline static void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char 
         switch (pthis->sub_st)
         {
         case scl_down:
-          pv |= pthis->sda_mask;
-          pthis->sub_st = read_prepared;
+          pv |= pthis->sda_mask;  // SDA = 1
+          p <: pv;
+          pv |= pthis->scl_mask;  // SCL = 1  later
+          pthis->sub_st = read_send;
           break;
         case read_send:  // sda 1, scl 1
           pv &= (~pthis->sda_mask);   //sda = 0
@@ -259,9 +268,11 @@ inline static void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char 
         {
         case scl_down:
           pv &= (~pthis->sda_mask);   //sda = 0
-          pthis->sub_st = read_prepared;
+          p <: pv;
+          pv |= pthis->scl_mask;  // SCL = 1  later
+          pthis->sub_st = read_send;
           break;
-        case read_send:  // sda 1, scl 1
+        case read_send:  // sda 0, scl 1
           pv |= pthis->sda_mask;
           pthis->sub_st = idle;
           break;
@@ -306,7 +317,7 @@ void i2c_dual(port p)
         for (int i=2;i!=0;)
         {
           --i;
-          i2c_step(&i2c[i],nv,pv);
+          i2c_step(&i2c[i],nv,pv,p);
         }
         st = (i2c[0].st != idle) | (i2c[1].st != idle);
         tp += T;
