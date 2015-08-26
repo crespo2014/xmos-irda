@@ -330,7 +330,7 @@ void i2c_dual(port p)
   unsigned int tp;
   const unsigned int T=4*us;
   set_port_drive_low(p);
-  set_port_pull_up(p);
+//  set_port_pull_up(p);
   i2c[0].scl_mask = I2C_SCL1;
   i2c[0].sda_mask = I2C_SDA1;
   i2c[1].scl_mask = I2C_SCL2;
@@ -341,6 +341,8 @@ void i2c_dual(port p)
   // testing data
   i2c[0].st = wr1;
   i2c[0].sub_st = scl_up;
+  i2c[0].baud_count = 0;
+  i2c[0].baud = 0;
   i2c[0].frm.pos = 0;
   i2c[0].frm.wr1_len = 1;
   i2c[0].frm.wr2_len = 0;
