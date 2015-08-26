@@ -79,12 +79,12 @@
 
 struct i2c_frm
 {
-    unsigned short addr;  //including r/w bit
     unsigned char  dt[20];  // read or written data
-    unsigned char  rdlen;   // how many bytes to read
-    unsigned char  wrlen;   // how many bytes of data to write
+    unsigned char  wr1_len;   // how many bytes of data to write at first
+    unsigned char  wr2_len;   // how many bytes of data to write at first
+    unsigned char  rd_len;   // how many bytes to read
     unsigned char  ack;    // 1 = command sucessfull
-    unsigned char  rdwr;   // 1 write 0 read
+    unsigned char  pos;     // w/r pos
 };
 
 
@@ -94,10 +94,10 @@ struct i2c_frm
  */
 enum i2c_st {
   idle,     // SDA = 1 SCL = 1
-  addr,
-  second_start,
-  wr_dt,        // sending
-  rd_dt,       //reading
+  wr1,      // written
+  start2,
+  wr2,    // written after a second start (dummy write)
+  rd,     // reading
   stp,        //
 };
 
@@ -123,8 +123,9 @@ struct i2c_chn
     struct i2c_frm* movable pfrm;
     enum i2c_st st;
     enum i2c_sub_st sub_st;
-    unsigned char bit_mask;  // for rd/rw byte
-    unsigned char byte_pos;   // for rd/wr buffer
+    unsigned char dt;         // data currently sending
+    unsigned char bit_mask;   // for rd/rw byte
+    unsigned char byte_count;   // how many bytes left to write or read
     unsigned short baud;    // to support different rates on bus.
     unsigned short baud_count;    //set to baud, when reach zero the channel is update
 };
@@ -136,8 +137,9 @@ struct i2c_chn
 #define I2C_MASK1 3
 #define I2C_MASK2 12
 
-inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,unsigned char sda_mask,unsigned char scl_mask)
+void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,unsigned char sda_mask,unsigned char scl_mask)
 {
+#pragma fallthrough
   if (pthis->st != idle)
   {
     if (pthis->baud_count == 0)
@@ -161,24 +163,27 @@ inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,uns
       } else
       switch (pthis->st)
       {
-      case  addr:
+      case  wr1:
+      case wr2:
         switch (pthis->sub_st)
         {
         case scl_down:
           if (pthis->bit_mask == 0)
           {
-            // no more data to send
+            // ack
             pv |= sda_mask;
             pthis->sub_st = read_prepared;
           }
           else
           {
             //set next bit value.
-            if (pthis->pfrm->addr & pthis->bit_mask) pv |= sda_mask;
+            if (pthis->dt & pthis->bit_mask)
+              pv |= sda_mask;
             else
               pv &= (~sda_mask);
             pthis->sub_st = sda_set;
             pthis->bit_mask <<=1;
+            pthis->baud_count = 0;  //set value fast
           }
           break;
         case read_send:    //read ack
@@ -186,38 +191,56 @@ inline void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,uns
           {
             //nack
             pthis->pfrm->ack = 0;
-            pthis->st = stp; //TODO send stop bit
-            pthis->sub_st = scl_down;
+            pthis->st = stp;
           }
           else
           {
-            if (pthis->pfrm->wrlen != 0)    // we need to send data
-              pthis->st = wr_dt;
+            if (pthis->byte_count != 0)
+            {
+              pthis->dt = pthis->pfrm->dt[pthis->pfrm->pos++];
+              --pthis->byte_count;
+              pthis->bit_mask = 1;
+            }
             else
-              pthis->st = rd_dt;
-            pthis->byte_pos = 0;
-            pthis->bit_mask = 1;
-            pthis->sub_st = scl_down;
-          }
+            {
+              if ((pthis->st == wr1) && (pthis->pfrm->wr2_len != 0))
+              {
+                // second start
+                pthis->st = start2;
+              }
+              else
+              {
+                // reading data
+                if (pthis->pfrm->rd_len !=0)
+                {
+                  // reading
+                  pthis->st = rd;
+                }
+                else
+                {
+                  //stop
+                  pthis->st = stp;
+                }
+              }
+            }
+          pthis->sub_st = scl_down;
           pv &= (~scl_mask);
           break;
         }
         break;
-      case second_start:
+        }
+      case start2:
         switch (pthis->sub_st)
         {
         case read_send:  // sda 1, scl 1
           pv &= (~sda_mask);   //sda = 0
           pthis->sub_st = scl_up;   // it will be scl down
-          pthis->byte_pos = 0;
           pthis->bit_mask = 1;
-          pthis->st = wr_dt;
+          pthis->st = wr2;
           break;
         }
         break;
-      case wr_dt:
-        break;
-      case rd_dt:
+      case rd:
         break;
       case stp:
         switch (pthis->sub_st)
@@ -263,10 +286,28 @@ void i2c_dual(port p)
       case st == 0 => p when pinsneq(nv) :> nv:
         // keep pins value updated to avoid reading from port
         break;
-      case st != 0 => t when timerafter(tp) :> void:
+      case st => t when timerafter(tp) :> void:
         p <: pv;
-
-        // if waiting for ping then timeout at 2
+        if (i2c[0].st != idle)
+        {
+          do
+          {
+            i2c_step(&i2c[0],nv,pv,I2C_SDA1,I2C_SCL1);
+            if (i2c[0].baud_count == 0)
+              p<:pv;
+          } while (i2c[0].baud_count == 0);
+        }
+        if (i2c[1].st != idle)
+        {
+          do
+          {
+            i2c_step(&i2c[1],nv,pv,I2C_SDA2,I2C_SCL2);
+            if (i2c[0].baud_count == 0)
+              p<:pv;
+          } while (i2c[0].baud_count == 0);
+        }
+        st = (i2c[0].st != idle) | (i2c[1].st != idle);
+        tp += T;
         break;
     }
   }
