@@ -115,7 +115,6 @@ enum i2c_sub_st
   read_send,        // ready to generate the signal
   read_done,    // it is different to clock down
   // ack sending
-  ack_prepared,
   ack_send,
   ack_done
 };
@@ -262,6 +261,39 @@ inline static void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char 
         }
         break;
       case rd:
+        if (pthis->sub_st == read_done)
+        {
+          if (pthis->bit_mask == 0)
+          {
+
+          }
+          else
+          {
+            pv |= pthis->scl_mask;
+            pthis->sub_st == read_send;
+          }
+        } else if (pthis->sub_st == read_send)
+        {
+          //check clock before read
+          if (v & pthis->sda_mask)
+          {
+            pthis->dt |= pthis->bit_mask;
+          }
+          pthis->bit_mask <<= 1;
+          if (pthis->bit_mask == 0)
+          {
+            pthis->pfrm->dt[pthis->pfrm->pos++] = dt;
+            //send ack.
+          }
+        } else if (pthis->sub_st == ack_send)
+        {
+          if (pthis->byte_count != 0)
+          {
+            pthis->sub_st = read_done;
+            pthis->bit_mask = 1;
+            pthis->dt = 0;
+          }
+        }
         break;
       case stp:
         switch (pthis->sub_st)
