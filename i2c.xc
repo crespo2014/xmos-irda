@@ -114,7 +114,13 @@ enum i2c_sub_st
   read_prepared,   // a signal is going to be generated or a data will be read
   read_send,        // ready to generate the signal
   read_done,    // it is different to clock down
+  // ack sending
+  ack_prepared,
+  ack_send,
+  ack_done
 };
+
+// TODO on scl down update pv and port, and prepare for scl up next time
 
 // All information about i2c device
 struct i2c_chn
@@ -128,6 +134,8 @@ struct i2c_chn
     unsigned char byte_count;   // how many bytes left to write or read
     unsigned short baud;    // to support different rates on bus.
     unsigned short baud_count;    //set to baud, when reach zero the channel is update
+    unsigned char sda_mask;
+    unsigned char scl_mask;
 };
 
 #define I2C_SDA1  1
@@ -137,7 +145,7 @@ struct i2c_chn
 #define I2C_MASK1 3
 #define I2C_MASK2 12
 
-void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,unsigned char sda_mask,unsigned char scl_mask)
+inline static void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv)
 {
 #pragma fallthrough
   if (pthis->st != idle)
@@ -148,16 +156,16 @@ void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,unsigned c
       //do commun routines
       if (pthis->sub_st == sda_set)
       {
-        pv |= scl_mask;
+        pv |= pthis->scl_mask;
         pthis->sub_st = scl_up;
       }
       else if (pthis->sub_st == scl_up)
       {
-        pv &= (~scl_mask);
+        pv &= (~pthis->scl_mask);
         pthis->sub_st = scl_down;  // next data to be calculate
       } else if (pthis->sub_st == read_prepared)
       {
-        pv |= scl_mask;  // SCL =1
+        pv |= pthis->scl_mask;  // SCL =1
         pthis->sub_st = read_send;
         pthis->baud_count = 0;
       } else
@@ -171,23 +179,23 @@ void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,unsigned c
           if (pthis->bit_mask == 0)
           {
             // ack
-            pv |= sda_mask;
+            pv |= pthis->sda_mask;
             pthis->sub_st = read_prepared;
           }
           else
           {
             //set next bit value.
             if (pthis->dt & pthis->bit_mask)
-              pv |= sda_mask;
+              pv |= pthis->sda_mask;
             else
-              pv &= (~sda_mask);
+              pv &= (~pthis->sda_mask);
             pthis->sub_st = sda_set;
             pthis->bit_mask <<=1;
             pthis->baud_count = 0;  //set value fast
           }
           break;
         case read_send:    //read ack
-          if (v & sda_mask)
+          if (v & pthis->sda_mask)
           {
             //nack
             pthis->pfrm->ack = 0;
@@ -224,7 +232,7 @@ void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,unsigned c
               }
             }
           pthis->sub_st = scl_down;
-          pv &= (~scl_mask);
+          pv &= (~pthis->scl_mask);
           break;
         }
         break;
@@ -232,8 +240,12 @@ void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,unsigned c
       case start2:
         switch (pthis->sub_st)
         {
+        case scl_down:
+          pv |= pthis->sda_mask;
+          pthis->sub_st = read_prepared;
+          break;
         case read_send:  // sda 1, scl 1
-          pv &= (~sda_mask);   //sda = 0
+          pv &= (~pthis->sda_mask);   //sda = 0
           pthis->sub_st = scl_up;   // it will be scl down
           pthis->bit_mask = 1;
           pthis->st = wr2;
@@ -246,11 +258,11 @@ void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,unsigned c
         switch (pthis->sub_st)
         {
         case scl_down:
-          pv &= (~sda_mask);   //sda = 0
+          pv &= (~pthis->sda_mask);   //sda = 0
           pthis->sub_st = read_prepared;
           break;
         case read_send:  // sda 1, scl 1
-          pv |= sda_mask;
+          pv |= pthis->sda_mask;
           pthis->sub_st = idle;
           break;
         }
@@ -267,13 +279,16 @@ void i2c_dual(port p)
 {
   timer t;
   struct i2c_chn i2c[2];
-
   unsigned char st;
   unsigned char pv,nv;
   unsigned int tp;
   const unsigned int T=4*us;
   set_port_drive_low(p);
   set_port_pull_up(p);
+  i2c[0].scl_mask = I2C_SCL1;
+  i2c[0].sda_mask = I2C_SDA1;
+  i2c[1].scl_mask = I2C_SCL2;
+  i2c[1].sda_mask = I2C_SDA2;
   pv = 0xFF;
   nv = 0xFF;
   st = 0;   // idle
@@ -288,23 +303,10 @@ void i2c_dual(port p)
         break;
       case st => t when timerafter(tp) :> void:
         p <: pv;
-        if (i2c[0].st != idle)
+        for (int i=2;i!=0;)
         {
-          do
-          {
-            i2c_step(&i2c[0],nv,pv,I2C_SDA1,I2C_SCL1);
-            if (i2c[0].baud_count == 0)
-              p<:pv;
-          } while (i2c[0].baud_count == 0);
-        }
-        if (i2c[1].st != idle)
-        {
-          do
-          {
-            i2c_step(&i2c[1],nv,pv,I2C_SDA2,I2C_SCL2);
-            if (i2c[0].baud_count == 0)
-              p<:pv;
-          } while (i2c[0].baud_count == 0);
+          --i;
+          i2c_step(&i2c[i],nv,pv);
         }
         st = (i2c[0].st != idle) | (i2c[1].st != idle);
         tp += T;
