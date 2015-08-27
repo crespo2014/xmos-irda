@@ -11,5 +11,6 @@
 
 extern void i2c_dual(port p);
 extern void i2c_dual_v2(port p);
+extern void i2c_2x1bit_v3(port sda,port scl);
 
 #endif /* I2C_H_ */

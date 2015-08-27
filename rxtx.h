@@ -14,6 +14,7 @@
 #define sec 100000000
 #define ms  100000
 #define us  100        // 1 usecond
+#define ns  (1/SYS_TIMER_T_ns)
 
 
 

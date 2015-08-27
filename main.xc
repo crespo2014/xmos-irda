@@ -22,8 +22,8 @@ out port po_1I = XS1_PORT_1I;
 in port p_1K = XS1_PORT_1K;
 out port p_1B = XS1_PORT_1B;
 in port p_1A = XS1_PORT_1A;
-out port po_1F = XS1_PORT_1F;
-out port p_1C = XS1_PORT_1C;
+port p_1F = XS1_PORT_1F;
+port p_1C = XS1_PORT_1C;
 
 in port p = XS1_PORT_4A;
 out port p2 = XS1_PORT_4B;
@@ -198,7 +198,7 @@ int main_123()
     [[combine]] par
     {
     serial_rx_cmb(pi_1H,rx_c,rx,po_1I);
-    serial_tx_ctb(tx_c,tx,po_1F);
+    serial_tx_ctb(tx_c,tx,p_1F);
     }
   }
   return 0;
@@ -206,8 +206,8 @@ int main_123()
 
 int main()
 {
-  i2c_dual_v2(pd);
-  i2c_dual(pd);
+  i2c_2x1bit_v3(p_1F,p_1C);
+  //i2c_dual(pd);
   return 0;
 }
 

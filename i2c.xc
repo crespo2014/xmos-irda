@@ -112,12 +112,9 @@ enum i2c_st {
  */
 enum i2c_sub_st
 {
-//  sda_set,      // sda has the desire value
+  scl_none,
   scl_up,       // clock is 1
   scl_down,     // clock just go down ,SCL is 0, but SDA is unknown
-  scl_none,
-  // read or signal generator
-  //read_prepared,   // a signal is going to be generated or a data will be read
   read_send,        // ready to generate the signal
   read_done,    // it is different to clock down
   // ack sending
@@ -616,31 +613,24 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
   case reading:
     unsigned char tmp;
     scl :> tmp;
-    if (tmp == 0) return; // clock streching
+    //if (tmp == 0) return; // clock streching
     pthis->st++;
     break;
+  }
+  if (pthis->st >= wrbit1 && pthis->st <= wrbit8 )
+  {
+    pthis->sub_st = scl_up;
+    sda <: >>pthis->dt;     //lsb to msb
+    return;
   }
   switch (pthis->st)
   {
   case start:
-    sda <: 0;
     pthis->sub_st = scl_down;
     pthis->dt = pthis->pfrm->dt[0];
-    pthis->bit_mask = 1;
     pthis->pfrm->pos = 0;
     pthis->byte_count = pthis->pfrm->wr1_len;
-    break;
-  case wrbit1:
-  case wrbit2:
-  case wrbit3:
-  case wrbit4:
-  case wrbit5:
-  case wrbit6:
-  case wrbit7:
-  case wrbit8:
-    sda <: (char)(((pthis->dt & pthis->bit_mask) != 0) ? 1 : 0);
-    pthis->bit_mask <<=1;
-    pthis->sub_st = scl_up;
+    sda <: 0;
     break;
   case wrack:
     sda <: 1;
@@ -688,23 +678,22 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
   }
 }
 
-void i2c_dual_1bit_v3(port sda,port scl)
+void i2c_2x1bit_v3(port sda,port scl)
 {
   timer t;
   struct i2c_frm frm;
   struct i2c_chn_v2 i2c = { &frm};
   unsigned char st;
   unsigned int tp;
-  const unsigned int T=4*us;
-  set_port_drive_low(sda);
-  set_port_drive_low(scl);
+  const unsigned int T=1.5*us;
+  //set_port_drive_low(sda);
+ // set_port_drive_low(scl);
 //  set_port_pull_up(p);
   sda <: 1;
   scl <: 1;
-  st = 0;   // idle
   // testing data
   i2c.st = start;
-  i2c.sub_st = scl_down;
+  i2c.sub_st = scl_none;
   i2c.baud_count = 0;
   i2c.baud = 0;
   i2c.pfrm->wr1_len = 1;
@@ -713,7 +702,7 @@ void i2c_dual_1bit_v3(port sda,port scl)
   i2c.pfrm->dt[0] = 0x55;
   st = 1;
   t :> tp;
-  while(st != 0)
+  while(i2c.st != none)
   {
     select
     {
