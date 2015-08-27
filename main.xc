@@ -206,6 +206,8 @@ int main_123()
 
 int main()
 {
+  p_1F <: 1;
+  p_1C <: 1;
   i2c_2x1bit_v3(p_1F,p_1C);
   //i2c_dual(pd);
   return 0;

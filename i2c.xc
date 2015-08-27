@@ -622,6 +622,14 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
     pthis->sub_st = scl_up;
     sda <: >>pthis->dt;     //lsb to msb
     return;
+  } else if (pthis->st >= rdbit1 && pthis->st <= rdbit8 )
+  {
+    pthis->sub_st = scl_down;
+    pthis->dt<<=1;
+    unsigned char c;
+    sda :> c;     //lsb to msb
+    if (c)  pthis->dt |= 1;
+    return;
   }
   switch (pthis->st)
   {
