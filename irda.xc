@@ -173,7 +173,7 @@ void dummy_irda_tx_source(server interface irda_tx_if tx)
 void irda_tx_timed(/*client interface irda_tx_if tx,*/out port TX,unsigned char low,unsigned char high)
 {
     struct irda_tx_frame frm;
-    struct irda_tx_frame* movable pfrm = &frm;
+    //struct irda_tx_frame* movable pfrm = &frm;
     unsigned char bitmask,pos;
     unsigned pulse;   // how many pulse to send
     unsigned char pv; // next port value - it reduce transition time

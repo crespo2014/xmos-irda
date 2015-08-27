@@ -383,7 +383,6 @@ void i2c_dual(port p)
 
 enum i2c_st_v2
 {
-  none,
   start,
   wrbit1,
   wrbit2,
@@ -395,8 +394,7 @@ enum i2c_st_v2
   wrbit8,
   wrack,      // reading ack
   wr_ack_rd,  // safe to read
-  next_wr2,      //before second write
-  wr2start,
+  start_2,
   wr2bit1,
   wr2bit2,
   wr2bit3,
@@ -406,7 +404,8 @@ enum i2c_st_v2
   wr2bit7,
   wr2bit8,
   wr2ack,     // prepare for read ack
-  next_rd,         //decide what to do next
+  wr2_ack_rd,  // safe to read
+  start_rd,
   rdbit1,
   rdbit2,
   rdbit3,
@@ -417,6 +416,7 @@ enum i2c_st_v2
   rdbit8,
   rdack,    //what is next
   stop,
+  none,
 };
 
 //enum i2c_sub_status_v2
@@ -491,12 +491,14 @@ inline static void i2c_step_v2(struct i2c_chn_v2* pthis,unsigned char v,unsigned
     pthis->sub_st = scl_up;
     break;
   case wrack:
+  case wr2ack:
     pv |= pthis->sda_mask;
     p <: pv;
     pv |= pthis->scl_mask;
     pthis->sub_st = reading;
     break;
   case wr_ack_rd:
+  case wr2_ack_rd:
     unsigned char tmp;
     p :> tmp;
     if (tmp & pthis->sda_mask)
@@ -512,14 +514,22 @@ inline static void i2c_step_v2(struct i2c_chn_v2* pthis,unsigned char v,unsigned
     pthis->dt = pthis->pfrm->dt[pthis->pfrm->pos];
     if (pthis->byte_count != 0)
     {
-      pthis->st = wrbit1;
+      if (pthis->st == wr_ack_rd)
+        pthis->st = wrbit1;
+      else
+        pthis->st = wr2bit1;
+
     } else
     {
-      if (pthis->pfrm->wr2_len != 0)
+      if ((pthis->st == wr_ack_rd) && (pthis->pfrm->wr2_len != 0))
         pthis->st = start2;
-      else if(pthis->pfrm->rd_len != 0)
+      else if ((pthis->st == wr2_ack_rd) && (pthis->pfrm->rd_len != 0))
         pthis->st = rd;
+      else
+        pthis->st = stop;
     }
+    break;
+  case stop:
     break;
   default:
     pthis->st = none;
@@ -617,7 +627,8 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
     pthis->st++;
     break;
   }
-  if (pthis->st >= wrbit1 && pthis->st <= wrbit8 )
+  if ((pthis->st >= wrbit1 && pthis->st <= wrbit8 ) ||
+      (pthis->st >= wr2bit1 && pthis->st <= wr2bit8 ) )
   {
     pthis->sub_st = scl_up;
     sda <: >>pthis->dt;     //lsb to msb
@@ -645,6 +656,7 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
     pthis->sub_st = to_read;
     break;
   case wr_ack_rd:
+  case wr2_ack_rd:
     unsigned char tmp;
     sda :> tmp;
     if (tmp)
@@ -652,34 +664,57 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
       //nok
     }
     // set clock down
-    pthis->sub_st = scl_down;
+    pthis->sub_st = scl_down;  // set clock down and got next level
     pthis->byte_count--;
     pthis->pfrm->pos++;
     pthis->bit_mask = 1;
     pthis->dt = pthis->pfrm->dt[pthis->pfrm->pos];
     if (pthis->byte_count != 0)
     {
-      pthis->st = start;  // it will be increment to wr bit1
-    } else
-    {
-      if (pthis->pfrm->wr2_len != 0)
-        pthis->st = next_wr2;
-      else if(pthis->pfrm->rd_len != 0)
-        pthis->st = next_rd;
+     if (pthis->st == wr_ack_rd)
+       pthis->st = start;
+     else
+       pthis->st = start_2;
     }
     break;
-  case wr2start:
+  case start_2:
     if (pthis->sub_st == signaling)
     {
+      pthis->byte_count = pthis->pfrm->wr2_len;
       sda <: 0;
       pthis->sub_st = scl_down;
+      break;
+    }
+    if (pthis->pfrm->wr2_len == 0)
+    {
+      pthis->st = start_rd;
+      break;
+    }
+    sda <: 1;
+    pthis->sub_st = to_signal;
+    break;
+  case start_rd:
+    if (pthis->pfrm->rd_len == 0)
+    {
+      pthis->st = stop;
+      break;
+    }
+    sda <: 1;
+    pthis->st = rdbit1;
+    pthis->sub_st = to_read;
+    break;
+  case stop:
+    if (pthis->sub_st == signaling)
+    {
+      sda <: 1;
+      pthis->st = none;
     }
     else
     {
-      sda <: 1;
+      sda <: 0;
       pthis->sub_st = to_signal;
     }
-    break;
+   break;
   default:
     pthis->st = none;
     break;
@@ -691,7 +726,6 @@ void i2c_2x1bit_v3(port sda,port scl)
   timer t;
   struct i2c_frm frm;
   struct i2c_chn_v2 i2c = { &frm};
-  unsigned char st;
   unsigned int tp;
   const unsigned int T=1.5*us;
   //set_port_drive_low(sda);
@@ -705,10 +739,11 @@ void i2c_2x1bit_v3(port sda,port scl)
   i2c.baud_count = 0;
   i2c.baud = 0;
   i2c.pfrm->wr1_len = 1;
-  i2c.pfrm->wr2_len = 0;
-  i2c.pfrm->rd_len = 0;
+  i2c.pfrm->wr2_len = 2;
+  i2c.pfrm->rd_len = 1;
   i2c.pfrm->dt[0] = 0x55;
-  st = 1;
+  i2c.pfrm->dt[1] = 0x00;
+  i2c.pfrm->dt[2] = 0xFF;
   t :> tp;
   while(i2c.st != none)
   {
