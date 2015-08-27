@@ -147,177 +147,162 @@ struct i2c_chn
 inline static void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,port p)
 {
 #pragma fallthrough
-  if (pthis->st != idle)
+  if (pthis->baud_count == 0)
   {
-    if (pthis->baud_count == 0)
+    pthis->baud_count = pthis->baud;
+    if (pthis->sub_st == scl_up)
     {
-      pthis->baud_count = pthis->baud;
-      //do commun routines
-//      if (pthis->sub_st == sda_set)
-//      {
-//        pv |= pthis->scl_mask;
-//        pthis->sub_st = scl_up;
-//      }
-//      else
-      if (pthis->sub_st == scl_up)
+      pv &= (~pthis->scl_mask);
+      pthis->sub_st = scl_down;  // next data to be calculate
+    }
+    else
+    switch (pthis->st)
+    {
+    case  wr1:
+    case wr2:
+      switch (pthis->sub_st)
       {
-        pv &= (~pthis->scl_mask);
-        pthis->sub_st = scl_down;  // next data to be calculate
-      }
-//      else if (pthis->sub_st == read_prepared)
-//      {
-//        pv |= pthis->scl_mask;  // SCL =1
-//        pthis->sub_st = read_send;
-//        pthis->baud_count = 0;
-//      }
-      else
-      switch (pthis->st)
-      {
-      case  wr1:
-      case wr2:
-        switch (pthis->sub_st)
+      case scl_down:
+        if (pthis->bit_mask == 0)
         {
-        case scl_down:
-          if (pthis->bit_mask == 0)
-          {
-            // ack
-            pv |= pthis->sda_mask;
-            p <: pv;  // update sda allowed if scl = 0
-            pv |= pthis->scl_mask;  // SCL =1
-            pthis->sub_st = read_send;
-          }
-          else
-          {
-            //set next bit value.
-            if (pthis->dt & pthis->bit_mask)
-              pv |= pthis->sda_mask;
-            else
-              pv &= (~pthis->sda_mask);
-            pthis->bit_mask <<=1;
-            pthis->baud_count = 0;  //set value fast
-            p <: pv;  // update sda allowed if scl = 0
-            pv |= pthis->scl_mask;
-            pthis->sub_st = scl_up;
-          }
-          break;
-        case read_send:    //read ack
-          if (v & pthis->sda_mask)
-          {
-            //nack
-            pthis->pfrm->ack = 0;
-            pthis->st = stp;
-          }
-          else
-          {
-            if (pthis->byte_count != 0)
-            {
-              pthis->dt = pthis->pfrm->dt[pthis->pfrm->pos++];
-              --pthis->byte_count;
-              pthis->bit_mask = 1;
-            }
-            else
-            {
-              if ((pthis->st == wr1) && (pthis->pfrm->wr2_len != 0))
-              {
-                // second start
-                pthis->st = start2;
-              }
-              else
-              {
-                // reading data
-                if (pthis->pfrm->rd_len !=0)
-                {
-                  // reading
-                  pthis->st = rd;
-                }
-                else
-                {
-                  //stop
-                  pthis->st = stp;
-                }
-              }
-            }
-          pthis->sub_st = scl_down;
-          pv &= (~pthis->scl_mask);
-          break;
-        }
-        break;
-        }
-      case start2:
-        switch (pthis->sub_st)
-        {
-        case scl_down:
-          pv |= pthis->sda_mask;  // SDA = 1
-          p <: pv;
-          pv |= pthis->scl_mask;  // SCL = 1  later
+          // ack
+          pv |= pthis->sda_mask;
+          p <: pv;  // update sda allowed if scl = 0
+          pv |= pthis->scl_mask;  // SCL =1
           pthis->sub_st = read_send;
-          break;
-        case read_send:  // sda 1, scl 1
-          pv &= (~pthis->sda_mask);   //sda = 0
-          pthis->sub_st = scl_up;   // it will be scl down
-          pthis->bit_mask = 1;
-          pthis->st = wr2;
-          break;
+        }
+        else
+        {
+          //set next bit value.
+          if (pthis->dt & pthis->bit_mask)
+            pv |= pthis->sda_mask;
+          else
+            pv &= (~pthis->sda_mask);
+          pthis->bit_mask <<=1;
+          pthis->baud_count = 0;  //set value fast
+          p <: pv;  // update sda allowed if scl = 0
+          pv |= pthis->scl_mask;
+          pthis->sub_st = scl_up;
         }
         break;
-      case rd:
-        if (pthis->sub_st == read_done)
+      case read_send:    //read ack
+        if (v & pthis->sda_mask)
         {
-          if (pthis->bit_mask == 0)
-          {
-            pv &= (~pthis->sda_mask);
-            p <: pv;
-            pthis->sub_st = ack_send;
-          }
-          else
-          {
-            pthis->sub_st == read_send;
-          }
-          pv |= pthis->scl_mask;
-        } else if (pthis->sub_st == read_send)
-        {
-          //check clock before read
-          if (v & pthis->sda_mask)
-          {
-            pthis->dt |= pthis->bit_mask;
-          }
-          pthis->bit_mask <<= 1;
-          if (pthis->bit_mask == 0)
-          {
-            pthis->pfrm->dt[pthis->pfrm->pos++] = pthis->dt;
-          }
-          pthis->sub_st = read_done;
-          pv &= (~pthis->scl_mask);
-        } else if (pthis->sub_st == ack_send)
+          //nack
+          pthis->pfrm->ack = 0;
+          pthis->st = stp;
+        }
+        else
         {
           if (pthis->byte_count != 0)
           {
-            pthis->sub_st = read_done;
+            pthis->dt = pthis->pfrm->dt[pthis->pfrm->pos++];
+            --pthis->byte_count;
             pthis->bit_mask = 1;
-            pthis->dt = 0;
           }
-        }
-        break;
-      case stp:
-        switch (pthis->sub_st)
-        {
-        case scl_down:
-          pv &= (~pthis->sda_mask);   //sda = 0
-          p <: pv;
-          pv |= pthis->scl_mask;  // SCL = 1  later
-          pthis->sub_st = read_send;
-          break;
-        case read_send:  // sda 0, scl 1
-          pv |= pthis->sda_mask;
-          pthis->sub_st = idle;
-          break;
-        }
+          else
+          {
+            if ((pthis->st == wr1) && (pthis->pfrm->wr2_len != 0))
+            {
+              // second start
+              pthis->st = start2;
+            }
+            else
+            {
+              // reading data
+              if (pthis->pfrm->rd_len !=0)
+              {
+                // reading
+                pthis->st = rd;
+              }
+              else
+              {
+                //stop
+                pthis->st = stp;
+              }
+            }
+          }
+        pthis->sub_st = scl_down;
+        pv &= (~pthis->scl_mask);
         break;
       }
+      break;
+      }
+    case start2:
+      switch (pthis->sub_st)
+      {
+      case scl_down:
+        pv |= pthis->sda_mask;  // SDA = 1
+        p <: pv;
+        pv |= pthis->scl_mask;  // SCL = 1  later
+        pthis->sub_st = read_send;
+        break;
+      case read_send:  // sda 1, scl 1
+        pv &= (~pthis->sda_mask);   //sda = 0
+        pthis->sub_st = scl_up;   // it will be scl down
+        pthis->bit_mask = 1;
+        pthis->st = wr2;
+        break;
+      }
+      break;
+    case rd:
+      if (pthis->sub_st == read_done)
+      {
+        if (pthis->bit_mask == 0)
+        {
+          pv &= (~pthis->sda_mask);
+          p <: pv;
+          pthis->sub_st = ack_send;
+        }
+        else
+        {
+          pthis->sub_st == read_send;
+        }
+        pv |= pthis->scl_mask;
+      } else if (pthis->sub_st == read_send)
+      {
+        //check clock before read
+        if (v & pthis->sda_mask)
+        {
+          pthis->dt |= pthis->bit_mask;
+        }
+        pthis->bit_mask <<= 1;
+        if (pthis->bit_mask == 0)
+        {
+          pthis->pfrm->dt[pthis->pfrm->pos++] = pthis->dt;
+        }
+        pthis->sub_st = read_done;
+        pv &= (~pthis->scl_mask);
+      } else if (pthis->sub_st == ack_send)
+      {
+        if (pthis->byte_count != 0)
+        {
+          pthis->sub_st = read_done;
+          pthis->bit_mask = 1;
+          pthis->dt = 0;
+        }
+      }
+      break;
+    case stp:
+      switch (pthis->sub_st)
+      {
+      case scl_down:
+        pv &= (~pthis->sda_mask);   //sda = 0
+        p <: pv;
+        pv |= pthis->scl_mask;  // SCL = 1  later
+        pthis->sub_st = read_send;
+        break;
+      case read_send:  // sda 0, scl 1
+        pv |= pthis->sda_mask;
+        pthis->sub_st = idle;
+        break;
+      }
+      break;
     }
-    else
-      pthis->baud_count--;
   }
+  else
+    pthis->baud_count--;
+
 }
 
 // 4bits port for a dual i2c configuration
@@ -343,11 +328,26 @@ void i2c_dual(port p)
   i2c[0].sub_st = scl_up;
   i2c[0].baud_count = 0;
   i2c[0].baud = 0;
+  i2c[0].dt = 0x55;
+  i2c[0].bit_mask = 1;
   i2c[0].frm.pos = 0;
   i2c[0].frm.wr1_len = 1;
   i2c[0].frm.wr2_len = 0;
   i2c[0].frm.rd_len = 0;
   i2c[0].frm.dt[0] = 1;
+
+  i2c[1].st = wr1;
+  i2c[1].sub_st = scl_up;
+  i2c[1].baud_count = 0;
+  i2c[1].baud = 0;
+  i2c[1].dt = 0x55;
+  i2c[1].bit_mask = 1;
+  i2c[1].frm.pos = 0;
+  i2c[1].frm.wr1_len = 1;
+  i2c[1].frm.wr2_len = 0;
+  i2c[1].frm.rd_len = 0;
+  i2c[1].frm.dt[0] = 1;
+
   st = 1;
   p <: pv;
   t :> tp;
