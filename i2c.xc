@@ -115,6 +115,7 @@ enum i2c_sub_st
 //  sda_set,      // sda has the desire value
   scl_up,       // clock is 1
   scl_down,     // clock just go down ,SCL is 0, but SDA is unknown
+  scl_none,
   // read or signal generator
   //read_prepared,   // a signal is going to be generated or a data will be read
   read_send,        // ready to generate the signal
@@ -122,7 +123,12 @@ enum i2c_sub_st
   // ack sending
   ack_send,
   ack_done,
+
+  to_read,    // up the clock
   reading,    // possible clock strech
+
+  to_signal,
+  signaling,
 };
 
 // TODO on scl down update pv and port, and prepare for scl up next time
@@ -392,7 +398,7 @@ enum i2c_st_v2
   wrbit8,
   wrack,      // reading ack
   wr_ack_rd,  // safe to read
-  wr_next,      //decide what to do next
+  next_wr2,      //before second write
   wr2start,
   wr2bit1,
   wr2bit2,
@@ -403,7 +409,7 @@ enum i2c_st_v2
   wr2bit7,
   wr2bit8,
   wr2ack,     // prepare for read ack
-  wr2_next,         //decide what to do next
+  next_rd,         //decide what to do next
   rdbit1,
   rdbit2,
   rdbit3,
@@ -580,6 +586,141 @@ void i2c_dual_v2(port p)
         }
         st = (i2c[0].st != none) | (i2c[1].st != none);
         tp += T;
+        break;
+    }
+  }
+}
+
+inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
+{
+  if (pthis->baud_count != 0)
+  {
+    --pthis->baud_count;
+    return;
+  }
+  pthis->baud_count = pthis->baud;
+  switch (pthis->sub_st)
+  {
+  case scl_up:
+  case to_read:
+  case to_signal:
+    scl <: 1;
+    pthis->sub_st++;
+    return;
+    break;
+  case scl_down:
+    scl <: 0;
+    pthis->sub_st++;
+    pthis->st++;
+    break;
+  case reading:
+    unsigned char tmp;
+    scl :> tmp;
+    if (tmp == 0) return; // clock streching
+    pthis->st++;
+    break;
+  }
+  switch (pthis->st)
+  {
+  case start:
+    sda <: 0;
+    pthis->sub_st = scl_down;
+    pthis->dt = pthis->pfrm->dt[0];
+    pthis->bit_mask = 1;
+    pthis->pfrm->pos = 0;
+    pthis->byte_count = pthis->pfrm->wr1_len;
+    break;
+  case wrbit1:
+  case wrbit2:
+  case wrbit3:
+  case wrbit4:
+  case wrbit5:
+  case wrbit6:
+  case wrbit7:
+  case wrbit8:
+    sda <: (char)(((pthis->dt & pthis->bit_mask) != 0) ? 1 : 0);
+    pthis->bit_mask <<=1;
+    pthis->sub_st = scl_up;
+    break;
+  case wrack:
+    sda <: 1;
+    pthis->sub_st = to_read;
+    break;
+  case wr_ack_rd:
+    unsigned char tmp;
+    sda :> tmp;
+    if (tmp)
+    {
+      //nok
+    }
+    // set clock down
+    pthis->sub_st = scl_down;
+    pthis->byte_count--;
+    pthis->pfrm->pos++;
+    pthis->bit_mask = 1;
+    pthis->dt = pthis->pfrm->dt[pthis->pfrm->pos];
+    if (pthis->byte_count != 0)
+    {
+      pthis->st = start;  // it will be increment to wr bit1
+    } else
+    {
+      if (pthis->pfrm->wr2_len != 0)
+        pthis->st = next_wr2;
+      else if(pthis->pfrm->rd_len != 0)
+        pthis->st = next_rd;
+    }
+    break;
+  case wr2start:
+    if (pthis->sub_st == signaling)
+    {
+      sda <: 0;
+      pthis->sub_st = scl_down;
+    }
+    else
+    {
+      sda <: 1;
+      pthis->sub_st = to_signal;
+    }
+    break;
+  default:
+    pthis->st = none;
+    break;
+  }
+}
+
+void i2c_dual_1bit_v3(port sda,port scl)
+{
+  timer t;
+  struct i2c_frm frm;
+  struct i2c_chn_v2 i2c = { &frm};
+  unsigned char st;
+  unsigned int tp;
+  const unsigned int T=4*us;
+  set_port_drive_low(sda);
+  set_port_drive_low(scl);
+//  set_port_pull_up(p);
+  sda <: 1;
+  scl <: 1;
+  st = 0;   // idle
+  // testing data
+  i2c.st = start;
+  i2c.sub_st = scl_down;
+  i2c.baud_count = 0;
+  i2c.baud = 0;
+  i2c.pfrm->wr1_len = 1;
+  i2c.pfrm->wr2_len = 0;
+  i2c.pfrm->rd_len = 0;
+  i2c.pfrm->dt[0] = 0x55;
+  st = 1;
+  t :> tp;
+  while(st != 0)
+  {
+    select
+    {
+      case t when timerafter(tp) :> void:
+       if (i2c.st != none)
+         i2c_step_v3(&i2c,sda,scl);
+        tp += ((i2c.st != none) ? T : sec) ;
         break;
     }
   }
