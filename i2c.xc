@@ -357,7 +357,7 @@ void i2c_dual(port p)
   st = 1;
   p <: pv;
   t :> tp;
-  while(1)
+  while(st != 0)
   {
     select
     {
@@ -426,7 +426,6 @@ enum i2c_st_v2
 
 struct i2c_chn_v2
 {
-    struct i2c_frm frm;
     struct i2c_frm* movable pfrm;
     enum i2c_st_v2 st;
     enum i2c_sub_st sub_st;
@@ -455,9 +454,11 @@ inline static void i2c_step_v2(struct i2c_chn_v2* pthis,unsigned char v,unsigned
     return;
   } else if (pthis->sub_st == reading)
     {
-      p :> unsigned char tmp;
-      if ((pv & pthis->scl_mask) == 0)
+      unsigned char tmp;
+      p :> tmp;
+      if ((tmp & pthis->scl_mask) == 0)
         return;   // wait next time
+      pthis->st++;
     }
   switch (pthis->st)
   {
@@ -467,6 +468,7 @@ inline static void i2c_step_v2(struct i2c_chn_v2* pthis,unsigned char v,unsigned
     pthis->dt = pthis->pfrm->dt[0];
     pthis->bit_mask = 1;
     pthis->pfrm->pos = 0;
+    pthis->byte_count = pthis->pfrm->wr1_len;
     break;
   case wrbit1:
   case wrbit2:
@@ -491,6 +493,31 @@ inline static void i2c_step_v2(struct i2c_chn_v2* pthis,unsigned char v,unsigned
     pv |= pthis->scl_mask;
     pthis->sub_st = reading;
     break;
+  case wr_ack_rd:
+    unsigned char tmp;
+    p :> tmp;
+    if (tmp & pthis->sda_mask)
+    {
+      //nok
+    }
+    // set clock down
+    pthis->sub_st = scl_down;
+    pv &= (~pthis->scl_mask);
+    pthis->byte_count--;
+    pthis->pfrm->pos++;
+    pthis->bit_mask = 1;
+    pthis->dt = pthis->pfrm->dt[pthis->pfrm->pos];
+    if (pthis->byte_count != 0)
+    {
+      pthis->st = wrbit1;
+    } else
+    {
+      if (pthis->pfrm->wr2_len != 0)
+        pthis->st = start2;
+      else if(pthis->pfrm->rd_len != 0)
+        pthis->st = rd;
+    }
+    break;
   default:
     pthis->st = none;
     break;
@@ -501,7 +528,8 @@ inline static void i2c_step_v2(struct i2c_chn_v2* pthis,unsigned char v,unsigned
 void i2c_dual_v2(port p)
 {
   timer t;
-  struct i2c_chn_v2 i2c[2];
+  struct i2c_frm frm[2];
+  struct i2c_chn_v2 i2c[2] = { {&frm[0]},{&frm[1]}};
   unsigned char st;
   unsigned char pv,nv;
   unsigned int tp;
@@ -520,27 +548,24 @@ void i2c_dual_v2(port p)
   i2c[0].sub_st = scl_down;
   i2c[0].baud_count = 0;
   i2c[0].baud = 0;
-  i2c[0].frm.wr1_len = 1;
-  i2c[0].frm.wr2_len = 0;
-  i2c[0].frm.rd_len = 0;
-  i2c[0].frm.dt[0] = 0x55;
+  i2c[0].pfrm->wr1_len = 1;
+  i2c[0].pfrm->wr2_len = 0;
+  i2c[0].pfrm->rd_len = 0;
+  i2c[0].pfrm->dt[0] = 0x55;
 
-  i2c[1].st = wr1;
+  i2c[1].st = none;
   i2c[1].sub_st = scl_up;
   i2c[1].baud_count = 0;
   i2c[1].baud = 0;
-  i2c[1].dt = 0x55;
-  i2c[1].bit_mask = 1;
-  i2c[1].frm.pos = 0;
-  i2c[1].frm.wr1_len = 1;
-  i2c[1].frm.wr2_len = 0;
-  i2c[1].frm.rd_len = 0;
-  i2c[1].frm.dt[0] = 1;
+  i2c[1].pfrm->wr1_len = 1;
+  i2c[1].pfrm->wr2_len = 0;
+  i2c[1].pfrm->rd_len = 0;
+  i2c[1].pfrm->dt[0] = 0xAA;
 
   st = 1;
   p <: pv;
   t :> tp;
-  while(1)
+  while(st != 0)
   {
     select
     {
@@ -549,9 +574,8 @@ void i2c_dual_v2(port p)
         break;
       case st => t when timerafter(tp) :> void:
         p <: pv;
-        for (int i=2;i!=0;)
+        for (int i=0;i<2;++i)
         {
-          --i;
           if (i2c[i].st != none) i2c_step_v2(&i2c[i],nv,pv,p);
         }
         st = (i2c[0].st != none) | (i2c[1].st != none);
