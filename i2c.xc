@@ -16,6 +16,11 @@
  * synchronize both i2c to one timer.
  */
 
+// TODO full status machine for i2c to reduce code size and response time
+// start - wr1bit1 ..wr1bit8 - ack - start2 - wr2bit1..wr2bit8 - ack - rdbit1..rdbit8 - rdack -stop
+// substatus clock_up go to clk_down
+// status points to next one.
+
 /*
  * 4Bits port
  * 4.7us T is 100Khz
@@ -116,7 +121,8 @@ enum i2c_sub_st
   read_done,    // it is different to clock down
   // ack sending
   ack_send,
-  ack_done
+  ack_done,
+  reading,    // possible clock strech
 };
 
 // TODO on scl down update pv and port, and prepare for scl up next time
@@ -366,6 +372,189 @@ void i2c_dual(port p)
           if (i2c[i].st != idle) i2c_step(&i2c[i],nv,pv,p);
         }
         st = (i2c[0].st != idle) | (i2c[1].st != idle);
+        tp += T;
+        break;
+    }
+  }
+}
+
+enum i2c_st_v2
+{
+  none,
+  start,
+  wrbit1,
+  wrbit2,
+  wrbit3,
+  wrbit4,
+  wrbit5,
+  wrbit6,
+  wrbit7,
+  wrbit8,
+  wrack,      // reading ack
+  wr_ack_rd,  // safe to read
+  wr_next,      //decide what to do next
+  wr2start,
+  wr2bit1,
+  wr2bit2,
+  wr2bit3,
+  wr2bit4,
+  wr2bit5,
+  wr2bit6,
+  wr2bit7,
+  wr2bit8,
+  wr2ack,     // prepare for read ack
+  wr2_next,         //decide what to do next
+  rdbit1,
+  rdbit2,
+  rdbit3,
+  rdbit4,
+  rdbit5,
+  rdbit6,
+  rdbit7,
+  rdbit8,
+  rdack,    //what is next
+  stop,
+};
+
+//enum i2c_sub_status_v2
+//{
+//  scl_none,
+//  scl_up,         // is up to be down next time
+//  scl_down,
+//  scl_reading,    //check clock for streching then continuos as usual.
+//};
+
+struct i2c_chn_v2
+{
+    struct i2c_frm frm;
+    struct i2c_frm* movable pfrm;
+    enum i2c_st_v2 st;
+    enum i2c_sub_st sub_st;
+    unsigned char dt;           // data currently sending
+    unsigned char bit_mask;     // for rd/rw byte
+    unsigned char byte_count;   // how many bytes left to write or read
+    unsigned short baud;        // to support different rates on bus.
+    unsigned short baud_count;    //set to baud, when reach zero the channel is update
+    unsigned char sda_mask;
+    unsigned char scl_mask;
+};
+
+inline static void i2c_step_v2(struct i2c_chn_v2* pthis,unsigned char v,unsigned char &pv,port p)
+{
+  if (pthis->baud_count != 0)
+  {
+    --pthis->baud_count;
+    return;
+  }
+  pthis->baud_count = pthis->baud;
+  if (pthis->sub_st == scl_up)
+  {
+    pv &= (~pthis->scl_mask);
+    pthis->sub_st = scl_down;
+    pthis->st++;
+    return;
+  } else if (pthis->sub_st == reading)
+    {
+      p :> unsigned char tmp;
+      if ((pv & pthis->scl_mask) == 0)
+        return;   // wait next time
+    }
+  switch (pthis->st)
+  {
+  case start:
+    pv &= (~pthis->sda_mask);
+    pthis->sub_st = scl_up;
+    pthis->dt = pthis->pfrm->dt[0];
+    pthis->bit_mask = 1;
+    pthis->pfrm->pos = 0;
+    break;
+  case wrbit1:
+  case wrbit2:
+  case wrbit3:
+  case wrbit4:
+  case wrbit5:
+  case wrbit6:
+  case wrbit7:
+  case wrbit8:
+    if (pthis->dt & pthis->bit_mask)
+      pv |= pthis->sda_mask;
+    else
+      pv &= (~pthis->sda_mask);
+    pthis->bit_mask <<=1;
+    p <: pv;  // update sda allowed if scl = 0
+    pv |= pthis->scl_mask;
+    pthis->sub_st = scl_up;
+    break;
+  case wrack:
+    pv |= pthis->sda_mask;
+    p <: pv;
+    pv |= pthis->scl_mask;
+    pthis->sub_st = reading;
+    break;
+  default:
+    pthis->st = none;
+    break;
+  }
+}
+
+// 4bits port for a dual i2c configuration
+void i2c_dual_v2(port p)
+{
+  timer t;
+  struct i2c_chn_v2 i2c[2];
+  unsigned char st;
+  unsigned char pv,nv;
+  unsigned int tp;
+  const unsigned int T=4*us;
+  set_port_drive_low(p);
+//  set_port_pull_up(p);
+  i2c[0].scl_mask = I2C_SCL1;
+  i2c[0].sda_mask = I2C_SDA1;
+  i2c[1].scl_mask = I2C_SCL2;
+  i2c[1].sda_mask = I2C_SDA2;
+  pv = 0xFF;
+  nv = 0xFF;
+  st = 0;   // idle
+  // testing data
+  i2c[0].st = start;
+  i2c[0].sub_st = scl_down;
+  i2c[0].baud_count = 0;
+  i2c[0].baud = 0;
+  i2c[0].frm.wr1_len = 1;
+  i2c[0].frm.wr2_len = 0;
+  i2c[0].frm.rd_len = 0;
+  i2c[0].frm.dt[0] = 0x55;
+
+  i2c[1].st = wr1;
+  i2c[1].sub_st = scl_up;
+  i2c[1].baud_count = 0;
+  i2c[1].baud = 0;
+  i2c[1].dt = 0x55;
+  i2c[1].bit_mask = 1;
+  i2c[1].frm.pos = 0;
+  i2c[1].frm.wr1_len = 1;
+  i2c[1].frm.wr2_len = 0;
+  i2c[1].frm.rd_len = 0;
+  i2c[1].frm.dt[0] = 1;
+
+  st = 1;
+  p <: pv;
+  t :> tp;
+  while(1)
+  {
+    select
+    {
+      case st == 0 => p when pinsneq(nv) :> nv:
+        // keep pins value updated to avoid reading from port
+        break;
+      case st => t when timerafter(tp) :> void:
+        p <: pv;
+        for (int i=2;i!=0;)
+        {
+          --i;
+          if (i2c[i].st != none) i2c_step_v2(&i2c[i],nv,pv,p);
+        }
+        st = (i2c[0].st != none) | (i2c[1].st != none);
         tp += T;
         break;
     }

@@ -206,7 +206,7 @@ int main_123()
 
 int main()
 {
-  i2c_dual(pd);
+  i2c_dual_v2(pd);
   return 0;
 }
 
