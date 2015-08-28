@@ -604,9 +604,10 @@ void i2c_2x1bit_v3(port sda,port scl)
   struct i2c_chn_v2 i2c = { &frm};
   unsigned int tp;
   const unsigned int T=1.5*us;
-  set_port_drive_low(sda);
-  set_port_drive_low(scl);
-//  set_port_pull_up(p);
+//  set_port_drive_low(sda);
+//  set_port_drive_low(scl);
+//  set_port_pull_up(sda);
+//  set_port_pull_up(scl);
   sda <: 1;
   scl <: 1;
   // testing data
