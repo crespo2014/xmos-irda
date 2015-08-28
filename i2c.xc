@@ -500,11 +500,12 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
     return;
   } else if (pthis->st >= rdbit1 && pthis->st <= rdbit8 )
   {
-    pthis->sub_st = scl_down;
-    pthis->dt<<=1;
     unsigned char c;
     sda :> c;     //lsb to msb
     if (c)  pthis->dt |= 1;
+    pthis->dt<<=1;
+    pthis->sub_st = to_read;
+    scl <: 0;
     return;
   }
   switch (pthis->st)
@@ -546,6 +547,8 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
       sda <: 1;
       pthis->st = rdbit1;
       pthis->sub_st = to_read;
+      pthis->byte_count = pthis->pfrm->rd_len;
+      pthis->dt = 0;
     } else
     {
       pthis->sub_st = to_signal;
@@ -557,6 +560,7 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
     pthis->pfrm->dt[pthis->pfrm->pos] = pthis->dt;
     pthis->pfrm->pos++;
     pthis->byte_count--;
+    pthis->dt = 0;
     sda <: (unsigned char)((pthis->byte_count != 0) ? 0 : 1);
     pthis->sub_st = scl_up;
     break;
@@ -611,7 +615,7 @@ void i2c_2x1bit_v3(port sda,port scl)
   i2c.baud_count = 0;
   i2c.baud = 0;
   i2c.pfrm->wr1_len = 1;
-  i2c.pfrm->wr2_len = 2;
+  i2c.pfrm->wr2_len = 1;
   i2c.pfrm->rd_len = 1;
   i2c.pfrm->dt[0] = 0x55;
   i2c.pfrm->dt[1] = 0x00;
@@ -626,7 +630,7 @@ void i2c_2x1bit_v3(port sda,port scl)
          i2c_step_v3(&i2c,sda,scl);
        if (i2c.st == scl_down)
          tp += 600*ns;
-       else if (i2c.st  != none)
+       else if (i2c.st != none)
          tp += T;
        else
          tp += 10*sec;
