@@ -33,7 +33,6 @@ enum i2c_st_v2
   wr2bit8,
   wr2ack,     // prepare for read ack
   wr2_ack_rd,  // safe to read
-  start_rd,
   rdbit1,
   rdbit2,
   rdbit3,

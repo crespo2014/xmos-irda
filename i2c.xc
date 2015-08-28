@@ -460,6 +460,7 @@ void i2c_dual_v2(port p)
   }
 }
 
+//TODO set time of next step, 0.6us is the min clock high time, but 1.3ms is the minimum low
 inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
 {
   printf("%d %d\n",pthis->st,pthis->sub_st);
@@ -547,69 +548,44 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
       pthis->sub_st = to_read;
     } else
     {
-      sda <: 0;
+      pthis->sub_st = to_signal;
       pthis->st = stop;
+      sda <: 0;
     }
     break;
   case rdack:
-    sda <: (pthis->byte_count != 0) ? 0 : 1;
+    sda <: (char)((pthis->byte_count != 0) ? 0 : 1);
     pthis->sub_st = scl_up;
     break;
   case rdack_done:
+    scl <: 0;
     pthis->pfrm->dt[pthis->pfrm->pos] = pthis->dt;
     pthis->pfrm->pos++;
     pthis->byte_count--;
     if (pthis->byte_count != 0)
       pthis->st -= 9;
     else
-      ++pthis->st;
-    // set clock down  and got next level
-    scl <: 0;
+    {
+      pthis->sub_st = to_signal;
+      pthis->st = stop;
+      sda <: 0;
+    }
     break;
   case start:
+    sda <: 0;
     pthis->sub_st = scl_down;
     pthis->dt = pthis->pfrm->dt[0];
     pthis->pfrm->pos = 0;
     pthis->byte_count = pthis->pfrm->wr1_len;
-    sda <: 0;
     break;
-#pragma fallthrough
   case start_2:
-    if (pthis->sub_st == signaling)
-    {
-      pthis->byte_count = pthis->pfrm->wr2_len;
-      sda <: 0;
-      pthis->sub_st = scl_down;
-      break;
-    }
-    if (pthis->pfrm->wr2_len != 0)
-    {
-      sda <: 1;
-      pthis->sub_st = to_signal;
-      break;
-    }
-    pthis->st = start_rd;   // try reading
-#pragma fallthrough
-  case start_rd:
-    if (pthis->pfrm->rd_len != 0)
-    {
-      sda <: 1;
-      pthis->st = rdbit1;
-      pthis->sub_st = to_read;
-      break;
-    }
-    pthis->st = stop;
+    sda <: 0;
+    pthis->byte_count = pthis->pfrm->wr2_len;
+    pthis->sub_st = scl_down;
+    break;
   case stop:
-    if (pthis->sub_st == signaling)
-    {
-      sda <: 1;
-      pthis->st = none;
-    }
-    else
-    {
-      sda <: 0;
-      pthis->sub_st = to_signal;
-    }
+    sda <: 1;
+    pthis->st = none;
     break;
   default:
     pthis->st = none;
