@@ -462,6 +462,7 @@ void i2c_dual_v2(port p)
 
 inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
 {
+  printf("%d %d\n",pthis->st,pthis->sub_st);
   if (pthis->baud_count != 0)
   {
     --pthis->baud_count;
@@ -487,6 +488,7 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
     scl :> tmp;
     //if (tmp == 0) return; // clock streching
     pthis->st++;
+    pthis->sub_st = scl_none;
     break;
   }
   if ((pthis->st >= wrbit1 && pthis->st <= wrbit8 ) ||
@@ -519,7 +521,7 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
     {
       //nok
     }
-    // set clock down  // set clock down and got next level
+    // set clock down and got next level
     scl <: 0;
     pthis->byte_count--;
     pthis->pfrm->pos++;
@@ -527,13 +529,42 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
     pthis->dt = pthis->pfrm->dt[pthis->pfrm->pos];
     if (pthis->byte_count != 0)
     {
-     if (pthis->st == wr_ack_rd)
-       pthis->st = wrbit1;   // one before
-     else
-       pthis->st = start_2;
+      pthis->st -= 9; // go back to bit1
+      break;
     }
     else
       ++pthis->st;
+    // check for start2 or rd then initialize at this point
+    if (pthis->st == start_2 && pthis->pfrm->wr2_len != 0)
+    {
+      sda <: 1;
+      pthis->sub_st = to_signal;
+    }
+    else  if (pthis->pfrm->rd_len != 0)
+    {
+      sda <: 1;
+      pthis->st = rdbit1;
+      pthis->sub_st = to_read;
+    } else
+    {
+      sda <: 0;
+      pthis->st = stop;
+    }
+    break;
+  case rdack:
+    sda <: (pthis->byte_count != 0) ? 0 : 1;
+    pthis->sub_st = scl_up;
+    break;
+  case rdack_done:
+    pthis->pfrm->dt[pthis->pfrm->pos] = pthis->dt;
+    pthis->pfrm->pos++;
+    pthis->byte_count--;
+    if (pthis->byte_count != 0)
+      pthis->st -= 9;
+    else
+      ++pthis->st;
+    // set clock down  and got next level
+    scl <: 0;
     break;
   case start:
     pthis->sub_st = scl_down;

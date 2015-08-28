@@ -43,6 +43,7 @@ enum i2c_st_v2
   rdbit7,
   rdbit8,
   rdack,    //what is next
+  rdack_done,
   stop,
   none,
 };
@@ -69,6 +70,7 @@ enum i2c_sub_st
   scl_none,
   scl_up,       // clock is 1
   scl_down,     // clock just go down ,SCL is 0, but SDA is unknown
+  scl_none2,
   read_send,        // ready to generate the signal
   read_done,    // it is different to clock down
   // ack sending

@@ -927,5 +927,7 @@ void test_xscope()
   }
 }
 
+// TODO irda send can be blocking task for cmd interface., also it can be distributable and it will be use for everybody. using clocked port will be simple
+
 
 
