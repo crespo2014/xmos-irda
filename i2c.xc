@@ -554,14 +554,14 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
     }
     break;
   case rdack:
-    sda <: (char)((pthis->byte_count != 0) ? 0 : 1);
+    pthis->pfrm->dt[pthis->pfrm->pos] = pthis->dt;
+    pthis->pfrm->pos++;
+    pthis->byte_count--;
+    sda <: (unsigned char)((pthis->byte_count != 0) ? 0 : 1);
     pthis->sub_st = scl_up;
     break;
   case rdack_done:
     scl <: 0;
-    pthis->pfrm->dt[pthis->pfrm->pos] = pthis->dt;
-    pthis->pfrm->pos++;
-    pthis->byte_count--;
     if (pthis->byte_count != 0)
       pthis->st -= 9;
     else
@@ -624,8 +624,13 @@ void i2c_2x1bit_v3(port sda,port scl)
       case t when timerafter(tp) :> void:
        if (i2c.st != none)
          i2c_step_v3(&i2c,sda,scl);
-        tp += ((i2c.st != none) ? T : sec) ;
-        break;
+       if (i2c.st == scl_down)
+         tp += 600*ns;
+       else if (i2c.st  != none)
+         tp += T;
+       else
+         tp += 10*sec;
+       break;
     }
   }
 }
