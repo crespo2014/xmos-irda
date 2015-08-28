@@ -506,6 +506,7 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
   }
   switch (pthis->st)
   {
+  case wr2ack:
   case wrack:
     sda <: 1;
     pthis->sub_st = to_read;
@@ -518,8 +519,8 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
     {
       //nok
     }
-    // set clock down
-    pthis->sub_st = scl_down;  // set clock down and got next level
+    // set clock down  // set clock down and got next level
+    scl <: 0;
     pthis->byte_count--;
     pthis->pfrm->pos++;
     pthis->bit_mask = 1;
@@ -527,10 +528,12 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
     if (pthis->byte_count != 0)
     {
      if (pthis->st == wr_ack_rd)
-       pthis->st = (wrbit1-1);   // one before
+       pthis->st = wrbit1;   // one before
      else
-       pthis->st = (wr2bit1 -1);
+       pthis->st = start_2;
     }
+    else
+      ++pthis->st;
     break;
   case start:
     pthis->sub_st = scl_down;
