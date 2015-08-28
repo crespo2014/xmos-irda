@@ -527,9 +527,9 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
     if (pthis->byte_count != 0)
     {
      if (pthis->st == wr_ack_rd)
-       pthis->st = start;
+       pthis->st = (wrbit1-1);   // one before
      else
-       pthis->st = start_2;
+       pthis->st = (wr2bit1 -1);
     }
     break;
   case start:
