@@ -5,7 +5,11 @@
  *      Author: lester.crespo
  */
 
-
+#include <timer.h>
+#include <xs1.h>
+#include <stdio.h>
+#include <xscope.h>
+#include <platform.h>
 #include "rxtx.h"
 
 /*
@@ -83,10 +87,23 @@ void port_sharer(server interface out_port_if i[n], unsigned n,out port p)
   }
 }
 /*
-TODO. Port sharer for input. 
-Hold the last time and value of the port
-keep a notification mask, when port changes if mask is one then notify to task. task will peek data
-adjust time differents between task timer and port timer.
-interface enable_notifycation,onchange,getlast,getTime(for initial synchronization),
+ * Fast comunication system
+ * RX is combinable
+ */
 
-*/
+void fastRX(streaming chanend ch,clock clk,in port p)
+{
+  configure_clock_xcore(clk,1);     // dividing clock ticks
+  configure_in_port(p, clk);
+  start_clock(clk);
+  timer t;
+  while(1)
+  {
+    unsigned int tp1,tp2;
+    p when pinseq(1) :> void;
+    t :> tp1;
+    p when pinseq(0) :> void;
+    t :> tp2;
+    ch <:(unsigned char)(tp2-tp1);
+  }
+}

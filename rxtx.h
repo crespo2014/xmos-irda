@@ -192,6 +192,8 @@ interface buffer_v3_if
 
 };
 
+extern void fastRX(streaming chanend ch,clock clk,in port p);
+
 #endif /* RXTX_H_ */
 
 
