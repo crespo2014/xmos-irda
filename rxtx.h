@@ -9,6 +9,9 @@
 #ifndef RXTX_H_
 #define RXTX_H_
 
+#include <timer.h>
+#include <xs1.h>
+
 #define SYS_TIMER_T_ns  10   //set to 100 for testing
 
 #define sec 100000000
@@ -177,7 +180,7 @@ interface rx_if_v3
  */
 interface tx_if_v3
 {
-  unsigned char push(unsigned int dt); // 0 - ok 1 -overflow
+  unsigned char push(unsigned int dt);    // 0 - ok 1 -overflow
   void setSpeed(unsigned int baud);       // baud rate or line speed
 };
 
@@ -192,7 +195,14 @@ interface buffer_v3_if
 
 };
 
-extern void fastRX(streaming chanend ch,clock clk,in port p);
+interface fast_tx
+{
+  void push(unsigned char dt);
+};
+
+[[distributable]] extern void fastTX(server interface fast_tx tx_if,clock clk,out buffered port:32 p);
+extern void fastRX(streaming chanend ch,in port p);
+extern void fastRXParser(streaming chanend ch);
 
 #endif /* RXTX_H_ */
 

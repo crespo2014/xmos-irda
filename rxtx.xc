@@ -91,19 +91,69 @@ void port_sharer(server interface out_port_if i[n], unsigned n,out port p)
  * RX is combinable
  */
 
-void fastRX(streaming chanend ch,clock clk,in port p)
+void fastRX(streaming chanend ch,in port p)
 {
-  configure_clock_xcore(clk,1);     // dividing clock ticks
-  configure_in_port(p, clk);
-  start_clock(clk);
   timer t;
   while(1)
   {
     unsigned int tp1,tp2;
-    p when pinseq(1) :> void;
-    t :> tp1;
+    p when pinseq(1) :> void;  // 3 ticks
+    t :> tp1;                  // 2 ticks
     p when pinseq(0) :> void;
     t :> tp2;
     ch <:(unsigned char)(tp2-tp1);
   }
+}
+
+void fastRXParser(streaming chanend ch)
+{
+  while(1)
+  {
+    unsigned char d;
+    ch :> d ;
+    printf("%d\n",d);
+  }
+
+}
+
+/*
+ * Fast tx using clocked port
+ * Data send from lsb to msb.
+ * Start 3x1 + 1x0 = 4bits
+ * 1 = 2x1 + 1x0 = 3bits
+ * 0 = 1x1 + 1x0 = 2bits
+ * 8bits*3 + 4 = 28bits per byte. + 4 bits to relax.
+ */
+
+[[distributable]] void fastTX(server interface fast_tx tx_if,clock clk,out buffered port:32 p)
+{
+  configure_clock_xcore(clk,10);     // dividing clock ticks
+  configure_in_port(p, clk);
+  start_clock(clk);
+  while(1)
+  {
+    select
+    {
+      case tx_if.push(unsigned char dt):
+        unsigned int d = 0;
+        for (int i=0;i<8;++i,dt>>=1)
+        {
+          if (dt & 1)
+          {
+            d<<= 3;
+            d|=6;
+          }
+          else
+          {
+            d<<= 2;
+            d|=2;
+          }
+        }
+        d <<= 4;
+        d |= 14;
+        p <: d;
+        break;
+    }
+  }
+
 }
