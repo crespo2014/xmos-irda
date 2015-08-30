@@ -204,7 +204,7 @@ int main_123()
   return 0;
 }
 
-int main_2()
+int main()
 {
   i2c_2x1bit_v3(p_1F,p_1C);
   //i2c_dual(pd);
@@ -223,7 +223,7 @@ void fastTx_test1(client interface fast_tx  ftx)
   }
 }
 
-int main()
+int main_3()
 {
   interface fast_tx  ftx;
   streaming chan fast_rx_c;
