@@ -122,4 +122,9 @@ extern void buffer_v1(server interface buffer_v1_if cmd,
     streaming chanend rx,
     streaming chanend tx);
 
+interface uart_v4
+{
+  void setbaud(unsigned baud);
+};
+
 #endif /* SERIAL_H_ */

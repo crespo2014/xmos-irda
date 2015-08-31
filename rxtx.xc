@@ -105,15 +105,96 @@ void fastRX(streaming chanend ch,in port p)
   }
 }
 
-void fastRXParser(streaming chanend ch)
+/*
+ * Read until 5 ones.
+ * then keep going
+ * this function works fine with a 20ns pulse width. but it is hard to decode a pulse length data
+ */
+void fastRX_v2(streaming chanend ch,in port p)
 {
+  timer t;
+  unsigned char v;
+  unsigned dt;
   while(1)
   {
-    unsigned char d;
-    ch :> d ;
-    printf("%d\n",d);
+    unsigned int tp1,tp2;
+    dt = 0;
+    v =0;
+    p when pinseq(1) :> void;  // 3 ticks
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;
+    p :> >>dt;     // 1 tick
+    //ch <:(unsigned char)(dt);  // 1 tick
+    printf("%X\n",dt);
   }
+}
 
+void fastRXParser(streaming chanend ch)
+{
+  unsigned d;
+  unsigned dt;
+  unsigned char buff[30];
+  unsigned pos;
+  unsigned i;
+  dt = 0;
+  i = 0;
+  pos = 0;
+  while(1)
+  {
+    ch :> d;
+    if (d > 8)
+    {
+      if (i == 8)
+      {
+        buff[pos++] =dt;
+        if (pos == 30)
+        {
+          do
+          {
+            printf("x%X ",buff[--pos]);
+          }while(pos);
+          printf("\n");
+        }
+      }
+      i = 0;
+      dt = 0;
+    }
+    else
+    {
+      dt <<=1;
+      if (d > 6) dt |= 1;
+      i++;
+    }
+  }
 }
 
 /*
@@ -127,7 +208,7 @@ void fastRXParser(streaming chanend ch)
 
 [[distributable]] void fastTX(server interface fast_tx tx_if,clock clk,out buffered port:32 p)
 {
-  configure_clock_xcore(clk,10);     // dividing clock ticks
+  configure_clock_xcore(clk,5);     // dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
   while(1)
@@ -136,24 +217,58 @@ void fastRXParser(streaming chanend ch)
     {
       case tx_if.push(unsigned char dt):
         unsigned int d = 0;
-        for (int i=0;i<8;++i,dt>>=1)
-        {
-          if (dt & 1)
-          {
-            d<<= 3;
-            d|=6;
-          }
-          else
-          {
-            d<<= 2;
-            d|=2;
-          }
-        }
+//        for (int i=0;i<8;++i,dt>>=1)
+//        {
+//          if (dt & 1)
+//          {
+//            d<<= 3;
+//            d|=6;
+//          }
+//          else
+//          {
+//            d<<= 2;
+//            d|=2;
+//          }
+//        }
+//        d <<= 4;
+//        d |= 14;
+        d = dt;
         d <<= 4;
-        d |= 14;
+        d |= 0x7;
         p <: d;
         break;
     }
   }
 
+}
+/*
+ * This task is holding buffer, then it is distributable
+ */
+[[distributable]] void fifo_v1(client interface tx tx_if,server interface fifo ff_if[max],unsigned max)
+{
+  unsigned char buff[128];
+  unsigned buff_wr;
+  unsigned buff_count; // how many bytes in the buffer
+  buff_wr = 0;
+  buff_count = 0;
+  while (1) {
+    select {
+    case ff_if[int j].push(const unsigned char* dt,unsigned len) -> unsigned ret:
+        ret  = (sizeof(buff) - buff_count > len);
+        if (ret)
+        {
+          while(len--)
+          {
+            buff[buff_wr] = *dt++;
+            buff_wr = (buff_wr + 1) & (sizeof(buff)-1);
+            buff_count++;
+          }
+        }
+        break;
+    case buff_count => tx_if.ready():
+      tx_if.push(buff[(buff_wr + sizeof(buff) - buff_count)& (sizeof(buff)-1)]);
+      buff_count--;
+      break;
+    }
+  }
 }

@@ -650,3 +650,59 @@ void buffer_v3(client interface rx_if_v3 rx,
   }
 }
 
+/*
+ *
+ */
+
+[[combinable]] void serial_tx_v4(server interface uart_v4 uart_if,server interface tx tx_if,out port tx)
+{
+  unsigned data;     // next output value is the LSB
+  unsigned baudrate;
+  unsigned int tp;
+  unsigned char st;   // status 0 - idle, 1 - sending data, 2 - sending stop,
+  timer t;
+  const unsigned char low = 1;
+  //init
+  baudrate = 1;
+  st = 0;     // idle
+  data = low;
+  /*
+   * it does not work with xs1, not pull resistor available
+  set_port_drive_low(tx);
+  set_port_pull_up(tx);
+  */
+  tx_if.ready();
+  while(1)
+  {
+    select
+    {
+      case uart_if.setbaud(unsigned baud):
+        baudrate = baud;
+        break;
+      case st !=0 => t when timerafter(tp) :> void:
+        tx <: >>data;
+        tp += (UART_BASE_BIT_LEN_ticks*baudrate);
+        if (st < 11)  // send 11 bits
+        {
+          st++;
+        }
+        else
+        {
+          st = 0;
+          tx_if.ready();
+        }
+        break;
+      case st == 0 => tx_if.push(unsigned char dt):
+        data = dt;
+        if (low)
+        {
+          data |= 0xE00;   // add stop bit as 1
+        }
+        else
+          data |= 1;    // add starbit as 1
+        st = 1;
+        break;
+    }
+  }
+}
+

@@ -204,7 +204,7 @@ int main_123()
   return 0;
 }
 
-int main()
+int main_3()
 {
   i2c_2x1bit_v3(p_1F,p_1C);
   //i2c_dual(pd);
@@ -216,21 +216,22 @@ void fastTx_test1(client interface fast_tx  ftx)
   timer t;
   unsigned int tp;
   t :> tp;
+  unsigned char i = 1;
   while(1)
   {
-  //  t when timerafter(tp+100*us) :> void;
-    ftx.push(0x55);
+    //t when timerafter(tp+10*us) :> tp;
+    ftx.push(i++);
   }
 }
 
-int main_3()
+int main()
 {
   interface fast_tx  ftx;
   streaming chan fast_rx_c;
   par
   {
     fastTX(ftx,clk,irda_32);
-    fastRX(fast_rx_c,p_1A);
+    fastRX_v2(fast_rx_c,p_1A);
     fastRXParser(fast_rx_c);
     fastTx_test1(ftx);
   }

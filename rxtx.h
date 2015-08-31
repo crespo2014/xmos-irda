@@ -195,6 +195,17 @@ interface buffer_v3_if
 
 };
 
+interface tx
+{
+  [[notification]] slave void ready();
+  [[clears_notification]] [[guarded]] void push(unsigned char dt);
+};
+
+interface fifo
+{
+  unsigned push(const unsigned char* dt,unsigned len);
+};
+
 interface fast_tx
 {
   void push(unsigned char dt);
@@ -203,6 +214,8 @@ interface fast_tx
 [[distributable]] extern void fastTX(server interface fast_tx tx_if,clock clk,out buffered port:32 p);
 extern void fastRX(streaming chanend ch,in port p);
 extern void fastRXParser(streaming chanend ch);
+
+extern void fastRX_v2(streaming chanend ch,in port p);
 
 #endif /* RXTX_H_ */
 
