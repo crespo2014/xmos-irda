@@ -415,6 +415,7 @@ void fastRXParser_v3(streaming chanend ch)
       case tx_if.push(unsigned char dt):
         unsigned short d = (((dt & 0xF0) << 7) | ((dt & 0x0F) << 6) | 0x1F);
         printf(">%X\n",d);
+       // p <: d;
         p <: (unsigned char)(d & 0xFF);
         p <: (unsigned char)(d >> 8);
         break;
