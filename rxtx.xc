@@ -207,7 +207,7 @@ void fastRXParser(streaming chanend ch)
 
 [[distributable]] void fastTX(server interface fast_tx tx_if,clock clk,out buffered port:32 p)
 {
-  configure_clock_xcore(clk,5);     // dividing clock ticks
+  configure_clock_xcore(clk,2);     // dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
   while(1)
@@ -270,4 +270,60 @@ void fastRXParser(streaming chanend ch)
       break;
     }
   }
+}
+
+/*
+ * Wait for pin become high.
+ * read data until value reach 0. then wait again
+ * Sample rate is 4ns data rate has to be 8ns.
+ * Initial pulse need to be long enough to allow task wake up, and start read cmd. (20ns). 5T is good.
+ * Another task counting pulse decodes the data
+ */
+void fastRX_v3(streaming chanend ch,in buffered port:32 p,clock clk)
+{
+  unsigned dt;
+  configure_clock_xcore(clk,1);     // dividing clock ticks
+  configure_in_port(p, clk);
+  start_clock(clk);
+  do
+  {
+    p when pinseq(1):>void;
+    do
+    {
+    p :> dt;
+    ch <: dt;
+    } while (dt != 0);
+  } while(1);
+}
+
+/*
+ * Parser extract pulse width
+ * todo make it combinable.
+ */
+void fastRXParser_v3(streaming chanend ch)
+{
+  unsigned dt;
+  do
+  {
+    ch :> dt;
+    printf("%X\n",dt);
+  }while(1);
+}
+
+[[distributable]] void fastTX_v3(server interface fast_tx tx_if,clock clk,out buffered port:16 p)
+{
+  configure_clock_xcore(clk,2);     // dividing clock ticks
+  configure_in_port(p, clk);
+  start_clock(clk);
+  while(1)
+  {
+    select
+    {
+      case tx_if.push(unsigned char dt):
+        unsigned d = dt;
+        p <: (((d & 0xF0) << 11) | ((d & 0x0F) << 6) | 0x1F);
+        break;
+    }
+  }
+
 }

@@ -77,14 +77,14 @@ interface serial_tx_if
 {
   [[notification]] slave void ready();                  // a push cmd will be sucessfull
   [[guarded]] [[clears_notification]] void push(unsigned char dt);  // send this data
-  void setbaud(unsigned char baud);
+  void setbaud(unsigned baud);
 };
 
 interface serial_tx_v2_if
 {
   [[notification]] slave void overflow();          // a push cmd will be sucessfull
   [[clears_notification]] void ack();  // send this data
-  void setbaud(unsigned char baud);
+  void setbaud(unsigned baud);
 };
 
 /*
@@ -95,7 +95,7 @@ interface serial_buffer_if
   [[notification]] slave void onRX(); // CR received a buffer is ready to be pick
   [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);
   void TX(unsigned char c);
-  void setbaud(unsigned char baud);
+  void setbaud(unsigned baud);
 };
 
 

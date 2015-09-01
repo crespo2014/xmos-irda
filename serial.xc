@@ -231,7 +231,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
     {
       case cmd.ack():
         break;
-      case cmd.setbaud(unsigned char baud):
+      case cmd.setbaud(unsigned baud):
         baudrate = baud;
         break;
       case ch :> unsigned char rcv_dt:
@@ -309,7 +309,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
         bitmask = 1;  // lsb to msb
         tp += (UART_BASE_BIT_LEN_ticks*baudrate);
         break;
-      case cmd.setbaud(unsigned char baud):
+      case cmd.setbaud(unsigned baud):
         baudrate = baud;
         break;
       case st !=0 => t when timerafter(tp) :> void:
@@ -480,7 +480,7 @@ void serial_buffer(server interface serial_buffer_if cmd,
           tx_count++;
         }
         break;
-      case cmd.setbaud(unsigned char baud):
+      case cmd.setbaud(unsigned baud):
         rx_if.setbaud(baud);
         tx_if.setbaud(baud);
         break;
@@ -601,7 +601,7 @@ void buffer_v3(client interface rx_if_v3 rx,
   {
     select
     {
-      case cmd.setSpeed(unsigned int baud):
+      case cmd.setSpeed(unsigned baud):
         baudrate = baud;
         break;
       case cmd.push(unsigned int dt) -> unsigned char b:

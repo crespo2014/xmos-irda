@@ -17,11 +17,9 @@
 
 out port p_1G = XS1_PORT_1G;
 out port p_1D = XS1_PORT_1D;
-//in port uart_rx = XS1_PORT_1H;
 out port po_1I = XS1_PORT_1I;
 in port p_1K = XS1_PORT_1K;
 out port p_1B = XS1_PORT_1B;
-in port p_1A = XS1_PORT_1A;
 port p_1F = XS1_PORT_1F;
 port p_1C = XS1_PORT_1C;
 
@@ -33,15 +31,15 @@ port pd = XS1_PORT_4D;
 out port uart_tx_p = XS1_PORT_1P;
 in port  uart_rx_p = XS1_PORT_1H;
 
-
-//in port gpio_irda_rx = XS1_PORT_1H;
 out port gpio_fault = XS1_PORT_32A;
 
+in buffered port:32 fast_rx_p  = XS1_PORT_1A;    //LSb to MSB
 out buffered port:32 irda_32  = XS1_PORT_1O;    //LSb to MSB
 out port clockOut  = XS1_PORT_1N;
 
 //out port clk_pin = XS1_PORT_1G;
 clock    clk      = XS1_CLKBLK_1;
+clock    clk_2    = XS1_CLKBLK_2;
 
 //out buffered port:8 tx_16  = XS1_PORT_1P;
 
@@ -235,8 +233,22 @@ int main_4()
   par
   {
     fastTX(ftx,clk,irda_32);
-    fastRX_v2(fast_rx_c,p_1A);
+    fastRX_v2(fast_rx_c,p_1K);
     fastRXParser(fast_rx_c);
+    fastTx_test1(ftx);
+  }
+  return 0;
+}
+
+int main()
+{
+  interface fast_tx  ftx;
+  streaming chan fast_rx_c;
+  par
+  {
+    fastTX(ftx,clk,irda_32);
+    fastRX_v3(fast_rx_c,fast_rx_p,clk_2);
+    fastRXParser_v3(fast_rx_c);
     fastTx_test1(ftx);
   }
   return 0;
@@ -250,7 +262,7 @@ int main_4()
 int main_opt()
 {
   int i;
-  p_1A :> i;
+  p_1K :> i;
   switch(i)
   {
   case 0:printf("1");
@@ -407,7 +419,7 @@ int main()
 // test the fastest communication
 void send_fast_loop(out buffered port:8 p16,clock clk)
 {
-  configure_clock_xcore(clk,4);     // dividing clock ticks
+  configure_clock_xcore(clk,2);     // dividing clock ticks
   configure_in_port(p16, clk);
   //configure_port_clock_output(clk_out, clk);
   start_clock(clk);
@@ -485,7 +497,7 @@ void test_serial_v4(client interface fifo uart_tx_fifo,
 
 }
 
-int main()
+int main_5()
 {
   streaming chan uart_rx_ch;
   interface serial_rx_if uart_rx;

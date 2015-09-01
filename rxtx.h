@@ -219,6 +219,15 @@ extern void fastRX_v2(streaming chanend ch,in port p);
 
 [[distributable]] extern void fifo_v1(client interface tx tx_if,server interface fifo ff_if[max],unsigned max);
 
+[[distributable]] extern void fastTX_v3(server interface fast_tx tx_if,
+    clock clk,
+    out buffered port:16 p);
+
+extern void fastRXParser_v3(streaming chanend ch);
+extern void fastRX_v3(streaming chanend ch,
+    in buffered port:32 p,
+    clock clk);
+
 #endif /* RXTX_H_ */
 
 
