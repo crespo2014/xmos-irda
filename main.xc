@@ -17,7 +17,7 @@
 
 out port p_1G = XS1_PORT_1G;
 out port p_1D = XS1_PORT_1D;
-in port pi_1H = XS1_PORT_1H;
+//in port uart_rx = XS1_PORT_1H;
 out port po_1I = XS1_PORT_1I;
 in port p_1K = XS1_PORT_1K;
 out port p_1B = XS1_PORT_1B;
@@ -30,6 +30,10 @@ out port p2 = XS1_PORT_4B;
 out port pc = XS1_PORT_4C;
 port pd = XS1_PORT_4D;
 
+out port uart_tx_p = XS1_PORT_1P;
+in port  uart_rx_p = XS1_PORT_1H;
+
+
 //in port gpio_irda_rx = XS1_PORT_1H;
 out port gpio_fault = XS1_PORT_32A;
 
@@ -39,7 +43,7 @@ out port clockOut  = XS1_PORT_1N;
 //out port clk_pin = XS1_PORT_1G;
 clock    clk      = XS1_CLKBLK_1;
 
-out buffered port:8 tx_16  = XS1_PORT_1P;
+//out buffered port:8 tx_16  = XS1_PORT_1P;
 
 [[combinable]] void serial_test(client interface serial_tx_if tx,
     streaming chanend rx_c,client interface serial_rx_if rx)
@@ -197,7 +201,7 @@ int main_123()
     serial_cmd(tx,buff,rx);
     [[combine]] par
     {
-    serial_rx_cmb(pi_1H,rx_c,rx,po_1I);
+    serial_rx_cmb(uart_rx_p,rx_c,rx,po_1I);
     serial_tx_ctb(tx_c,tx,p_1F);
     }
   }
@@ -224,7 +228,7 @@ void fastTx_test1(client interface fast_tx  ftx)
   }
 }
 
-int main()
+int main_4()
 {
   interface fast_tx  ftx;
   streaming chan fast_rx_c;
@@ -471,4 +475,35 @@ int main()
   return 0;
 }
 */
+
+void test_serial_v4(client interface fifo uart_tx_fifo,
+    client interface serial_rx_if uart_rx,
+    client interface uart_v4 uart_tx,
+    streaming chanend uart_rx_ch
+    )
+{
+
+}
+
+int main()
+{
+  streaming chan uart_rx_ch;
+  interface serial_rx_if uart_rx;
+  interface uart_v4 uart_tx;
+  interface fifo uart_tx_fifo[1];
+  interface tx tx_uart;
+  par
+  {
+    test_serial_v4(uart_tx_fifo[0],uart_rx,uart_tx,uart_rx_ch);
+    fifo_v1(tx_uart,uart_tx_fifo,1);
+    //serial_test(tx,rx_c,rx);
+    [[combine]]
+     par
+     {
+      serial_tx_v4(uart_tx,tx_uart,uart_tx_p);
+      serial_rx_v4(uart_rx,uart_rx_ch,uart_rx_p);
+     }
+  }
+  return 0;
+}
 

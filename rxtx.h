@@ -217,6 +217,8 @@ extern void fastRXParser(streaming chanend ch);
 
 extern void fastRX_v2(streaming chanend ch,in port p);
 
+[[distributable]] extern void fifo_v1(client interface tx tx_if,server interface fifo ff_if[max],unsigned max);
+
 #endif /* RXTX_H_ */
 
 

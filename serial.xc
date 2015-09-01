@@ -197,7 +197,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
         break;
       case rx_if.ack():
           break;
-      case rx_if.setbaud(unsigned char baud):
+      case rx_if.setbaud(unsigned baud):
         baudrate = baud;
         break;
     }
@@ -654,7 +654,7 @@ void buffer_v3(client interface rx_if_v3 rx,
  *
  */
 
-[[combinable]] void serial_tx_v4(server interface uart_v4 uart_if,server interface tx tx_if,out port tx)
+[[combinable]] void serial_tx_v4(server interface uart_v4 uart_if,server interface tx tx_if,out port p)
 {
   unsigned data;     // next output value is the LSB
   unsigned baudrate;
@@ -680,7 +680,7 @@ void buffer_v3(client interface rx_if_v3 rx,
         baudrate = baud;
         break;
       case st !=0 => t when timerafter(tp) :> void:
-        tx <: >>data;
+        p <: >>data;
         tp += (UART_BASE_BIT_LEN_ticks*baudrate);
         if (st < 11)  // send 11 bits
         {
@@ -701,6 +701,56 @@ void buffer_v3(client interface rx_if_v3 rx,
         else
           data |= 1;    // add starbit as 1
         st = 1;
+        break;
+    }
+  }
+}
+
+[[combinable]] void serial_rx_v4(server interface serial_rx_if uart_if, streaming chanend c,in port rx)
+{
+  unsigned baudrate;
+  unsigned char pv;
+  unsigned char st;   // status 0 - waiting to be pv, waiting start, 1 - 10 data,
+  timer t;
+  unsigned int tp;
+  unsigned dt;
+  const unsigned char low = 1;
+  // idle waiting for pv
+  pv = SERIAL_LOW;
+  st = 0;
+  baudrate = 1;
+  while(1)
+  {
+    select
+    {
+      case st == 0 => rx when pinsneq(low) :> void: // wait for start
+        t :> tp;
+        tp += (baudrate*(UART_BASE_BIT_LEN_ticks/2));
+        st = 1;
+        dt = 0;
+        break;
+      case st != 0 => t when timerafter(tp) :> void:    // only read if it is not idle
+        rx :> >>dt;
+        st++;
+        tp += (UART_BASE_BIT_LEN_ticks*baudrate);
+        if (st == 10)  // done reading
+        {
+          if ((low && (dt & 0x20) != 0x20) ||
+              (!low && (dt & 0x1) != 0x1))
+          {
+            uart_if.error();
+          }
+          else
+          {
+            dt >>=1;
+            c <: (unsigned char)(dt);
+          }
+        }
+        break;
+      case uart_if.ack():
+          break;
+      case uart_if.setbaud(unsigned baud):
+        baudrate = baud;
         break;
     }
   }

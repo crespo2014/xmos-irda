@@ -64,7 +64,7 @@ interface serial_rx_if
 {
   [[notification]] slave void error();       // invalid character received
   [[clears_notification]] void ack();
-  void setbaud(unsigned char baud);
+  void setbaud(unsigned baud);
 };
 
 /*
@@ -98,19 +98,13 @@ interface serial_buffer_if
   void setbaud(unsigned char baud);
 };
 
-//extern void serial_test(client interface serial_tx_if tx,chanend rx_c,client interface serial_rx_if rx);
-[[combinable]] extern void serial_tx_timed_cmb(server interface serial_tx_if cmd,out port tx);
-[[combinable]] extern void serial_rx_cmb(in port rx,streaming chanend c,server interface serial_rx_if rx_if,out port deb);
-extern void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned char baud_rate,unsigned char low,unsigned char high);
 
 extern void serial_buffer(server interface serial_buffer_if cmd,
     chanend rx,
     client interface serial_rx_if rx_if,
     client interface serial_tx_if tx_if);
 
-[[combinable]] extern void serial_tx_ctb(streaming chanend ch,
-    server interface serial_tx_v2_if cmd,
-    out port tx);
+
 
 interface buffer_v1_if
 {
@@ -118,13 +112,28 @@ interface buffer_v1_if
   [[notification]] slave void onRX(); // CR received a buffer is ready to be pick
   [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);
 };
-extern void buffer_v1(server interface buffer_v1_if cmd,
-    streaming chanend rx,
-    streaming chanend tx);
 
 interface uart_v4
 {
   void setbaud(unsigned baud);
 };
+
+extern void buffer_v1(server interface buffer_v1_if cmd,
+    streaming chanend rx,
+    streaming chanend tx);
+
+
+[[combinable]] extern void serial_tx_ctb(streaming chanend ch,
+    server interface serial_tx_v2_if cmd,
+    out port tx);
+
+//extern void serial_test(client interface serial_tx_if tx,chanend rx_c,client interface serial_rx_if rx);
+[[combinable]] extern void serial_tx_timed_cmb(server interface serial_tx_if cmd,out port tx);
+[[combinable]] extern void serial_rx_cmb(in port rx,streaming chanend c,server interface serial_rx_if rx_if,out port deb);
+extern void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned char baud_rate,unsigned char low,unsigned char high);
+
+[[combinable]] extern void serial_rx_v4(server interface serial_rx_if uart_if, streaming chanend c,in port rx);
+[[combinable]] extern void serial_tx_v4(server interface uart_v4 uart_if,server interface tx tx_if,out port p);
+
 
 #endif /* SERIAL_H_ */

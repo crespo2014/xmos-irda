@@ -112,7 +112,6 @@ void fastRX(streaming chanend ch,in port p)
  */
 void fastRX_v2(streaming chanend ch,in port p)
 {
-  timer t;
   unsigned char v;
   unsigned dt;
   while(1)
