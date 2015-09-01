@@ -287,7 +287,7 @@ void fastRX_v3(streaming chanend ch,in buffered port:32 p,clock clk)
   start_clock(clk);
   do
   {
-    p when pinseq(1):>void;
+    p when pinsneq(0):>void;
     do
     {
     p :> dt;
@@ -297,16 +297,108 @@ void fastRX_v3(streaming chanend ch,in buffered port:32 p,clock clk)
 }
 
 /*
- * Parser extract pulse width
+ * Parser extract data
+ * a bit can be read 3 times, but not 4
+ * a bit has to be 2 times, max 3 times.
+ * any bit can be read a even time plus one more.
+ * count how many time and /2
+ * it is need 10 ones to start
+ *
+ * read the same value two times is confirmation than ok.
+ *
  * todo make it combinable.
  */
+enum fast_rx_st_v3
+{
+  waiting_start,
+  reading_start,
+  reading_b00,
+  reading_b01,
+  reading_b10,
+  reading_b11,
+  reading_b20,
+  reading_b21,
+  reading_b30,
+  reading_b31,
+  reading_b40,
+  reading_b41,
+  reading_b50,
+  reading_b51,
+  reading_b60,
+  reading_b61,
+  reading_b70,
+  reading_b71,
+  reading_b80,
+  reading_b81,
+  reading_b90,
+  reading_b91,
+  ending,  // wait for 0
+  check,
+
+};
 void fastRXParser_v3(streaming chanend ch)
 {
+  unsigned v;
+  unsigned st;
   unsigned dt;
+  unsigned last;
+  unsigned last_count;
+  unsigned bitcount;  // max of 11 bits to process after start signal (5 x high)
+  last_count = 0;
+  last = 0;
+  bitcount = 0;
   do
   {
     ch :> dt;
     printf("%X\n",dt);
+    for (unsigned i=32;i!=0;--i)
+    {
+      unsigned bit = dt & 1;
+      if (st >= reading_b00 && st <= ending)
+      {
+        //count consecutives bits.
+        if (last == bit)
+        {
+          v <<=1;
+          v |= bit;
+          last = 3;
+        }
+        else
+          last = bit;
+      }
+      switch (st)
+      {
+      case waiting_start:
+        if (bit == 0) continue;
+        last_count = 1;
+        break;
+      case reading_start:
+        if (bit == 1)
+        {
+          last_count++;
+          continue;
+        }
+        if (last_count < 10)
+          continue;
+        last = 0;
+        v = 1;
+        break;
+      case check:
+        if ((v & 0x421) != 0)
+        {
+          printf("e %X\n",v);
+        }
+        else
+        {
+          v = ((v >> 1) & 0x0F)  | ((v >> 5) & 0xF0);
+          printf("%X\n",v);
+        }
+        st = waiting_start;
+        continue;
+        break;
+      }
+      st++;
+    }
   }while(1);
 }
 
