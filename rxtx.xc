@@ -288,11 +288,8 @@ void fastRX_v3(streaming chanend ch,in buffered port:32 p,clock clk)
   do
   {
     p when pinsneq(0):>void;
-    do
-    {
     p :> dt;
-    ch <: dt;
-    } while (dt != 0);
+    ch <: (unsigned char)(dt >> 5);
   } while(1);
 }
 
@@ -340,7 +337,7 @@ void fastRXParser_v3(streaming chanend ch)
 {
   unsigned v;
   unsigned st;
-  unsigned dt;
+  unsigned char dt;
   unsigned last;
   unsigned last_count;
   unsigned bitcount;  // max of 11 bits to process after start signal (5 x high)
@@ -351,6 +348,12 @@ void fastRXParser_v3(streaming chanend ch)
   {
     ch :> dt;
     printf("%X\n",dt);
+    //wait for more than 8 ones
+//    unsigned mask = 1;
+//    unsigned bit = dt & mask;
+//    mask<<=1;
+//    if (bit | (dt & mask))
+
     continue;
     for (unsigned i=32;i!=0;--i)
     {
@@ -405,7 +408,7 @@ void fastRXParser_v3(streaming chanend ch)
 
 [[distributable]] void fastTX_v3(server interface fast_tx tx_if,clock clk,out buffered port:8 p)
 {
-  configure_clock_xcore(clk,2);     // dividing clock ticks
+  configure_clock_xcore(clk,1);     // dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
   while(1)
@@ -414,10 +417,11 @@ void fastRXParser_v3(streaming chanend ch)
     {
       case tx_if.push(unsigned char dt):
         unsigned short d = (((dt & 0xF0) << 7) | ((dt & 0x0F) << 6) | 0x1F);
-        printf(">%X\n",d);
+        //printf(">%X\n",dt);
        // p <: d;
         p <: (unsigned char)(d & 0xFF);
         p <: (unsigned char)(d >> 8);
+        p <: 0;
         break;
     }
   }
