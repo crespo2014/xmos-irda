@@ -351,6 +351,7 @@ void fastRXParser_v3(streaming chanend ch)
   {
     ch :> dt;
     printf("%X\n",dt);
+    continue;
     for (unsigned i=32;i!=0;--i)
     {
       unsigned bit = dt & 1;
@@ -402,7 +403,7 @@ void fastRXParser_v3(streaming chanend ch)
   }while(1);
 }
 
-[[distributable]] void fastTX_v3(server interface fast_tx tx_if,clock clk,out buffered port:16 p)
+[[distributable]] void fastTX_v3(server interface fast_tx tx_if,clock clk,out buffered port:8 p)
 {
   configure_clock_xcore(clk,2);     // dividing clock ticks
   configure_in_port(p, clk);
@@ -412,8 +413,10 @@ void fastRXParser_v3(streaming chanend ch)
     select
     {
       case tx_if.push(unsigned char dt):
-        unsigned d = dt;
-        p <: (((d & 0xF0) << 11) | ((d & 0x0F) << 6) | 0x1F);
+        unsigned short d = (((dt & 0xF0) << 7) | ((dt & 0x0F) << 6) | 0x1F);
+        printf(">%X\n",d);
+        p <: (unsigned char)(d & 0xFF);
+        p <: (unsigned char)(d >> 8);
         break;
     }
   }

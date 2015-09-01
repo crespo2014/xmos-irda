@@ -221,7 +221,7 @@ extern void fastRX_v2(streaming chanend ch,in port p);
 
 [[distributable]] extern void fastTX_v3(server interface fast_tx tx_if,
     clock clk,
-    out buffered port:16 p);
+    out buffered port:8 p);
 
 extern void fastRXParser_v3(streaming chanend ch);
 extern void fastRX_v3(streaming chanend ch,

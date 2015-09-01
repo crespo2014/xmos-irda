@@ -19,7 +19,6 @@ out port p_1G = XS1_PORT_1G;
 out port p_1D = XS1_PORT_1D;
 out port po_1I = XS1_PORT_1I;
 in port p_1K = XS1_PORT_1K;
-out port p_1B = XS1_PORT_1B;
 port p_1F = XS1_PORT_1F;
 port p_1C = XS1_PORT_1C;
 
@@ -34,7 +33,10 @@ in port  uart_rx_p = XS1_PORT_1H;
 out port gpio_fault = XS1_PORT_32A;
 
 in buffered port:32 fast_rx_p  = XS1_PORT_1A;    //LSb to MSB
-out buffered port:32 irda_32  = XS1_PORT_1O;    //LSb to MSB
+out buffered port:8 fast_tx_p  = XS1_PORT_1O;    //LSb to MSB
+
+out buffered port:32 irda_32  = XS1_PORT_1B;    //LSb to MSB
+
 out port clockOut  = XS1_PORT_1N;
 
 //out port clk_pin = XS1_PORT_1G;
@@ -246,7 +248,7 @@ int main()
   streaming chan fast_rx_c;
   par
   {
-    fastTX(ftx,clk,irda_32);
+    fastTX_v3(ftx,clk,fast_tx_p);
     fastRX_v3(fast_rx_c,fast_rx_p,clk_2);
     fastRXParser_v3(fast_rx_c);
     fastTx_test1(ftx);
