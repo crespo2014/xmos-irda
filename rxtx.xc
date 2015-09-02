@@ -427,3 +427,73 @@ void fastRXParser_v3(streaming chanend ch)
   }
 
 }
+/*
+ * 8bits are prefixed with 10 and add 14 zeros bits
+ * 8 bits become 24bits
+ */
+[[distributable]] void fastTX_v4(server interface fast_tx tx_if,clock clk,out buffered port:8 p)
+{
+  configure_clock_xcore(clk,2);     // dividing clock ticks
+  configure_in_port(p, clk);
+  start_clock(clk);
+  while(1)
+  {
+    select
+    {
+      case tx_if.push(unsigned char dt):
+        unsigned d = 0x1 | (dt << 2);
+        p <: (unsigned char)(d & 0xFF);
+        p <: (unsigned char)(d >> 8);
+        p <: 0;
+        break;
+    }
+  }
+}
+/*
+ * wait for pulse.
+ * read data.
+ * validate mask 0xFFFFF001 should return 0.
+ * push 0xFFFF if mask is wrong
+ */
+void fastRX_v4(streaming chanend ch,in buffered port:32 p,clock clk)
+{
+  unsigned dt;
+  configure_clock_xcore(clk,1);     // dividing clock ticks
+  configure_in_port(p, clk);
+  start_clock(clk);
+  do
+  {
+    p when pinsneq(0):>void;
+    p :> dt;
+    // clean and validate.
+    while (dt & 1)
+      dt >> 1;
+    if ((dt ^ (dt >> 1)) & 0x55)
+      ch <: (unsigned short)0xFFFF;
+    else
+      ch <: (unsigned short)dt;
+  } while(1);
+}
+
+/*
+ * eight bit are received by duplicate.
+ * rotate to the right by two using C
+ * rotate again using destination
+ *
+ */
+void fastRXParser_v4(streaming chanend ch)
+{
+  unsigned v;
+  unsigned short dt;
+  do
+  {
+    ch :> dt;
+    v = 0;
+    for (unsigned mask=1;!(mask & 0x100);mask<<=1)
+    {
+      dt >>= 1;
+      v = v | (dt & mask);
+    }
+    printf("%X = %x \n",dt,v);
+  } while (1);
+}

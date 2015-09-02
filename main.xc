@@ -248,9 +248,9 @@ int main()
   streaming chan fast_rx_c;
   par
   {
-    fastTX_v3(ftx,clk,fast_tx_p);
-    fastRX_v3(fast_rx_c,fast_rx_p,clk_2);
-    fastRXParser_v3(fast_rx_c);
+    fastTX_v4(ftx,clk,fast_tx_p);
+    fastRX_v4(fast_rx_c,fast_rx_p,clk_2);
+    fastRXParser_v4(fast_rx_c);
     fastTx_test1(ftx);
   }
   return 0;
