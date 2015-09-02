@@ -221,7 +221,7 @@ void fastTx_test1(client interface fast_tx  ftx)
   unsigned int tp;
   t :> tp;
   t when timerafter(tp+10*us) :> tp;
-  unsigned char i = 1;
+  unsigned char i = 0;
   while(1)
   {
     //t when timerafter(tp+10*us) :> tp;
@@ -229,21 +229,21 @@ void fastTx_test1(client interface fast_tx  ftx)
   }
 }
 
-int main_4()
+int main()
 {
   interface fast_tx  ftx;
   streaming chan fast_rx_c;
   par
   {
     fastTX(ftx,clk,irda_32);
-    fastRX_v2(fast_rx_c,p_1K);
+    fastRX(fast_rx_c,p_1K);
     fastRXParser(fast_rx_c);
     fastTx_test1(ftx);
   }
   return 0;
 }
 
-int main()
+int main_6()
 {
   interface fast_tx  ftx;
   streaming chan fast_rx_c;

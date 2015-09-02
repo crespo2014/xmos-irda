@@ -906,26 +906,26 @@ void serial_send_test(clock clk,out port p)
   sync(p);
 }
 
-void test_xscope()
-{
-  xscope_register(2,
-             XSCOPE_CONTINUOUS, "Continuous Value 1", XSCOPE_INT, "Value",
-             XSCOPE_CONTINUOUS, "Continuous Value 2", XSCOPE_INT, "Value");
-  xscope_enable();
-  unsigned int i;
-  timer t;
-  unsigned tp;
-  t :> tp;
-  for (tp=2;tp !=0;)
-  {
-    //tp += sec;
-    //t when timerafter(tp) :> void;
-    for (i = 0; i < 100; i++) {
-      xscope_int(0, i);
-      xscope_int(1, i/2 /*(i>50) ? -i : i*/ );
-    }
-  }
-}
+//void test_xscope()
+//{
+//  xscope_register(2,
+//             XSCOPE_CONTINUOUS, "Continuous Value 1", XSCOPE_INT, "Value",
+//             XSCOPE_CONTINUOUS, "Continuous Value 2", XSCOPE_INT, "Value");
+//  xscope_enable();
+//  unsigned int i;
+//  timer t;
+//  unsigned tp;
+//  t :> tp;
+//  for (tp=2;tp !=0;)
+//  {
+//    //tp += sec;
+//    //t when timerafter(tp) :> void;
+//    for (i = 0; i < 100; i++) {
+//      xscope_int(0, i);
+//      xscope_int(1, i/2 /*(i>50) ? -i : i*/ );
+//    }
+//  }
+//}
 
 // TODO irda send can be blocking task for cmd interface., also it can be distributable and it will be use for everybody. using clocked port will be simple
 
