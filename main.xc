@@ -32,7 +32,7 @@ in port  uart_rx_p = XS1_PORT_1H;
 
 out port gpio_fault = XS1_PORT_32A;
 
-in buffered port:32 fast_rx_p  = XS1_PORT_1A;    //LSb to MSB
+in buffered port:8 fast_rx_p  = XS1_PORT_1A;    //LSb to MSB
 out buffered port:8 fast_tx_p  = XS1_PORT_1O;    //LSb to MSB
 
 out buffered port:32 irda_32  = XS1_PORT_1B;    //LSb to MSB

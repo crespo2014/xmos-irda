@@ -447,6 +447,8 @@ void fastRXParser_v3(streaming chanend ch)
         p <: (unsigned char)(d >> 8);
         p <: 0;
         p <: 0;
+        p <: 0;
+        p <: 0;
         break;
     }
   }
@@ -457,15 +459,19 @@ void fastRXParser_v3(streaming chanend ch)
  * validate mask 0xFFFFF001 should return 0.
  * push 0xFFFF if mask is wrong
  */
-void fastRX_v4(streaming chanend ch,in buffered port:32 p,clock clk)
+void fastRX_v4(streaming chanend ch,in buffered port:8 p,clock clk)
 {
-  unsigned dt;
+  unsigned char dt;
   configure_clock_xcore(clk,1);     // dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
   do
   {
     p when pinsneq(0):>void;
+    p :> dt;
+    ch <: dt;
+    p :> dt;
+    ch <: dt;
     p :> dt;
     ch <: dt;
   } while(1);
@@ -477,28 +483,41 @@ void fastRX_v4(streaming chanend ch,in buffered port:32 p,clock clk)
  * rotate again using destination
  *
  */
+#define get_bit(d,n)   (( d >> (n*2)) & (2^n))
+
 void fastRXParser_v4(streaming chanend ch)
 {
   unsigned v;
-  unsigned dt,dt1;
-  unsigned char a,b;
+  unsigned dt;
+  unsigned char dt2;
   do
   {
-    ch :> dt;
+    ch :> dt2;
+    dt = dt2;
+    ch :> dt2;
+    dt |= (dt2 << 8);
+    ch :> dt2;
+    dt |= (dt2 << 16);
+    //printf("%X ",dt);
     // clean and validate.
     while (dt & 1)
      dt >>= 1;
     dt >>=2;
-    if (!((dt ^ (dt >> 1)) & 0x155))
+    //if (!((dt ^ (dt >> 1)) & 0x155))
+    if ((dt & 0xFFFF0000) == 0)
     {
-      dt1 = dt;
+//      v = get_bit(dt,0) | get_bit(dt,1) | get_bit(dt,2) | get_bit(dt,3)
+//          | get_bit(dt,4) | get_bit(dt,5) | get_bit(dt,6) | get_bit(dt,7);
+      unsigned mask=1;
       v = 0;
-      for (unsigned mask=1;!(mask & 0x100);mask<<=1)
+      int i=8;
+      while(i--)
       {
        dt >>= 1;
        v = v | (dt & mask);
+       mask <<=1;
       }
-      printf("%X = %x \n",dt1,v);
+      printf("%x \n",v);
     }
     else
       printf("e\n");
