@@ -220,6 +220,7 @@ void fastTx_test1(client interface fast_tx  ftx)
   timer t;
   unsigned int tp;
   t :> tp;
+  t when timerafter(tp+10*us) :> tp;
   unsigned char i = 1;
   while(1)
   {

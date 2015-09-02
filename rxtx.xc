@@ -442,8 +442,10 @@ void fastRXParser_v3(streaming chanend ch)
     {
       case tx_if.push(unsigned char dt):
         unsigned d = 0x1 | (dt << 2);
+        //printf(">%X\n",d);
         p <: (unsigned char)(d & 0xFF);
         p <: (unsigned char)(d >> 8);
+        p <: 0;
         p <: 0;
         break;
     }
@@ -465,13 +467,7 @@ void fastRX_v4(streaming chanend ch,in buffered port:32 p,clock clk)
   {
     p when pinsneq(0):>void;
     p :> dt;
-    // clean and validate.
-    while (dt & 1)
-      dt >> 1;
-    if ((dt ^ (dt >> 1)) & 0x55)
-      ch <: (unsigned short)0xFFFF;
-    else
-      ch <: (unsigned short)dt;
+    ch <: dt;
   } while(1);
 }
 
@@ -484,16 +480,27 @@ void fastRX_v4(streaming chanend ch,in buffered port:32 p,clock clk)
 void fastRXParser_v4(streaming chanend ch)
 {
   unsigned v;
-  unsigned short dt;
+  unsigned dt,dt1;
+  unsigned char a,b;
   do
   {
     ch :> dt;
-    v = 0;
-    for (unsigned mask=1;!(mask & 0x100);mask<<=1)
+    // clean and validate.
+    while (dt & 1)
+     dt >>= 1;
+    dt >>=2;
+    if (!((dt ^ (dt >> 1)) & 0x155))
     {
-      dt >>= 1;
-      v = v | (dt & mask);
+      dt1 = dt;
+      v = 0;
+      for (unsigned mask=1;!(mask & 0x100);mask<<=1)
+      {
+       dt >>= 1;
+       v = v | (dt & mask);
+      }
+      printf("%X = %x \n",dt1,v);
     }
-    printf("%X = %x \n",dt,v);
+    else
+      printf("e\n");
   } while (1);
 }
