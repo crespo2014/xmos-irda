@@ -107,13 +107,13 @@ void fastRX(streaming chanend ch,in port p)
       t :> tp2;
       d = (tp2-tp1);
       if (d < 12) break;  //
-      for (i=0;i<8;i++)
+      for (i=8;i;i--)
       {
         p when pinseq(1) :> void;  // 3 ticks
         t :> tp1;                  // 2 ticks
         p when pinseq(0) :> void;
         t :> tp2;
-        dt = (tp2-tp1);
+        d = (tp2-tp1);
         if (d > 11) break;
         dt >>=1;
         if (d > 4) dt |= 0x80;
@@ -121,9 +121,9 @@ void fastRX(streaming chanend ch,in port p)
       if (i == 0) ch <: (unsigned char)dt;
       else
         break;
-      printf("%X\n",dt);
     } while(1);
     // error condition
+    ch <: 0xFF;
     //printf("e %X\n",d);
 //    p when pinseq(1) :> void;  // 3 ticks
 //    t :> tp1;                  // 2 ticks
@@ -150,6 +150,8 @@ void fastRXParser(streaming chanend ch)
     while(1)
     {
       ch :> d;
+      printf("%X\n",d);
+      continue;
       if (d < 10) break;  //
       for (i=0;i<8;i++)
       {
@@ -178,7 +180,7 @@ void fastRXParser(streaming chanend ch)
 
 [[distributable]] void fastTX(server interface fast_tx tx_if,clock clk,out buffered port:32 p)
 {
-  configure_clock_xcore(clk,12);     //40ns pulse width dividing clock ticks
+  configure_clock_xcore(clk,15);     //40ns pulse width dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
   while(1)
