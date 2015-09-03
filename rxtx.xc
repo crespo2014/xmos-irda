@@ -180,7 +180,7 @@ void fastRXParser(streaming chanend ch)
 
 [[distributable]] void fastTX(server interface fast_tx tx_if,clock clk,out buffered port:32 p)
 {
-  configure_clock_xcore(clk,10);     //40ns pulse width dividing clock ticks
+  configure_clock_xcore(clk,20);     //40ns pulse width dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
   while(1)
@@ -516,47 +516,45 @@ void fastRXParser_v4(streaming chanend ch)
  */
 void fastRX_v5(streaming chanend ch,in port p,clock clk)
 {
-  timer t;
   int tp1,tp2;
   unsigned dt,d;
   int i;
-  configure_clock_xcore(clk,5);     // dividing clock ticks
+  configure_clock_xcore(clk,10);     // dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
-  do
+  p when pinseq(0) :> void;  // 3 ticks
+  for(;;)
   {
-    do
+    for(;;)
     {
       p when pinseq(1) :> void @ tp1;  // 3 ticks
       p when pinseq(0) :> void @ tp2;   // 4
       d = (tp2 - tp1);
-      ch <: (unsigned char)d;  // 2
-      continue;                         // 1
-      d = (tp2-tp1);
-      if (d < 12) break;  //
-      for (i=8;i;i--)
+      ch <: (unsigned char)d;
+      continue;
+      if (d > 5)
       {
-        p when pinseq(1) :> void;  // 3 ticks
-        t :> tp1;                  // 2 ticks
-        p when pinseq(0) :> void;
-        t :> tp2;
-        d = (tp2-tp1);
-        if (d > 11) break;
-        dt >>=1;
-        if (d > 4) dt |= 0x80;
-      }
-      if (i == 0) ch <: (unsigned char)dt;
-      else
-        break;
-    } while(1);
+        i = 8;
+        do
+        {
+          p when pinseq(1) :> void @ tp1;  // 3 ticks
+          p when pinseq(0) :> void @ tp2;   // 4
+          d = (tp2 - tp1);
+          if (d > 5) break;
+          dt = (dt << 1) | (d >> 2);
+          i--;
+        } while (i);
+        if (i == 0)
+        {
+          ch <: (unsigned char)dt;
+          continue;
+        }
+        else
+          break;
+      } // if
+    }
     // error condition
-    ch <: 0xFF;
-    //printf("e %X\n",d);
-//    p when pinseq(1) :> void;  // 3 ticks
-//    t :> tp1;                  // 2 ticks
-//    p when pinseq(0) :> void;
-//    t :> tp2;
-//    ch <:(unsigned char)(tp2-tp1);
-  } while(1);
+    ch <: (unsigned char)0xFF;
+  }
 }
 
