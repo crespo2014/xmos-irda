@@ -531,7 +531,7 @@ int main()
   streaming chan fast_rx_c;
   par
   {
-    fastTX(ftx,clk,irda_32);
+    fastTX_v5(ftx,clk,fast_tx_p);
     fastRX_v5(fast_rx_c,p_1K,clk_2);
     print_h(fast_rx_c);
     fastTx_test1(ftx);

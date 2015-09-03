@@ -516,6 +516,7 @@ void fastRXParser_v4(streaming chanend ch)
  */
 void fastRX_v5(streaming chanend ch,in port p,clock clk)
 {
+  unsigned lost_bits;
   int tp1,tp2;
   unsigned dt,d;
   int i;
@@ -525,36 +526,72 @@ void fastRX_v5(streaming chanend ch,in port p,clock clk)
   p when pinseq(0) :> void;  // 3 ticks
   for(;;)
   {
+    lost_bits = 0;
     for(;;)
     {
-      p when pinseq(1) :> void @ tp1;  // 3 ticks
-      p when pinseq(0) :> void @ tp2;   // 4
-      d = (tp2 - tp1);
-      ch <: (unsigned char)d;
-      continue;
-      if (d > 5)
+      do
       {
-        i = 8;
-        do
+        p when pinseq(1) :> void @ tp1;  // 3 ticks
+        p when pinseq(0) :> void @ tp2;  // 4
+        d = (tp2 - tp1);
+        if (d < 5)
+          ch <: (unsigned char)0xFF;
+      } while ( d < 5);   // wait start pulse
+      i = 8;
+      for(;;)
+      {
+        p when pinseq(1) :> void @ tp1;  // 3 ticks
+        p when pinseq(0) :> void @ tp2;   // 4
+        d = (tp2 - tp1);
+        if (d > 5)
         {
-          p when pinseq(1) :> void @ tp1;  // 3 ticks
-          p when pinseq(0) :> void @ tp2;   // 4
-          d = (tp2 - tp1);
-          if (d > 5) break;
-          dt = (dt << 1) | (d >> 2);
-          i--;
-        } while (i);
+          ch <: (unsigned char)0xFF;
+          break;
+        }
+        dt = (dt << 1) | (d >> 2);
+        i--;
         if (i == 0)
         {
           ch <: (unsigned char)dt;
-          continue;
-        }
-        else
           break;
-      } // if
+        }
+      }
     }
-    // error condition
-    ch <: (unsigned char)0xFF;
+  }
+}
+
+/*
+ * A pulse can be as short as 80ns or even less
+ * But zeros need to be long enough.
+ * using 80ns(1/20) clock , the 6 zeros are 480ns
+ * 1 bytes is send using 9 bytes * 9*8*80 = 5760ns
+ *
+ */
+
+[[distributable]] void fastTX_v5(server interface fast_tx tx_if,clock clk,out buffered port:8 p)
+{
+  configure_clock_xcore(clk,20);     //40ns pulse width dividing clock ticks
+  configure_in_port(p, clk);
+  start_clock(clk);
+  int i;
+  while(1)
+  {
+    select
+    {
+      case tx_if.push(unsigned char dt):
+        i = 8;
+        p <: (unsigned char)0x7;
+        do
+        {
+          if (dt & 1)
+            p <: (unsigned char)0x03;
+          else
+            p <: (unsigned char)0x01;
+          dt >>=1;
+          i--;
+        } while(i);
+        break;
+    }
   }
 }
 
