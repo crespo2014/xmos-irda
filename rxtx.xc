@@ -521,28 +521,23 @@ void fastRX_v5(streaming chanend ch,in port p,clock clk)
   configure_clock_xcore(clk,10);     // dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
+  i = 0;
   for(;;)
   {
-    do
+    p when pinseq(1) :> void @ tp1;  // 3 ticks
+    p when pinseq(0) :> void @ tp2;  // 4
+    d = (tp2 - tp1);
+    if (d > 5)
     {
-      p when pinseq(1) :> void @ tp1;  // 3 ticks
-      p when pinseq(0) :> void @ tp2;  // 4
-      d = (tp2 - tp1);
-    } while (d < 5);   // wait start pulse
-    i = 8;
-    for(;;)
+      i = 0;
+      continue;
+    }
+    i++;
+    dt = (dt << 1) | (d >> 2);
+    if (i == 8)
     {
-      p when pinseq(1) :> void @ tp1;  // 3 ticks
-      p when pinseq(0) :> void @ tp2;   // 4
-      d = (tp2 - tp1);
-      if (d > 5) break;
-      dt = (dt << 1) | (d >> 2);
-      i--;
-      if (i == 0)
-      {
-        ch <: (unsigned char)dt;
-        break;
-      }
+      ch <: (unsigned char)dt;
+      i = 0;
     }
   }
 }
