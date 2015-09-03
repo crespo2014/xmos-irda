@@ -527,6 +527,7 @@ void fastRX_v5(streaming chanend ch,in port p,clock clk)
     p when pinseq(1) :> void @ tp1;  // 3 ticks
     p when pinseq(0) :> void @ tp2;  // 4
     d = (tp2 - tp1);
+    ch <: (unsigned char)d;
     if (d > 5)
     {
       i = 0;
@@ -536,7 +537,7 @@ void fastRX_v5(streaming chanend ch,in port p,clock clk)
     dt = (dt << 1) | (d >> 2);
     if (i == 8)
     {
-      ch <: (unsigned char)dt;
+      //ch <: (unsigned char)dt;
       i = 0;
     }
   }
@@ -565,11 +566,11 @@ void fastRX_v5(streaming chanend ch,in port p,clock clk)
         p <: (unsigned char)0x7;
         do
         {
-          if (dt & 1)
+          if (dt & 0x80)
             p <: (unsigned char)0x03;
           else
             p <: (unsigned char)0x01;
-          dt >>=1;
+          dt <<=1;
           i--;
         } while(i!=0);
         break;
