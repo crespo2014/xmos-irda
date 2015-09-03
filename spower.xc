@@ -18,10 +18,10 @@
 
 void switch_power_supply(server interface switch_power_if iface)
 {
-  timer t;
-  unsigned int tp;
-  while(1)
-  {
-
-  }
+////  timer t;
+////  unsigned int tp;
+//  while(1)
+//  {
+//
+//  }
 }

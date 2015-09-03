@@ -452,7 +452,6 @@ void fastRX_v4(streaming chanend ch,in buffered port:8 p,clock clk)
  * rotate again using destination
  *
  */
-#define get_bit(d,n)   (( d >> (n*2)) & (2^n))
 
 void fastRXParser_v4(streaming chanend ch)
 {
@@ -516,45 +515,33 @@ void fastRXParser_v4(streaming chanend ch)
  */
 void fastRX_v5(streaming chanend ch,in port p,clock clk)
 {
-  unsigned lost_bits;
   int tp1,tp2;
   unsigned dt,d;
   int i;
   configure_clock_xcore(clk,10);     // dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
-  p when pinseq(0) :> void;  // 3 ticks
   for(;;)
   {
-    lost_bits = 0;
+    do
+    {
+      p when pinseq(1) :> void @ tp1;  // 3 ticks
+      p when pinseq(0) :> void @ tp2;  // 4
+      d = (tp2 - tp1);
+    } while (d < 5);   // wait start pulse
+    i = 8;
     for(;;)
     {
-      do
+      p when pinseq(1) :> void @ tp1;  // 3 ticks
+      p when pinseq(0) :> void @ tp2;   // 4
+      d = (tp2 - tp1);
+      if (d > 5) break;
+      dt = (dt << 1) | (d >> 2);
+      i--;
+      if (i == 0)
       {
-        p when pinseq(1) :> void @ tp1;  // 3 ticks
-        p when pinseq(0) :> void @ tp2;  // 4
-        d = (tp2 - tp1);
-        if (d < 5)
-          ch <: (unsigned char)0xFF;
-      } while ( d < 5);   // wait start pulse
-      i = 8;
-      for(;;)
-      {
-        p when pinseq(1) :> void @ tp1;  // 3 ticks
-        p when pinseq(0) :> void @ tp2;   // 4
-        d = (tp2 - tp1);
-        if (d > 5)
-        {
-          ch <: (unsigned char)0xFF;
-          break;
-        }
-        dt = (dt << 1) | (d >> 2);
-        i--;
-        if (i == 0)
-        {
-          ch <: (unsigned char)dt;
-          break;
-        }
+        ch <: (unsigned char)dt;
+        break;
       }
     }
   }
@@ -589,7 +576,7 @@ void fastRX_v5(streaming chanend ch,in port p,clock clk)
             p <: (unsigned char)0x01;
           dt >>=1;
           i--;
-        } while(i);
+        } while(i!=0);
         break;
     }
   }

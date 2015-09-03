@@ -424,7 +424,7 @@ int main()
 // test the fastest communication
 void send_fast_loop(out buffered port:8 p16,clock clk)
 {
-  configure_clock_xcore(clk,2);     // dividing clock ticks
+  configure_clock_ref(clk,2);     // dividing clock ticks
   configure_in_port(p16, clk);
   //configure_port_clock_output(clk_out, clk);
   start_clock(clk);
@@ -493,36 +493,36 @@ int main()
 }
 */
 
-void test_serial_v4(client interface fifo uart_tx_fifo,
-    client interface serial_rx_if uart_rx,
-    client interface uart_v4 uart_tx,
-    streaming chanend uart_rx_ch
-    )
-{
+//void test_serial_v4(client interface fifo uart_tx_fifo,
+//    client interface serial_rx_if uart_rx,
+//    client interface uart_v4 uart_tx,
+//    streaming chanend uart_rx_ch
+//    )
+//{
+//
+//}
 
-}
-
-int main_5()
-{
-  streaming chan uart_rx_ch;
-  interface serial_rx_if uart_rx;
-  interface uart_v4 uart_tx;
-  interface fifo uart_tx_fifo[1];
-  interface tx tx_uart;
-  par
-  {
-    test_serial_v4(uart_tx_fifo[0],uart_rx,uart_tx,uart_rx_ch);
-    fifo_v1(tx_uart,uart_tx_fifo,1);
-    //serial_test(tx,rx_c,rx);
-    [[combine]]
-     par
-     {
-      serial_tx_v4(uart_tx,tx_uart,uart_tx_p);
-      serial_rx_v4(uart_rx,uart_rx_ch,uart_rx_p);
-     }
-  }
-  return 0;
-}
+//int main_5()
+//{
+//  streaming chan uart_rx_ch;
+//  interface serial_rx_if uart_rx;
+//  interface uart_v4 uart_tx;
+//  interface fifo uart_tx_fifo[1];
+//  interface tx tx_uart;
+//  par
+//  {
+//    test_serial_v4(uart_tx_fifo[0],uart_rx,uart_tx,uart_rx_ch);
+//    fifo_v1(tx_uart,uart_tx_fifo,1);
+//    //serial_test(tx,rx_c,rx);
+//    [[combine]]
+//     par
+//     {
+//      serial_tx_v4(uart_tx,tx_uart,uart_tx_p);
+//      serial_rx_v4(uart_rx,uart_rx_ch,uart_rx_p);
+//     }
+//  }
+//  return 0;
+//}
 
 // Test fast rx/tx v5
 int main()
