@@ -82,10 +82,10 @@ void flasher_control(client interface flasher_if i)
 }
 }
 
-void xscope_user_init(void) {
-    xscope_register(0);
-    xscope_config_io(XSCOPE_IO_BASIC);
-}
+//void xscope_user_init(void) {
+//    xscope_register(0);
+//    xscope_config_io(XSCOPE_IO_BASIC);
+//}
 
 #define HIGH 0
 #define LOW  1

@@ -88,111 +88,84 @@ void port_sharer(server interface out_port_if i[n], unsigned n,out port p)
 }
 /*
  * Fast comunication system
- * RX is combinable
+ * RX is not combinable
  */
 
 void fastRX(streaming chanend ch,in port p)
 {
   timer t;
-  while(1)
+  unsigned int tp1,tp2;
+  unsigned dt,d;
+  int i;
+  do
   {
-    unsigned int tp1,tp2;
-    p when pinseq(1) :> void;  // 3 ticks
-    t :> tp1;                  // 2 ticks
-    p when pinseq(0) :> void;
-    t :> tp2;
-    ch <:(unsigned char)(tp2-tp1);
-  }
+    do
+    {
+      p when pinseq(1) :> void;  // 3 ticks
+      t :> tp1;                  // 2 ticks
+      p when pinseq(0) :> void;
+      t :> tp2;
+      d = (tp2-tp1);
+      if (d < 12) break;  //
+      for (i=8;i;i--)
+      {
+        p when pinseq(1) :> void;  // 3 ticks
+        t :> tp1;                  // 2 ticks
+        p when pinseq(0) :> void;
+        t :> tp2;
+        d = (tp2-tp1);
+        if (d > 11) break;
+        dt >>=1;
+        if (d > 4) dt |= 0x80;
+      }
+      if (i == 0) ch <: (unsigned char)dt;
+      else
+        break;
+    } while(1);
+    // error condition
+    ch <: 0xFF;
+    //printf("e %X\n",d);
+//    p when pinseq(1) :> void;  // 3 ticks
+//    t :> tp1;                  // 2 ticks
+//    p when pinseq(0) :> void;
+//    t :> tp2;
+//    ch <:(unsigned char)(tp2-tp1);
+  } while(1);
 }
 
 /*
- * Read until 5 ones.
- * then keep going
- * this function works fine with a 20ns pulse width. but it is hard to decode a pulse length data
+ * pulse width decoder
+ * 3T start bit
+ * 2T one
+ * 1T zero
+ * no time to process
  */
-void fastRX_v2(streaming chanend ch,in port p)
-{
-  unsigned char v;
-  unsigned dt;
-  while(1)
-  {
-    unsigned int tp1,tp2;
-    dt = 0;
-    v =0;
-    p when pinseq(1) :> void;  // 3 ticks
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;
-    p :> >>dt;     // 1 tick
-    //ch <:(unsigned char)(dt);  // 1 tick
-    printf("%X\n",dt);
-  }
-}
-
 void fastRXParser(streaming chanend ch)
 {
-  unsigned d;
+  unsigned char d;
   unsigned dt;
-  unsigned char buff[30];
-  unsigned pos;
   unsigned i;
-  dt = 0;
-  i = 0;
-  pos = 0;
   while(1)
   {
-    ch :> d;
-    if (d > 8)
+    while(1)
     {
-      if (i == 8)
+      ch :> d;
+      printf("%X\n",d);
+      continue;
+      if (d < 10) break;  //
+      for (i=0;i<8;i++)
       {
-        buff[pos++] =dt;
-        if (pos == 30)
-        {
-          do
-          {
-            printf("x%X ",buff[--pos]);
-          }while(pos);
-          printf("\n");
-        }
+        ch :> d;
+        //printf("%X\n",d);
+        if (d > 10) break;
+        dt >>=1;
+        if (d > 4) dt |= 0x80;
       }
-      i = 0;
-      dt = 0;
+      if (d>10) break;
+      printf("%X\n",dt);
     }
-    else
-    {
-      dt <<=1;
-      if (d > 6) dt |= 1;
-      i++;
-    }
+    // error condition
+    printf("e %X\n",d);
   }
 }
 
@@ -207,7 +180,7 @@ void fastRXParser(streaming chanend ch)
 
 [[distributable]] void fastTX(server interface fast_tx tx_if,clock clk,out buffered port:32 p)
 {
-  configure_clock_xcore(clk,2);     // dividing clock ticks
+  configure_clock_xcore(clk,15);     //40ns pulse width dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
   while(1)
@@ -216,22 +189,19 @@ void fastRXParser(streaming chanend ch)
     {
       case tx_if.push(unsigned char dt):
         unsigned int d = 0;
-//        for (int i=0;i<8;++i,dt>>=1)
-//        {
-//          if (dt & 1)
-//          {
-//            d<<= 3;
-//            d|=6;
-//          }
-//          else
-//          {
-//            d<<= 2;
-//            d|=2;
-//          }
-//        }
-//        d <<= 4;
-//        d |= 14;
-        d = dt;
+        for (unsigned i=0x80;i;i>>=1)
+        {
+          if (dt & i)
+          {
+            d<<= 3;
+            d|=6;
+          }
+          else
+          {
+            d<<= 2;
+            d|=2;
+          }
+        }
         d <<= 4;
         d |= 0x7;
         p <: d;
