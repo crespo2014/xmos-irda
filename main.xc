@@ -229,7 +229,7 @@ void fastTx_test1(client interface fast_tx  ftx)
   }
 }
 
-int main()
+int main_7()
 {
   interface fast_tx  ftx;
   streaming chan fast_rx_c;
@@ -242,6 +242,8 @@ int main()
   }
   return 0;
 }
+
+
 
 int main_6()
 {
@@ -518,6 +520,21 @@ int main_5()
       serial_tx_v4(uart_tx,tx_uart,uart_tx_p);
       serial_rx_v4(uart_rx,uart_rx_ch,uart_rx_p);
      }
+  }
+  return 0;
+}
+
+// Test fast rx/tx v5
+int main()
+{
+  interface fast_tx  ftx;
+  streaming chan fast_rx_c;
+  par
+  {
+    fastTX(ftx,clk,irda_32);
+    fastRX_v5(fast_rx_c,p_1K,clk_2);
+    print_h(fast_rx_c);
+    fastTx_test1(ftx);
   }
   return 0;
 }

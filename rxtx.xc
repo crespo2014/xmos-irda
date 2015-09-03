@@ -180,7 +180,7 @@ void fastRXParser(streaming chanend ch)
 
 [[distributable]] void fastTX(server interface fast_tx tx_if,clock clk,out buffered port:32 p)
 {
-  configure_clock_xcore(clk,15);     //40ns pulse width dividing clock ticks
+  configure_clock_xcore(clk,10);     //40ns pulse width dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
   while(1)
@@ -208,7 +208,6 @@ void fastRXParser(streaming chanend ch)
         break;
     }
   }
-
 }
 /*
  * This task is holding buffer, then it is distributable
@@ -503,4 +502,61 @@ void fastRXParser_v4(streaming chanend ch)
  * delta will be 1,2, 3
  * Shift delta right by 1 bring the bit to push into data.
  * delta & 3 = 3 is start.
+ *
+ * 3x waiting for 1
+ * 3x waiting for 0
+ * 2x compare again 3 and jump
+ * 2x shift and add
+ *
+ * 3x compare,dec,jump loop
+ *
+ * 1x send to channel
+ *
+ * 32ns pulse with 2 zeros, give 30 +2x30 = 90 ns
  */
+void fastRX_v5(streaming chanend ch,in port p,clock clk)
+{
+  timer t;
+  int tp1,tp2;
+  unsigned dt,d;
+  int i;
+  configure_clock_xcore(clk,5);     // dividing clock ticks
+  configure_in_port(p, clk);
+  start_clock(clk);
+  do
+  {
+    do
+    {
+      p when pinseq(1) :> void @ tp1;  // 3 ticks
+      p when pinseq(0) :> void @ tp2;   // 4
+      d = (tp2 - tp1);
+      ch <: (unsigned char)d;  // 2
+      continue;                         // 1
+      d = (tp2-tp1);
+      if (d < 12) break;  //
+      for (i=8;i;i--)
+      {
+        p when pinseq(1) :> void;  // 3 ticks
+        t :> tp1;                  // 2 ticks
+        p when pinseq(0) :> void;
+        t :> tp2;
+        d = (tp2-tp1);
+        if (d > 11) break;
+        dt >>=1;
+        if (d > 4) dt |= 0x80;
+      }
+      if (i == 0) ch <: (unsigned char)dt;
+      else
+        break;
+    } while(1);
+    // error condition
+    ch <: 0xFF;
+    //printf("e %X\n",d);
+//    p when pinseq(1) :> void;  // 3 ticks
+//    t :> tp1;                  // 2 ticks
+//    p when pinseq(0) :> void;
+//    t :> tp2;
+//    ch <:(unsigned char)(tp2-tp1);
+  } while(1);
+}
+
