@@ -498,7 +498,8 @@ void fastRXParser_v4(streaming chanend ch)
     dt |= (dt2 << 8);
     ch :> dt2;
     dt |= (dt2 << 16);
-    //printf("%X ",dt);
+//    printf("%X\n",dt);
+//    continue;
     // clean and validate.
     while (dt & 1)
      dt >>= 1;
@@ -523,3 +524,13 @@ void fastRXParser_v4(streaming chanend ch)
       printf("e\n");
   } while (1);
 }
+
+/*
+ * v5
+ * In order to reduce the time to recived the data.
+ * A time port of one bit is use.
+ * When pin change the port counter is read
+ * delta will be 1,2, 3
+ * Shift delta right by 1 bring the bit to push into data.
+ * delta & 3 = 3 is start.
+ */
