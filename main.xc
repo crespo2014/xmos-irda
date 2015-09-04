@@ -397,6 +397,21 @@ void portUpdate(out port p)
 }
 
 /*
+ * Signal when a data is received in a channel
+ */
+void channel_signal(streaming chanend ch,out port p)
+{
+  unsigned char d;
+  while(1)
+  {
+    p <: 0;
+    ch :> d;
+    p <: 1;
+    printf("%d\n",d);
+  }
+}
+
+/*
  * Test done
  * 620ns to propagate from one port to another with only one task
  * two task give it 1us, but second task lost transitions
@@ -532,8 +547,9 @@ int main()
   par
   {
     fastTX_v5(ftx,clk,fast_tx_p);
-    fastRX_v5(fast_rx_c,p_1K,clk_2);
-    print_h(fast_rx_c);
+    //fastRX_v6(fast_rx_c,p_1K,clk_2);
+    fastRX_v7(fast_rx_c,fast_rx_p,clk_2,po_1I);
+    channel_signal(fast_rx_c,p_1D);
     fastTx_test1(ftx);
   }
   return 0;

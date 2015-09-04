@@ -553,7 +553,7 @@ void fastRX_v5(streaming chanend ch,in port p,clock clk)
 
 [[distributable]] void fastTX_v5(server interface fast_tx tx_if,clock clk,out buffered port:8 p)
 {
-  configure_clock_xcore(clk,22);     //40ns pulse width dividing clock ticks
+  configure_clock_xcore(clk,8);     //40ns pulse width dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
   int i;
@@ -564,6 +564,7 @@ void fastRX_v5(streaming chanend ch,in port p,clock clk)
       case tx_if.push(unsigned char dt):
         i = 8;
         p <: (unsigned char)0x7;
+        p <: (unsigned char)0x0;
         do
         {
           if (dt & 0x80)
@@ -572,6 +573,7 @@ void fastRX_v5(streaming chanend ch,in port p,clock clk)
             p <: (unsigned char)0x01;
           dt <<=1;
           i--;
+          p <: (unsigned char)0x0;
         } while(i!=0);
         break;
     }
@@ -585,4 +587,77 @@ void fastRX_v5(streaming chanend ch,in port p,clock clk)
  * read at next, if zero the it is a 2T
  * else 3T
  */
+void fastRX_v6(streaming chanend ch,in port p,clock clk)
+{
+  unsigned d;
+  unsigned dt,i;
+  configure_clock_xcore(clk,8);     // dividing clock ticks
+  configure_in_port(p, clk);
+  start_clock(clk);
+  i = 0;
+  for(;;)
+  {
+    //p when pinseq(0) :> void;  // 4
+    p when pinseq(1) :> void;  // 3 ticks
+    // get 3 samples, if last is 1 then start bit.
+    p :>  >> d;               // 4
+    p :>  >> d;
+    ch <: (unsigned char)( d >> 30);
+    continue;
+    if (d & (1 << 31))  // size *8 - 1
+    {
+      // if i != 0 error
+      i = 0;
+      continue;
+    }
+    i++;
+    dt <<= 1;
+    if (d & (1 << 30))
+    {
+      dt = dt | 1;
+    }
+    if (i == 8)
+    {
+      ch <: (unsigned char)dt;
+    }
+  }
+}
+
+/*
+ * v7
+ * wait for 1 read as 8bit buffered port at 2 times freq.
+ * if > 2 - if > 5 (reset) or 1
+ */
+void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
+{
+  unsigned char d;
+  unsigned dt,i;
+  configure_clock_xcore(clk,4);     // dividing clock ticks
+  configure_in_port(p, clk);
+  start_clock(clk);
+  i = 0;
+  while(1)
+  {
+    d1 <: 0;
+    p when pinseq(0) :> void;
+    p when pinseq(1) :> void;  // 3 ticks
+    d1 <: 1;
+    p :> d;  // get next 8 bits
+    if ( d > 0x8)
+    {
+      if (i != 0 )  ch <: (unsigned char)0xFF;
+      i = 0;    // if i !=0 then error
+      continue;
+    }
+    dt = dt << 1; // rotate current data always. it makes space for next bit
+    if ( d  > 0x4)
+        dt = dt | 1;
+    i++;
+    if (i == 8)
+    {
+      ch <: (unsigned char)dt;
+      i = 0;
+    }
+  }
+}
 
