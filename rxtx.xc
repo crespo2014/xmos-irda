@@ -573,7 +573,7 @@ void fastRX_v5(streaming chanend ch,in port p,clock clk)
             p <: (unsigned char)0x01;
           dt <<=1;
           i--;
-          p <: (unsigned char)0x0;
+          p <: (unsigned char)0x0;  //8*4ns * 8 = 256ns
         } while(i!=0);
         break;
     }
@@ -632,7 +632,7 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
 {
   unsigned char d;
   unsigned dt,i;
-  configure_clock_xcore(clk,4);     // dividing clock ticks
+  configure_clock_xcore(clk,3);     // dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
   i = 0;
@@ -640,12 +640,13 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
   {
     d1 <: 0;
     p when pinseq(0) :> void;
-    p when pinseq(1) :> void;  // 3 ticks
+    p when pinseq(1) :> void;
     d1 <: 1;
     p :> d;  // get next 8 bits
     if ( d > 0x8)
     {
-      if (i != 0 )  ch <: (unsigned char)0xFF;
+      if (i != 0 )
+        ch <: (unsigned char)0xFF;
       i = 0;    // if i !=0 then error
       continue;
     }
@@ -657,6 +658,48 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
     {
       ch <: (unsigned char)dt;
       i = 0;
+    }
+  }
+}
+
+/*
+ * RX needs between 160 - 230 ns to parse each bit
+ * it react in 46ns, 2*f need to be more than 46ns to catch 2T pulse
+ * 24ns pulse produce a 192ns length byte
+ * A second byte with zero is need to readch 230ns needed by rx task
+ *
+ * timing
+ * 0 -
+ * 46ns(up)
+ * + 96ns read 8 bits
+ * +
+ *
+ */
+[[distributable]] void fastTX_v7(server interface fast_tx tx_if,clock clk,out buffered port:8 p)
+{
+  configure_clock_xcore(clk,6);     // 24ns
+  configure_in_port(p, clk);
+  start_clock(clk);
+  int i;
+  while(1)
+  {
+    select
+    {
+      case tx_if.push(unsigned char dt):
+        i = 8;
+        p <: (unsigned char)0x7;
+        p <: (unsigned char)0x0;    // could be remove if error check is removed
+        do
+        {
+          if (dt & 0x80)
+            p <: (unsigned char)0x03;
+          else
+            p <: (unsigned char)0x01;
+          dt <<=1;
+          i--;
+          p <: (unsigned char)0x0;  //24 * 8 = 192ns
+        } while(i!=0);
+        break;
     }
   }
 }

@@ -238,6 +238,7 @@ extern void fastRX_v4(streaming chanend ch,in buffered port:8 p,clock clk);
 extern void fastRX_v5(streaming chanend ch,in port p,clock clk);
 extern void fastRX_v6(streaming chanend ch,in port p,clock clk);
 extern void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1);
+[[distributable]] extern void fastTX_v7(server interface fast_tx tx_if,clock clk,out buffered port:8 p);
 #endif /* RXTX_H_ */
 
 

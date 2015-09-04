@@ -407,7 +407,7 @@ void channel_signal(streaming chanend ch,out port p)
     p <: 0;
     ch :> d;
     p <: 1;
-    printf("%d\n",d);
+    //printf("%d\n",d);   // try with hardware, because it is taking so long
   }
 }
 
@@ -546,7 +546,7 @@ int main()
   streaming chan fast_rx_c;
   par
   {
-    fastTX_v5(ftx,clk,fast_tx_p);
+    fastTX_v7(ftx,clk,fast_tx_p);
     //fastRX_v6(fast_rx_c,p_1K,clk_2);
     fastRX_v7(fast_rx_c,fast_rx_p,clk_2,po_1I);
     channel_signal(fast_rx_c,p_1D);
