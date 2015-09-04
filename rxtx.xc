@@ -626,7 +626,13 @@ void fastRX_v6(streaming chanend ch,in port p,clock clk)
 /*
  * v7
  * wait for 1 read as 8bit buffered port at 2 times freq.
- * if > 2 - if > 5 (reset) or 1
+ *
+ * timing for a 2ns reader clock
+ * 142 ns from signal high after 8 bits are read.
+ *  50 ns to process start bit
+ *  90 ns to parser normal bits
+ * 120 ns last bit
+ *
  */
 void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
 {
@@ -638,11 +644,11 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
   i = 0;
   while(1)
   {
-    d1 <: 0;
-    p when pinseq(0) :> void;
-    p when pinseq(1) :> void;
     d1 <: 1;
-    p :> d;  // get next 8 bits
+    d1 <: 0;
+    //p when pinseq(0) :> void;
+    p when pinseq(1) :> void;
+    p :> d;  // get next 8 bits  //142ns between signal and done reading for 12ns reader clock
     if ( d > 0x8)
     {
       if (i != 0 )
@@ -674,6 +680,8 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
  * + 96ns read 8 bits
  * +
  *
+ * 1byte = 9 * 192 = 1728ns = 0.5Mbytes sec = 4Mbits/s
+ *
  */
 [[distributable]] void fastTX_v7(server interface fast_tx tx_if,clock clk,out buffered port:8 p)
 {
@@ -688,7 +696,7 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
       case tx_if.push(unsigned char dt):
         i = 8;
         p <: (unsigned char)0x7;
-        p <: (unsigned char)0x0;    // could be remove if error check is removed
+        //p <: (unsigned char)0x0;    // could be remove if error check is removed
         do
         {
           if (dt & 0x80)

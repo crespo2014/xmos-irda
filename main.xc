@@ -407,7 +407,7 @@ void channel_signal(streaming chanend ch,out port p)
     p <: 0;
     ch :> d;
     p <: 1;
-    //printf("%d\n",d);   // try with hardware, because it is taking so long
+    printf("%d\n",d);   // try with hardware, because it is taking so long
   }
 }
 
