@@ -518,7 +518,7 @@ void fastRX_v5(streaming chanend ch,in port p,clock clk)
   int tp1,tp2;
   unsigned dt,d;
   int i;
-  configure_clock_xcore(clk,10);     // dividing clock ticks
+  configure_clock_xcore(clk,11);     // dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
   i = 0;
@@ -553,7 +553,7 @@ void fastRX_v5(streaming chanend ch,in port p,clock clk)
 
 [[distributable]] void fastTX_v5(server interface fast_tx tx_if,clock clk,out buffered port:8 p)
 {
-  configure_clock_xcore(clk,20);     //40ns pulse width dividing clock ticks
+  configure_clock_xcore(clk,22);     //40ns pulse width dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
   int i;
@@ -577,4 +577,12 @@ void fastRX_v5(streaming chanend ch,in port p,clock clk)
     }
   }
 }
+
+/*
+ * v6
+ * wait for 1
+ * read at next, if zero then it is 1T
+ * read at next, if zero the it is a 2T
+ * else 3T
+ */
 
