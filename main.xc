@@ -402,12 +402,14 @@ void portUpdate(out port p)
 void channel_signal(streaming chanend ch,out port p)
 {
   unsigned char d;
+  unsigned char w = 0;
   while(1)
   {
     p <: 0;
     ch :> d;
     p <: 1;
-    printf("%d\n",d);   // try with hardware, because it is taking so long
+    if ((d == 0xFF) && (d != w)) printf("e %d\n",w);   // try with hardware, because it is taking so long
+    w++;
   }
 }
 
@@ -436,27 +438,6 @@ int main()
 }
 */
 
-// test the fastest communication
-void send_fast_loop(out buffered port:8 p16,clock clk)
-{
-  configure_clock_ref(clk,2);     // dividing clock ticks
-  configure_in_port(p16, clk);
-  //configure_port_clock_output(clk_out, clk);
-  start_clock(clk);
-  timer t;
-  unsigned int tp;
-  while(1)
-  {
-    select
-    {
-      case t when timerafter(tp) :> void:
-        p16 <:  (unsigned char)0x55;
-        p16 <:  (unsigned char)0x00;
-        tp += (10*us);
-        break;
-    }
-  }
-}
 
 void print_h(streaming chanend c) {
     unsigned char t1;
@@ -466,35 +447,7 @@ void print_h(streaming chanend c) {
     }
 }
 
-void recv_fast_loop(in port p,streaming chanend c)
-{
-  unsigned int dt;
-  unsigned char d[8];
-  while(1)
-  {
-    select
-    {
-      case p when pinseq(1) :> void:
-        p :> d[0];
-        p :> d[1];
-        p :> d[2];
-        p :> d[3];
-        p :> d[4];
-        p :> d[5];
-        p :> d[6];
-        p :> d[7];
-        unsigned idx =8;
-        dt = 0;
-        do
-        {
-          --idx;
-          dt = dt*2 + d[idx];
-        } while (idx !=0);
-        c <: (unsigned char)dt;
-        break;
-    }
-  }
-}
+
 /*
 int main()
 {

@@ -638,18 +638,18 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
 {
   unsigned char d;
   unsigned dt,i;
-  configure_clock_xcore(clk,3);     // dividing clock ticks
+  configure_clock_xcore(clk,2);     // dividing clock ticks
   configure_in_port(p, clk);
   start_clock(clk);
   i = 0;
   while(1)
   {
-    d1 <: 1;
-    d1 <: 0;
+//    d1 <: 1;
+//    d1 <: 0;
     //p when pinseq(0) :> void;
     p when pinseq(1) :> void;
-    p :> d;  // get next 8 bits  //142ns between signal and done reading for 12ns reader clock
-    if ( d > 0x8)
+    p :> d;  // get next 8 bits  //
+    if ( d > 64)
     {
       if (i != 0 )
         ch <: (unsigned char)0xFF;
@@ -657,7 +657,7 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
       continue;
     }
     dt = dt << 1; // rotate current data always. it makes space for next bit
-    if ( d  > 0x4)
+    if ( d  > 8)
         dt = dt | 1;
     i++;
     if (i == 8)
@@ -682,6 +682,10 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
  *
  * 1byte = 9 * 192 = 1728ns = 0.5Mbytes sec = 4Mbits/s
  *
+ * Upper limit is
+ * 192ns per bit, 1728ns per byte, 578703.7bytes/sec 556.1403Kb/sec 5Mbyte/sec
+ *
+ * 1920ns per byte 520833bytes/sec
  */
 [[distributable]] void fastTX_v7(server interface fast_tx tx_if,clock clk,out buffered port:8 p)
 {
@@ -705,8 +709,9 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
             p <: (unsigned char)0x01;
           dt <<=1;
           i--;
-          p <: (unsigned char)0x0;  //24 * 8 = 192ns
+          //p <: (unsigned char)0x0;  //24 * 8 = 192ns
         } while(i!=0);
+        p <: (unsigned char)0x0;  //24 * 8 = 192ns
         break;
     }
   }
