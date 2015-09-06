@@ -118,7 +118,8 @@ void get_i2c_resp(struct i2c_frm &data,struct tx_frame_t ret)
 {
   if (data.ack == 0)
   {
-    char* r = strcpy(ret.dt,"I2C NOK\n");
+    char * r = ret.dt;
+    strcpy(r,"I2C NOK\n");
     ret.len = r - ret.dt;
   }
 }

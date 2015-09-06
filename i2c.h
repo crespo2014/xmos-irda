@@ -44,7 +44,7 @@ enum i2c_st_v2
   rdack,    //what is next
   rdack_done,
   stop,
-  none,
+  i2c_none,
 };
 
 /*

@@ -394,7 +394,7 @@ inline static void i2c_step_v2(struct i2c_chn_v2* pthis,unsigned char v,unsigned
   case stop:
     break;
   default:
-    pthis->st = none;
+    pthis->st = i2c_none;
     break;
   }
 }
@@ -428,7 +428,7 @@ void i2c_dual_v2(port p)
   i2c[0].pfrm->rd_len = 0;
   i2c[0].pfrm->dt[0] = 0x55;
 
-  i2c[1].st = none;
+  i2c[1].st = i2c_none;
   i2c[1].sub_st = scl_up;
   i2c[1].baud_count = 0;
   i2c[1].baud = 0;
@@ -451,9 +451,9 @@ void i2c_dual_v2(port p)
         p <: pv;
         for (int i=0;i<2;++i)
         {
-          if (i2c[i].st != none) i2c_step_v2(&i2c[i],nv,pv,p);
+          if (i2c[i].st != i2c_none) i2c_step_v2(&i2c[i],nv,pv,p);
         }
-        st = (i2c[0].st != none) | (i2c[1].st != none);
+        st = (i2c[0].st != i2c_none) | (i2c[1].st != i2c_none);
         tp += T;
         break;
     }
@@ -589,10 +589,10 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
     break;
   case stop:
     sda <: 1;
-    pthis->st = none;
+    pthis->st = i2c_none;
     break;
   default:
-    pthis->st = none;
+    pthis->st = i2c_none;
     break;
   }
 }
@@ -622,16 +622,16 @@ void i2c_2x1bit_v3(port sda,port scl)
   i2c.pfrm->dt[1] = 0x00;
   i2c.pfrm->dt[2] = 0xFF;
   t :> tp;
-  while(i2c.st != none)
+  while(i2c.st != i2c_none)
   {
     select
     {
       case t when timerafter(tp) :> void:
-       if (i2c.st != none)
+       if (i2c.st != i2c_none)
          i2c_step_v3(&i2c,sda,scl);
        if (i2c.st == scl_down)
          tp += 600*ns;
-       else if (i2c.st != none)
+       else if (i2c.st != i2c_none)
          tp += T;
        else
          tp += 10*sec;
