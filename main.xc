@@ -508,3 +508,9 @@ int main()
   return 0;
 }
 
+/* todo.
+ * analog to digital converter plus interface via serial port
+ * linux opengl frontend
+ * command interface to parse i2c irda and spi command interface
+ */
+

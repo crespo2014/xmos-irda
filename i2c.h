@@ -140,11 +140,6 @@ struct i2c_chn
     unsigned char scl_mask;
 };
 
-
-
-
-
-
 extern void i2c_dual(port p);
 extern void i2c_dual_v2(port p);
 extern void i2c_2x1bit_v3(port sda,port scl);

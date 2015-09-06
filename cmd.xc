@@ -18,6 +18,8 @@
 #include <xscope.h>
 #include <platform.h>
 #include "serial.h"
+#include "i2c.h"
+#include "utils.h"
 
 enum cmd_e
 {
@@ -73,5 +75,51 @@ unsafe int  main5()
   cmd = parseCommand("light on",7,j);
   printf("%d\n",cmd);
   return 0;
+}
+
+unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret)
+{
+  unsigned v;
+  unsigned count;
+  unsigned pos;
+  c += 4;   // I2C XX XX XX XXXXXXX
+  do
+  {
+    v = getHexU8(c);
+    if ( v > 0xFF ) break;
+    ret.wr1_len = v;
+    c+= 3;
+    v = getHexU8(c);
+    if ( v > 0xFF ) break;
+    ret.wr2_len = v;
+    c += 3;
+    v = getHexU8(c);
+    if ( v > 0xFF ) break;
+    ret.rd_len = v;
+    c += 3;
+    // read
+    count = ret.wr1_len + ret.wr2_len;
+    pos = 0;
+    while(count)
+    {
+      v = getHexU8(c);
+      if ( v > 0xFF ) break;
+      ret.dt[pos] = v;
+      c += 2;
+      count--;
+    }
+    if (count) break;
+    return 1;
+  } while(0);
+  return 0;
+}
+
+void get_i2c_resp(struct i2c_frm &data,struct tx_frame_t ret)
+{
+  if (data.ack == 0)
+  {
+    char* r = strcpy(ret.dt,"I2C NOK\n");
+    ret.len = r - ret.dt;
+  }
 }
 
