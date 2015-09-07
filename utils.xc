@@ -7,28 +7,28 @@
 
 // read hexadecimal char and return number.
 
-unsigned readHexChar(char str)
+unsigned readHexChar(const char *str)
 {
   do
   {
-    if (str < '0') break;
-    if (str <= '9')
+    if (*str < '0') break;
+    if (*str <= '9')
     {
-      return str - '0';
+      return *str++ - '0';
     }
-    if (str < 'A') break;
-    if (str <= 'F')
-      return (str - 'A' + 10);
-    if (str < 'a') break;
-    if (str > 'f') break;
-    return str - 'a' + 10;
+    if (*str < 'A') break;
+    if (*str <= 'F')
+      return (*str++ - 'A' + 10);
+    if (*str < 'a') break;
+    if (*str > 'f') break;
+    return *str++ - 'a' + 10;
   } while(0);
   return 0xFFF;
 }
 
 unsigned readHexByte(const char* &str)
 {
-  return readHexChar(*str++) << 4 | readHexChar(*str++);
+  return readHexChar(str) << 4 | readHexChar(str);
 }
 
 unsigned getHexChar(unsigned u4)

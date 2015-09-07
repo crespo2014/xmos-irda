@@ -106,12 +106,13 @@ enum i2c_sub_st
 
 struct i2c_frm
 {
-    unsigned char  dt[20];  // read or written data
-    unsigned char  wr1_len;   // how many bytes of data to write at first
-    unsigned char  wr2_len;   // how many bytes of data to write at first
-    unsigned char  rd_len;   // how many bytes to read
+    unsigned addr;    //device address
+    unsigned wr1_len;   // how many bytes of data to write at first
+    unsigned wr2_len;   // how many bytes of data to write at first
+    unsigned rd_len;   // how many bytes to read
     unsigned char  ack;    // 1 = command sucessfull
     unsigned char  pos;     // w/r pos
+    unsigned char  dt[20];  // read or written data
 };
 
 /*
@@ -120,11 +121,11 @@ struct i2c_frm
  */
 struct i2c_packet_v2
 {
-    unsigned char id;
+    unsigned char addr;
     unsigned char wr;      //true for write command
     unsigned char addr16;  // true for 16bits address
     unsigned char ack;    // true if operation was success
-    unsigned addr;
+    unsigned cmd;
     unsigned value;
 };
 

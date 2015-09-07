@@ -6,8 +6,6 @@
  */
 
 /*
-
-/*
  * I2C packet
  *
  * Write S Address 0 [ACK] Command [ACK] Data [ACK] STOP
@@ -645,7 +643,6 @@ void i2c_2x1bit_v3(port sda,port scl)
   }
 }
 
-
 unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret)
 {
   unsigned v;
@@ -735,7 +732,7 @@ static inline unsigned i2c_clock_wait_up(port scl,unsigned bit_time)
   {
     delay_ticks(bit_time / 4);
     scl :> >>d;
-  } while (d && d < 0x80);
+  } while (d & 0x3);  // do 3 times anyway
   return d;
 }
 
@@ -744,28 +741,48 @@ static inline unsigned i2c_clock_wait_up(port scl,unsigned bit_time)
  * The function make space from the previous
  *
  */
-static inline unsigned i2c_read_bit(port sda,port scl,unsigned bit_time,timer t)
+static inline unsigned i2c_read_bit(port sda,port scl,unsigned bit_time)
 {
   int value;
-  sda :> int _;   // release sda
+  sda <: 1;
   delay_ticks(bit_time);
-  if (i2c_clock_wait_up(scl,bit_time) == 0 )
+  if (i2c_clock_wait_up(scl,bit_time) & 0xE0 == 0 )
     return 3;   //nack
   sda :> value;
+  delay_ticks(bit_time);
+  scl <: 0;
   return value;
 }
 
 static inline void i2c_start_bit(port i2c_scl, port i2c_sda,unsigned bit_time)
 {
-//  timer tmr;
   unsigned fall_time;
   i2c_scl :> void;
   delay_ticks(bit_time / 4);
   i2c_sda  <: 0;
   delay_ticks(bit_time / 2);
   i2c_scl  <: 0;
-//  tmr :> fall_time;
-//  return fall_time;
+}
+
+/*
+ * Generate a clock signal to send bit already set in sda
+ */
+static inline void i2c_push_bit(port scl,unsigned bit_time)
+{
+  delay_ticks(bit_time / 2);
+  scl <: 1;
+  delay_ticks(bit_time / 2);
+  scl <: 0;
+}
+
+static inline unsigned i2c_push_u8(port sda,port scl,unsigned char d,unsigned bit_time)
+{
+//  unsigned CtlAdrsData = ((unsigned) bitrev(data)) >> 24;
+//    for (int i = 8; i != 0; i--) {
+//      sda <: >> CtlAdrsData;
+//      i2c_push_bit(p_scl, bit_time);
+//    }
+//    return i2c_read_bit(p_scl, p_sda, bit_time);
 }
 
 /*
@@ -777,6 +794,7 @@ static inline i2c_res_t i2c_write(port scl, port sda,unsigned bit_time,unsigned 
   timer t;
   unsigned tp;
   i2c_start_bit(scl,sda,bit_time);
+
   t :> tp;
 }
 
@@ -795,3 +813,50 @@ static inline i2c_res_t i2c_write(port scl, port sda,unsigned bit_time,unsigned 
  * w/r is a combination
  */
 
+unsigned i2cw_decode(const unsigned char* c,struct i2c_frm &ret,char stop_char)
+{
+  //I2CW ADDRESS DATA
+  unsigned v;
+  unsigned count;
+  ret.rd_len = 0;
+  do
+  {
+    v = readHexByte(c);
+    if ((*c != ' ') || (v > 0xFF)) break;
+    ret.addr = v;
+    c++;
+    ret.wr1_len = 0;
+    while(*c != stop_char)
+    {
+      v = readHexByte(c);
+      if ( v > 0xFF ) break;
+      ret.dt[ret.wr1_len++] = v;
+    }
+    if (*c != stop_char) break;
+    return 1;
+  } while(0);
+  return 0;
+}
+
+unsigned i2cr_decode(const unsigned char* c,struct i2c_frm &ret)
+{
+  //I2CR ADDRESS READ_LEN
+  if (!i2cw_decode(c,ret,'\n'))
+    return 0;
+  if (ret.wr1_len != 1) return 0;
+  ret.rd_len = ret.dt[0];
+  ret.wr1_len = 0;
+  return 1;
+}
+
+unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret)
+{
+  unsigned v;
+  //I2CR ADDRESS READ_LEN
+  if (!i2cw_decode(c,ret,' '))
+    return 0;
+  v = readHexByte(c);
+  if ((*c != '\n') || (v > 0xFF)) return 0;
+  ret.rd_len = v;
+  return 1;
+}
