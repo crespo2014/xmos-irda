@@ -13,13 +13,13 @@
 
 enum cmd_e
 {
-  none,
-  echo,
+  none_cmd,
   i2c_cmd,
-  light,
+  i2c_wcmd,
+  i2c_rcmd,
 };
 
-extern unsafe enum cmd_e parseCommand(const unsigned char* &c);
+extern enum cmd_e getCommand(const unsigned char* c,const unsigned char* &t);
 extern unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret);
 extern void get_i2c_resp(struct i2c_frm &data,struct tx_frame_t ret);
 

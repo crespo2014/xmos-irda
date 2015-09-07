@@ -31,28 +31,12 @@ struct cmd_tbl_t {
 /*
  * Use a termination character to make not possible past the end of the string
  */
-unsafe enum cmd_e parseCommand(const unsigned char* &c)
+enum cmd_e getCommand(const unsigned char* c,const unsigned char* &t)
 {
-  const static struct cmd_tbl_t cmd_tbl[] = {
-      {"echo",echo},
-      {"light",light},
-      {"I2C",i2c_cmd}
-  };
-  unsigned char i,j;
-  for (i =0;i < 2;++i)
-  {
-    j =0;
-    while (cmd_tbl[i].str[j] == c[j])
-    {
-     ++j;
-    }
-    if (cmd_tbl[i].str[j] == 0 && c[j] == ' ')
-    {
-      c= c + j;
-      return cmd_tbl[i].cmd;
-    }
-  }
-  return none;
+  if (isPreffix("I2C",c,t) && *t == ' ') return i2c_cmd;
+  if (isPreffix("I2CW",c,t) && *t == ' ') return i2c_wcmd;
+  if (isPreffix("I2CR",c,t) && *t == ' ') return i2c_rcmd;
+  return none_cmd;
 }
 
 /*

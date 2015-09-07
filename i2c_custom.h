@@ -9,6 +9,8 @@
 #ifndef I2C_H_
 #define I2C_H_
 
+#include "i2c.h"
+
 enum i2c_st_v2
 {
   start,
@@ -112,6 +114,20 @@ struct i2c_frm
     unsigned char  pos;     // w/r pos
 };
 
+/*
+ * Packet to build from commands
+ * I2CW and I2CR
+ */
+struct i2c_packet_v2
+{
+    unsigned char id;
+    unsigned char wr;      //true for write command
+    unsigned char addr16;  // true for 16bits address
+    unsigned char ack;    // true if operation was success
+    unsigned addr;
+    unsigned value;
+};
+
 struct i2c_chn_v2
 {
     struct i2c_frm* movable pfrm;
@@ -143,6 +159,6 @@ struct i2c_chn
 extern void i2c_dual(port p);
 extern void i2c_dual_v2(port p);
 extern void i2c_2x1bit_v3(port sda,port scl);
-extern unsigned i2c_execute(struct i2c_frm &data);
+extern unsigned i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if);
 
 #endif /* I2C_H_ */

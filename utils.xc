@@ -38,7 +38,6 @@ unsigned getHexChar(unsigned u4)
 
 void getHexBuffer(const unsigned char *d,unsigned len,char * &str)
 {
-  unsigned t;
   while (len--)
   {
     *str = getHexChar(*d >> 8);
@@ -50,7 +49,6 @@ void getHexBuffer(const unsigned char *d,unsigned len,char * &str)
 
 }
 
-
 void strcpy(char* &dest,const char* src)
 {
   while ((*dest = *src) != 0)
@@ -58,5 +56,16 @@ void strcpy(char* &dest,const char* src)
     ++dest;
     ++src;
   }
+}
+
+unsigned isPreffix(const char* pref,const char *str,const char *&last)
+{
+  last = str;
+  while (*pref == *last)
+  {
+    ++pref;
+    ++last;
+  }
+  return (*pref == 0);
 }
 

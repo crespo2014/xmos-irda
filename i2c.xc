@@ -70,6 +70,7 @@
 #include <platform.h>
 #include "rxtx.h"
 #include "i2c_custom.h"
+#include "i2c.h"
 #include "utils.h"
 
 
@@ -678,9 +679,36 @@ unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret)
   return 0;
 }
 
-unsigned i2c_execute(struct i2c_frm &data)
+unsigned i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if)
 {
+  size_t num_bytes_sent;
+  do
+  {
+  if (i2c_if.write(data.dt[0],data.dt+1,data.wr1_len-1,num_bytes_sent,(data.wr2_len == 0 && data.rd_len == 0)) != I2C_ACK) break;
+  if (data.wr2_len)
+  {
+    if (i2c_if.write(data.dt[data.wr1_len],data.dt+data.wr1_len+1,data.wr2_len-1,num_bytes_sent,data.rd_len == 0) != I2C_ACK) break;
+  }
+  if (data.rd_len)
+    if (i2c_if.read(data.dt[0],data.dt + data.wr1_len+data.wr2_len,data.rd_len,1) != I2C_ACK) break;
+  return 1;
+  } while(0);
+  return 0;
+}
 
+void i2c_response(const struct i2c_frm &packet,char* &str)
+{
+  if (packet.ack)
+  {
+    strcpy(str,"OK ");
+    if (packet.rd_len != 0)
+      getHexBuffer(packet.dt + packet.wr1_len + packet.wr2_len,packet.rd_len,str);
+    strcpy(str,"\n");
+  }
+  else
+  {
+    strcpy(str,"NOK\n");
+  }
 }
 
 /*

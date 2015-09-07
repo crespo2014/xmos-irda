@@ -22,4 +22,10 @@ extern void getHexBuffer(const unsigned char *d,unsigned len,char * &str);
 // copy str and update dest with last copied character
 extern void strcpy(char* &dest,const char* src);
 
+/*
+ * Check if some string is a prefix o other
+ * pointer to last unmatched character is update
+ */
+unsigned isPreffix(const char* pref,const char *str,const char *&last);
+
 #endif /* UTILS_H_ */

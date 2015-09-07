@@ -514,20 +514,29 @@ int main()
 }
 */
 
-unsafe int  main()
+void test_i2c_parser(client interface i2c_master_if i2c_master)
 {
   struct i2c_frm frm;
   struct tx_frame_t ret;
   const char* cmdStr;
-  enum cmd_e cmd;
-  unsigned char j;    //arguments start here
-//  printf("%d\n",cmd);
+  const char* buff;
   cmdStr = "I2C 03 00 03 01D304\r";
-  if (parseCommand(cmdStr) == i2c_cmd)
+  buff = cmdStr;
+  if (getCommand(cmdStr,buff) == i2c_cmd)
   {
     cmdStr++;
     get_i2c_buff(cmdStr,frm);
-    i2c_execute(frm);
+    i2c_execute(frm,i2c_master);
+  }
+}
+
+unsafe int  main()
+{
+  interface i2c_master_if i2c_if[1];
+  par
+  {
+    i2c_master(i2c_if,1,p_1F,p_1C,100);
+    test_i2c_parser(i2c_if[0]);
   }
   return 0;
 }

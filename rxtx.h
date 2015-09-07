@@ -21,7 +21,26 @@
 
 
 
+/*
+ * Some Rx task can hold a buffer until it is peek from other task
+ * a serail rx can hold this buffer.
+ * then a Buffer interface can peek data until \n
+ * and parse without blocking rx by channel or something else
+ */
 
+struct rx_u8_buff
+{
+    unsigned char dt[32];
+    unsigned char len;      // actual len of buffer
+    unsigned char overflow; // how many bytes lost
+};
+
+struct rx_u32_buff
+{
+    unsigned dt[16];
+    unsigned char len;      // actual len of buffer
+    unsigned char overflow; // how many bytes lost
+};
 
 /*
  *  0..|..|..|..|..|..|..|
