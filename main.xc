@@ -14,6 +14,7 @@
 #include "irda.h"
 #include "serial.h"
 #include "i2c.h"
+#include "cmd.h"
 
 out port p_1G = XS1_PORT_1G;
 out port p_1D = XS1_PORT_1D;
@@ -228,7 +229,7 @@ void fastTx_test1(client interface fast_tx  ftx)
     ftx.push(i++);
   }
 }
-
+/*
 int main_7()
 {
   interface fast_tx  ftx;
@@ -258,12 +259,14 @@ int main_6()
   }
   return 0;
 }
+*/
 
 /*
  * This function is optimize.
  * printf is called only ones. using two jump
  * a different argument is passed
  */
+/*
 int main_opt()
 {
   int i;
@@ -285,6 +288,7 @@ int main_opt()
   }
   return 0;
 }
+*/
 
 int main_irda_clocked_tx(clock clk,out buffered port:32 p32)
 {
@@ -505,6 +509,17 @@ int main()
     channel_signal(fast_rx_c,p_1D);
     fastTx_test1(ftx);
   }
+  return 0;
+}
+
+unsafe int  main5()
+{
+  enum cmd_e cmd;
+  unsigned char j;    //arguments start here
+  cmd = parseCommand("echo on",7,j);
+  printf("%d\n",cmd);
+  cmd = parseCommand("light on",7,j);
+  printf("%d\n",cmd);
   return 0;
 }
 

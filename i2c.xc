@@ -70,6 +70,7 @@
 #include <platform.h>
 #include "rxtx.h"
 #include "i2c.h"
+#include "utils.h"
 
 
 
@@ -639,3 +640,55 @@ void i2c_2x1bit_v3(port sda,port scl)
     }
   }
 }
+
+
+unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret)
+{
+  unsigned v;
+  unsigned count;
+  unsigned pos;
+  c += 4;   // I2C XX XX XX XXXXXXX
+  do
+  {
+    v = getHexU8(c);
+    if ( v > 0xFF ) break;
+    ret.wr1_len = v;
+    c+= 3;
+    v = getHexU8(c);
+    if ( v > 0xFF ) break;
+    ret.wr2_len = v;
+    c += 3;
+    v = getHexU8(c);
+    if ( v > 0xFF ) break;
+    ret.rd_len = v;
+    c += 3;
+    // read
+    count = ret.wr1_len + ret.wr2_len;
+    pos = 0;
+    while(count)
+    {
+      v = getHexU8(c);
+      if ( v > 0xFF ) break;
+      ret.dt[pos] = v;
+      c += 2;
+      count--;
+    }
+    if (count) break;
+    return 1;
+  } while(0);
+  return 0;
+}
+
+/*
+void get_i2c_resp(struct i2c_frm &data,struct tx_frame_t ret)
+{
+  if (data.ack == 0)
+  {
+    char * r = ret.dt;
+    strcpy(r,"I2C NOK\n");
+    ret.len = r - ret.dt;
+  }
+}
+*/
+
+
