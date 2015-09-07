@@ -9,6 +9,8 @@
 #ifndef CMD_H_
 #define CMD_H_
 
+#include "i2c_custom.h"
+
 enum cmd_e
 {
   none,

@@ -69,7 +69,7 @@
 #include <xscope.h>
 #include <platform.h>
 #include "rxtx.h"
-#include "i2c.h"
+#include "i2c_custom.h"
 #include "utils.h"
 
 
