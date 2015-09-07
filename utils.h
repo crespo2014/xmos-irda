@@ -13,11 +13,13 @@
  * Read a hex number.
  * return over 255 if there is an error.
  */
-extern unsigned getHexChar(const char* str);
-extern unsigned HextoU8(const char* str);
-// copy str and return last copied character
-extern void strcpy(char* &dest,const char* src);
+extern unsigned readHexChar(char str);
+extern unsigned readHexByte(const char* &str);
+extern unsigned getHexChar(unsigned char num);
+extern unsigned getHexByte(unsigned char num);
+extern void getHexBuffer(const unsigned char *d,unsigned len,char * &str);
 
-unsigned HexChar_u(const char* str)
+// copy str and update dest with last copied character
+extern void strcpy(char* &dest,const char* src);
 
 #endif /* UTILS_H_ */

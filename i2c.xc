@@ -650,27 +650,26 @@ unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret)
   c += 4;   // I2C XX XX XX XXXXXXX
   do
   {
-    v = getHexU8(c);
+    v = readHexByte(c);
     if ( v > 0xFF ) break;
     ret.wr1_len = v;
-    c+= 3;
-    v = getHexU8(c);
+    c++;
+    v = readHexByte(c);
     if ( v > 0xFF ) break;
     ret.wr2_len = v;
-    c += 3;
-    v = getHexU8(c);
+    c ++;
+    v = readHexByte(c);
     if ( v > 0xFF ) break;
     ret.rd_len = v;
-    c += 3;
+    c ++;
     // read
     count = ret.wr1_len + ret.wr2_len;
     pos = 0;
     while(count)
     {
-      v = getHexU8(c);
+      v = readHexByte(c);
       if ( v > 0xFF ) break;
       ret.dt[pos] = v;
-      c += 2;
       count--;
     }
     if (count) break;

@@ -7,7 +7,7 @@
 
 // read hexadecimal char and return number.
 
-unsigned fromHexChar(const char str)
+unsigned readHexChar(char str)
 {
   do
   {
@@ -26,24 +26,24 @@ unsigned fromHexChar(const char str)
   return 0xFFF;
 }
 
-unsigned from2HexChar(const char* str)
+unsigned readHexByte(const char* &str)
 {
-  return getHexChar(*str) << 8 | getHexChar(*(str+1));
+  return readHexChar(*str++) << 8 | readHexChar(*str++);
 }
 
-unsigned U4toHex(unsigned u4)
+unsigned getHexChar(unsigned u4)
 {
   return u4 + (u4 < 10) ? '0' : 'A';
 }
 
-void toHex(const unsigned char *d,unsigned len,char * &str)
+void getHexBuffer(const unsigned char *d,unsigned len,char * &str)
 {
   unsigned t;
   while (len--)
   {
-    *str = U4toHex(*d >> 8);
+    *str = getHexChar(*d >> 8);
     str++;
-    *str = U4toHex(*d & 0x0F);
+    *str = getHexChar(*d & 0x0F);
     str++;
     d++;
   }
