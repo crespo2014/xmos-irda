@@ -17,7 +17,7 @@ enum cmd_e
   light,
 };
 
-extern unsafe enum cmd_e parseCommand(const unsigned char* c,unsigned char len,unsigned char& j);
+extern unsafe enum cmd_e parseCommand(const unsigned char* &c);
 extern unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret);
 extern void get_i2c_resp(struct i2c_frm &data,struct tx_frame_t ret);
 

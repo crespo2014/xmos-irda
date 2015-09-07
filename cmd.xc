@@ -28,23 +28,29 @@ struct cmd_tbl_t {
   enum cmd_e cmd;
 };
 
-unsafe enum cmd_e parseCommand(const unsigned char* c,unsigned char len,unsigned char& j)
+/*
+ * Use a termination character to make not possible past the end of the string
+ */
+unsafe enum cmd_e parseCommand(const unsigned char* &c)
 {
   const static struct cmd_tbl_t cmd_tbl[] = {
       {"echo",echo},
       {"light",light},
       {"I2C",i2c_cmd}
   };
-  unsigned char i;
+  unsigned char i,j;
   for (i =0;i < 2;++i)
   {
     j =0;
-    while (j < len && cmd_tbl[i].str[j] == c[j])
+    while (cmd_tbl[i].str[j] == c[j])
     {
      ++j;
     }
     if (cmd_tbl[i].str[j] == 0 && c[j] == ' ')
+    {
+      c= c + j;
       return cmd_tbl[i].cmd;
+    }
   }
   return none;
 }

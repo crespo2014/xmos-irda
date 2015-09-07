@@ -143,5 +143,6 @@ struct i2c_chn
 extern void i2c_dual(port p);
 extern void i2c_dual_v2(port p);
 extern void i2c_2x1bit_v3(port sda,port scl);
+extern unsigned i2c_execute(struct i2c_frm &data);
 
 #endif /* I2C_H_ */

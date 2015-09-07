@@ -497,6 +497,7 @@ int main()
 //}
 
 // Test fast rx/tx v5
+/*
 int main()
 {
   interface fast_tx  ftx;
@@ -511,15 +512,23 @@ int main()
   }
   return 0;
 }
+*/
 
-unsafe int  main5()
+unsafe int  main()
 {
+  struct i2c_frm frm;
+  struct tx_frame_t ret;
+  const char* cmdStr;
   enum cmd_e cmd;
   unsigned char j;    //arguments start here
-  cmd = parseCommand("echo on",7,j);
-  printf("%d\n",cmd);
-  cmd = parseCommand("light on",7,j);
-  printf("%d\n",cmd);
+//  printf("%d\n",cmd);
+  cmdStr = "I2C 03 00 03 01D304\r";
+  if (parseCommand(cmdStr) == i2c_cmd)
+  {
+    cmdStr++;
+    get_i2c_buff(cmdStr,frm);
+    i2c_execute(frm);
+  }
   return 0;
 }
 

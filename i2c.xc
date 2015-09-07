@@ -647,7 +647,7 @@ unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret)
   unsigned v;
   unsigned count;
   unsigned pos;
-  c += 4;   // I2C XX XX XX XXXXXXX
+  // <space>XX XX XX XXXXXXX
   do
   {
     v = readHexByte(c);
@@ -676,6 +676,11 @@ unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret)
     return 1;
   } while(0);
   return 0;
+}
+
+unsigned i2c_execute(struct i2c_frm &data)
+{
+
 }
 
 /*
