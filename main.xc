@@ -524,8 +524,8 @@ void test_i2c_parser(client interface i2c_master_if i2c_master)
   buff = cmdStr;
   if (getCommand(cmdStr,buff) == i2c_cmd)
   {
-    cmdStr++;
-    get_i2c_buff(cmdStr,frm);
+    buff++;
+    get_i2c_buff(buff,frm);
     i2c_execute(frm,i2c_master);
   }
 }
@@ -533,6 +533,8 @@ void test_i2c_parser(client interface i2c_master_if i2c_master)
 unsafe int  main()
 {
   interface i2c_master_if i2c_if[1];
+  set_port_drive_low(p_1F);
+  set_port_drive_low(p_1C);
   par
   {
     i2c_master(i2c_if,1,p_1F,p_1C,100);

@@ -28,7 +28,7 @@ unsigned readHexChar(char str)
 
 unsigned readHexByte(const char* &str)
 {
-  return readHexChar(*str++) << 8 | readHexChar(*str++);
+  return readHexChar(*str++) << 4 | readHexChar(*str++);
 }
 
 unsigned getHexChar(unsigned u4)
@@ -40,7 +40,7 @@ void getHexBuffer(const unsigned char *d,unsigned len,char * &str)
 {
   while (len--)
   {
-    *str = getHexChar(*d >> 8);
+    *str = getHexChar(*d >> 4);
     str++;
     *str = getHexChar(*d & 0x0F);
     str++;

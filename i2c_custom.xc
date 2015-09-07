@@ -6,14 +6,17 @@
  */
 
 /*
-//TODO use the i2c lib provided
- * Configure port as pull up and
- * and set set_port_drive_low() it means do not drive on 1
- * use a 4bit port to control two i2c
- * do not use share port to avoid delays
+
+/*
+ * I2C packet
  *
- * made it combinable with buffers usign timers.
- * synchronize both i2c to one timer.
+ * Write S Address 0 [ACK] Command [ACK] Data [ACK] STOP
+ * bits      7     1         8             8
+ *
+ * Read S Address 0 [ACK] Command [ACK] S Address 1 [ACK] [Data] ACK/NACK STOP
+ * bits       7   1          8               8    1                 1
+ *
+ * S Address 0 [ACK] [DATA] NACK STOP
  */
 
 // TODO full status machine for i2c to reduce code size and response time
@@ -670,7 +673,7 @@ unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret)
     {
       v = readHexByte(c);
       if ( v > 0xFF ) break;
-      ret.dt[pos] = v;
+      ret.dt[pos++] = v;
       count--;
     }
     if (count) break;
@@ -712,15 +715,83 @@ void i2c_response(const struct i2c_frm &packet,char* &str)
 }
 
 /*
-void get_i2c_resp(struct i2c_frm &data,struct tx_frame_t ret)
-{
-  if (data.ack == 0)
-  {
-    char * r = ret.dt;
-    strcpy(r,"I2C NOK\n");
-    ret.len = r - ret.dt;
-  }
-}
-*/
+ * A new i2c implementation that does not block if pins are disconected
+ */
 
+/*
+ * Release the clock and wait until it become high, (Streching)
+ * keep readin the port until one 1 is read or no more tries.
+ * d start at 7 it will drop to 0 after 3 tries
+ * if bit 7 become 1 then port is 1.
+ * The out condition is bit7 1 or bit0 0
+ *
+ * Original fucntion wait for 1 or delay 3/4 tick.
+ */
+static inline unsigned i2c_clock_wait_up(port scl,unsigned bit_time)
+{
+  scl <: 1;
+  unsigned d = 0x7;
+  do
+  {
+    delay_ticks(bit_time / 4);
+    scl :> >>d;
+  } while (d && d < 0x80);
+  return d;
+}
+
+/*
+ * Read bit from clock at 3/4 part of the high pulse
+ * The function make space from the previous
+ *
+ */
+static inline unsigned i2c_read_bit(port sda,port scl,unsigned bit_time,timer t)
+{
+  int value;
+  sda :> int _;   // release sda
+  delay_ticks(bit_time);
+  if (i2c_clock_wait_up(scl,bit_time) == 0 )
+    return 3;   //nack
+  sda :> value;
+  return value;
+}
+
+static inline void i2c_start_bit(port i2c_scl, port i2c_sda,unsigned bit_time)
+{
+//  timer tmr;
+  unsigned fall_time;
+  i2c_scl :> void;
+  delay_ticks(bit_time / 4);
+  i2c_sda  <: 0;
+  delay_ticks(bit_time / 2);
+  i2c_scl  <: 0;
+//  tmr :> fall_time;
+//  return fall_time;
+}
+
+/*
+ * DeviceID or address is left shifted and ored with (0 write , 1 read)
+ */
+static inline i2c_res_t i2c_write(port scl, port sda,unsigned bit_time,unsigned char address,
+    const char* data,unsigned len)
+{
+  timer t;
+  unsigned tp;
+  i2c_start_bit(scl,sda,bit_time);
+  t :> tp;
+}
+
+/*
+ * TODO for command interface
+ *
+ * I2CW ADDRESS DATA
+ * I2CR ADDRESS READ_LEN
+ * I2CWR ADDRESS DATA  READ_LEN
+ *
+ * ADDRESS will be shifted to the left and use two times in WR command
+ *
+ * There are two basic operations. read and write
+ * read use only the address
+ * write use address and data
+ * w/r is a combination
+ */
 
