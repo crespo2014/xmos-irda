@@ -11,6 +11,15 @@
 
 #include "i2c.h"
 
+enum i2c_ecode
+{
+  i2c_success,
+  i2c_ack,
+  i2c_nack,
+  i2c_overflow,
+  i2c_timeout,
+};
+
 enum i2c_st_v2
 {
   start,
@@ -156,9 +165,9 @@ struct i2c_chn
     unsigned char scl_mask;
 };
 
-extern void i2c_dual(port p);
-extern void i2c_dual_v2(port p);
-extern void i2c_2x1bit_v3(port sda,port scl);
+//extern void i2c_dual(port p);
+//extern void i2c_dual_v2(port p);
+//extern void i2c_2x1bit_v3(port sda,port scl);
 extern unsigned i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if);
 
 extern unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret);

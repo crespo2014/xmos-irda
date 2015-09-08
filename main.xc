@@ -189,6 +189,7 @@ void serial_cmd(
 /*
  * Buffered serial input with command prompt reply
  */
+/*
 int main_123()
 {
   streaming chan rx_c;
@@ -208,14 +209,8 @@ int main_123()
   }
   return 0;
 }
-
-int main_3()
-{
-  i2c_2x1bit_v3(p_1F,p_1C);
-  //i2c_dual(pd);
-  return 0;
-}
-
+*/
+/*
 void fastTx_test1(client interface fast_tx  ftx)
 {
   timer t;
@@ -229,6 +224,7 @@ void fastTx_test1(client interface fast_tx  ftx)
     ftx.push(i++);
   }
 }
+*/
 /*
 int main_7()
 {
@@ -289,7 +285,7 @@ int main_opt()
   return 0;
 }
 */
-
+/*
 int main_irda_clocked_tx(clock clk,out buffered port:32 p32)
 {
   configure_clock_xcore(clk,IRDA_32b_CLK_DIV);     // dividing clock ticks
@@ -303,6 +299,7 @@ int main_irda_clocked_tx(clock clk,out buffered port:32 p32)
   //test_combinable();
   return 0;
 }
+*/
 
 /*
  * Use internal timer for timeouts.
@@ -523,16 +520,17 @@ void i2c_do(const char * cmd, client interface i2c_master_if i2c_master)
   switch (getCommand(cmd,buff))
   {
   case i2cw_cmd:
-    ret = i2cw_decode(++cmd,frm,'\n');
+    ret = i2cw_decode(++buff,frm,'\n');
     break;
   case i2cr_cmd:
-    ret = i2cr_decode(++cmd,frm);
+    ret = i2cr_decode(++buff,frm);
     break;
   case i2cwr_cmd:
-    ret = i2cwr_decode(++cmd,frm);
+    ret = i2cwr_decode(++buff,frm);
     break;
   default:
     ret = 0;
+    break;
   }
   if (ret)
   {

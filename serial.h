@@ -24,6 +24,11 @@
  *
  * start bit, data, no parity,1-stop bit 8-N-1
  *
+ *
+ * Serial Rx buffer it is the task that run usercmd, this is a slow interface.
+ * it connects using a channel to RX, on time event (1ms) the start packet flag is reset.
+ *
+ * Command interface to be splited by two (fast, slow).
  */
 
 #define UART_BASE_BIT_LEN_ns  8680    //for 115200 use a divisor to get the desired baud rate

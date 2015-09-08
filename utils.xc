@@ -7,7 +7,7 @@
 
 // read hexadecimal char and return number.
 
-unsigned readHexChar(const char *str)
+unsigned readHexChar(const char *&str)
 {
   do
   {
