@@ -762,6 +762,17 @@ static inline void i2c_start_bit(port i2c_scl, port i2c_sda,unsigned T)
   i2c_scl  <: 0;
 }
 
+static inline void i2c_stop_bit(port scl, port sda,unsigned T)
+{
+  delay_ticks(T/4);
+  sda <: 0;
+  delay_ticks(T/2);
+  scl <: 1;
+  delay_ticks(T);
+  sda <: 1;
+  delay_ticks(T/4);
+}
+
 /*
  * Generate a clock signal to send bit already set in sda
  * T period in ticks units
@@ -809,6 +820,12 @@ static inline i2c_res_t i2c_write(port scl, port sda,unsigned T,unsigned char ad
     if (ret == i2c_0) ret = i2c_success;
   } while(0);
   return ret;
+}
+
+static inline i2c_res_t i2c_read(port scl, port sda,unsigned T,unsigned char address,
+    const char* data,unsigned len)
+{
+
 }
 
 
@@ -875,4 +892,37 @@ unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret)
   ret.rd_len = v;
   if (ret.rd_len + ret.wr_len > sizeof(ret.dt) ) return 0; //overflow
   return 1;
+}
+
+[[distributable]] void i2c_custom(server interface i2c_custom_if i2c_if[n],size_t n,port scl, port sda, unsigned kbits_per_second)
+{
+  unsigned T = ms/kbits_per_second;
+  set_port_drive_low(scl);
+  set_port_drive_low(sda);
+  //  set_port_pull_up(scl);
+  //  set_port_pull_up(sda);
+  scl <: 1;   // p_scl :> void;
+  delay_ticks(1);
+  sda <: 1;
+  while (1) {
+     select {
+     case (size_t i =0; i < n; i++) i2c_if[i].i2c_execute(struct i2c_frm &data):
+         data.ret_code = i2c_error;
+         size_t num_bytes_sent;
+         do
+         {
+           if (data.wr_len)
+           {
+             if (i2c_write(scl,sda,T,data.addr,data.dt,data.wr_len) != I2C_ACK) break;
+           }
+           if (data.rd_len)
+           {
+             if (i2c_read(scl,sda,T,data.addr,data.dt + data.wr_len,data.rd_len) != I2C_ACK) break;
+           }
+           data.ret_code = i2c_success;
+         } while (0);
+         i2c_stop_bit(scl,sda,T);
+         break;
+     }
+  }
 }

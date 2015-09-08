@@ -157,6 +157,11 @@ struct i2c_chn
     unsigned char scl_mask;
 };
 
+interface i2c_custom_if
+{
+    void i2c_execute(struct i2c_frm &data);
+};
+
 //extern void i2c_dual(port p);
 //extern void i2c_dual_v2(port p);
 //extern void i2c_2x1bit_v3(port sda,port scl);
@@ -166,4 +171,5 @@ extern unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret);
 extern unsigned i2cr_decode(const unsigned char* c,struct i2c_frm &ret);
 extern unsigned i2cw_decode(const unsigned char* c,struct i2c_frm &ret,char stop_char);
 
+[[distributable]] void i2c_custom(server interface i2c_custom_if i2c_if[n],size_t n,port scl, port sda, unsigned kbits_per_second);
 #endif /* I2C_H_ */
