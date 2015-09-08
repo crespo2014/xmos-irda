@@ -22,11 +22,10 @@ enum i2c_ecode
   i2c_0 = 0,
   i2c_1 = 1,
   i2c_data_max,     // if valued more than this then it is an error
-  i2c_ack,
-  i2c_nack,
   i2c_success,
   i2c_overflow,
   i2c_timeout,
+  i2c_error,
 };
 
 /** This interface is used to communication with an I2C master component.

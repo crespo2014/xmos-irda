@@ -109,9 +109,10 @@ struct i2c_frm
     unsigned addr;    //device address
     unsigned wr_len;   // how many bytes of data to write at first
     unsigned rd_len;   // how many bytes to read
-    unsigned char  ack;    // 1 = command sucessfull
+    enum i2c_ecode ret_code;
     unsigned char  pos;     // w/r pos
     unsigned char  dt[20];  // read or written data
+
 };
 
 /*
@@ -159,7 +160,7 @@ struct i2c_chn
 //extern void i2c_dual(port p);
 //extern void i2c_dual_v2(port p);
 //extern void i2c_2x1bit_v3(port sda,port scl);
-extern unsigned i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if);
+extern void i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if);
 
 extern unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret);
 extern unsigned i2cr_decode(const unsigned char* c,struct i2c_frm &ret);

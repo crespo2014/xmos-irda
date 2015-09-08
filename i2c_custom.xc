@@ -69,6 +69,7 @@
 #include <stdio.h>
 #include <xscope.h>
 #include <platform.h>
+#include <xclib.h>
 #include "rxtx.h"
 #include "i2c_custom.h"
 #include "i2c.h"
@@ -689,8 +690,9 @@ unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret)
   return 0;
 }
 */
-unsigned i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if)
+void i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if)
 {
+  data.ret_code = i2c_error;
   size_t num_bytes_sent;
   do
   {
@@ -702,23 +704,22 @@ unsigned i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if)
     {
       if (i2c_if.read(data.addr,data.dt + data.wr_len,data.rd_len,1) != I2C_ACK) break;
     }
-    return 1;
+    data.ret_code = i2c_success;
   } while(0);
-  return 0;
 }
 
 void i2c_response(const struct i2c_frm &packet,char* &str)
 {
-  if (packet.ack)
+  if (packet.ret_code == i2c_success)
   {
-    strcpy(str,"OK ");
+    strcpy(str,"I2C OK ");
     if (packet.rd_len != 0)
       getHexBuffer(packet.dt + packet.wr_len,packet.rd_len,str);
     strcpy(str,"\n");
   }
   else
   {
-    strcpy(str,"NOK\n");
+    strcpy(str,"I2C NOK\n");
   }
 }
 
@@ -773,32 +774,43 @@ static inline void i2c_push_bit(port scl,unsigned T)
   scl <: 0;
 }
 
-/*
-static inline unsigned i2c_push_u8(port sda,port scl,unsigned char d,unsigned bit_time)
+
+static inline enum i2c_ecode i2c_push_u8(port sda,port scl,unsigned char d,unsigned T)
 {
-//  unsigned CtlAdrsData = ((unsigned) bitrev(data)) >> 24;
-//    for (int i = 8; i != 0; i--) {
-//      sda <: >> CtlAdrsData;
-//      i2c_push_bit(p_scl, bit_time);
-//    }
-//    return i2c_read_bit(p_scl, p_sda, bit_time);
+  unsigned data = ((unsigned) bitrev(d)) >> 24;
+    for (int i = 8; i != 0; i--) {
+      sda <: >> data;
+      i2c_push_bit(scl, T);
+    }
+    return i2c_read_bit(scl, sda, T);
 }
-*/
 
 /*
  * DeviceID or address is left shifted and ored with (0 write , 1 read)
  */
-/*
-static inline i2c_res_t i2c_write(port scl, port sda,unsigned bit_time,unsigned char address,
+static inline i2c_res_t i2c_write(port scl, port sda,unsigned T,unsigned char address,
     const char* data,unsigned len)
 {
   timer t;
   unsigned tp;
-  i2c_start_bit(scl,sda,bit_time);
-
-  t :> tp;
+  i2c_res_t ret;
+  do
+  {
+    i2c_start_bit(scl,sda,T);
+    ret = i2c_push_u8(sda,scl, (address << 1),1);
+    if (ret != i2c_0) break;
+    while (len)
+    {
+      ret = i2c_push_u8(sda,scl, *data,1);
+      if (ret != i2c_0) break;
+      data++;
+      len--;
+    }
+    if (ret == i2c_0) ret = i2c_success;
+  } while(0);
+  return ret;
 }
-*/
+
 
 /*
  * TODO for command interface
