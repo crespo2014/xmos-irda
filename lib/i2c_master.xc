@@ -13,12 +13,20 @@ static void release_clock_and_wait(port i2c_scl,
                                    unsigned &fall_time,
                                    unsigned delay)
 {
-  timer tmr;
-  unsigned time;
-  i2c_scl when pinseq(1) :> void;
-  tmr when timerafter(fall_time + delay) :> time;
-  // Adjust timing due to clock stretching
-  fall_time = time - delay;
+//  timer tmr;
+//  unsigned time;
+//  i2c_scl when pinseq(1) :> void;
+//  tmr when timerafter(fall_time + delay) :> time;
+//  // Adjust timing due to clock stretching
+//  fall_time = time - delay;
+
+  // wait for pin equal 1 and delay.
+  unsigned d = 0xF;
+  do
+  {
+    delay_ticks(delay / 4);
+    i2c_scl :> >>d;
+  } while (d & 0xF);  // do 3 times anyway
 }
 
 /** 'Pulse' the clock line high and in the middle of the high period

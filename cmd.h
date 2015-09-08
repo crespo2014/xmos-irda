@@ -14,9 +14,9 @@
 enum cmd_e
 {
   none_cmd,
-  i2c_cmd,
-  i2c_wcmd,
-  i2c_rcmd,
+  i2cw_cmd,
+  i2cr_cmd,
+  i2cwr_cmd,
 };
 
 extern enum cmd_e getCommand(const unsigned char* c,const unsigned char* &t);

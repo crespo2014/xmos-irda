@@ -514,20 +514,37 @@ int main()
 }
 */
 
-void test_i2c_parser(client interface i2c_master_if i2c_master)
+void i2c_do(const char * cmd, client interface i2c_master_if i2c_master)
 {
   struct i2c_frm frm;
-  struct tx_frame_t ret;
-  const char* cmdStr;
   const char* buff;
-  cmdStr = "I2C 03 00 03 01D304\r";
-  buff = cmdStr;
-  if (getCommand(cmdStr,buff) == i2c_cmd)
+  unsigned ret;
+  buff = cmd;
+  switch (getCommand(cmd,buff))
   {
-    buff++;
-    get_i2c_buff(buff,frm);
+  case i2cw_cmd:
+    ret = i2cw_decode(++cmd,frm,'\n');
+    break;
+  case i2cr_cmd:
+    ret = i2cr_decode(++cmd,frm);
+    break;
+  case i2cwr_cmd:
+    ret = i2cwr_decode(++cmd,frm);
+    break;
+  default:
+    ret = 0;
+  }
+  if (ret)
+  {
     i2c_execute(frm,i2c_master);
   }
+}
+
+void test_i2c_parser(client interface i2c_master_if i2c_master)
+{
+  i2c_do("I2CW 03 0001D304\n",i2c_master);
+  i2c_do("I2CR 03 04\n",i2c_master);
+  i2c_do("I2CWR 03 0001D304 04\n",i2c_master);
 }
 
 unsafe int  main()

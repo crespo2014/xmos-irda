@@ -33,9 +33,9 @@ struct cmd_tbl_t {
  */
 enum cmd_e getCommand(const unsigned char* c,const unsigned char* &t)
 {
-  if (isPreffix("I2C",c,t) && *t == ' ') return i2c_cmd;
-  if (isPreffix("I2CW",c,t) && *t == ' ') return i2c_wcmd;
-  if (isPreffix("I2CR",c,t) && *t == ' ') return i2c_rcmd;
+  if (isPreffix("I2CW",c,t) && *t == ' ') return i2cw_cmd;
+  if (isPreffix("I2CR",c,t) && *t == ' ') return i2cr_cmd;
+  if (isPreffix("I2CWR",c,t) && *t == ' ') return i2cwr_cmd;
   return none_cmd;
 }
 

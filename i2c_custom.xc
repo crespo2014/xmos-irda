@@ -75,9 +75,10 @@
 #include "utils.h"
 
 
-
-// TODO on scl down update pv and port, and prepare for scl up next time
-
+// This is a combinable i2c TX, but there is not need of combinable tx.
+// the only reason to use i2c is because an user command, that is synchronious.
+//
+/*
 inline static void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char &pv,port p)
 {
 #pragma fallthrough
@@ -238,8 +239,10 @@ inline static void i2c_step(struct i2c_chn* pthis,unsigned char v,unsigned char 
     pthis->baud_count--;
 
 }
+*/
 
 // 4bits port for a dual i2c configuration
+/*
 void i2c_dual(port p)
 {
   timer t;
@@ -305,7 +308,8 @@ void i2c_dual(port p)
     }
   }
 }
-
+*/
+/*
 inline static void i2c_step_v2(struct i2c_chn_v2* pthis,unsigned char v,unsigned char &pv,port p)
 {
   if (pthis->baud_count != 0)
@@ -401,8 +405,10 @@ inline static void i2c_step_v2(struct i2c_chn_v2* pthis,unsigned char v,unsigned
     break;
   }
 }
+*/
 
 // 4bits port for a dual i2c configuration
+/*
 void i2c_dual_v2(port p)
 {
   timer t;
@@ -462,8 +468,10 @@ void i2c_dual_v2(port p)
     }
   }
 }
+*/
 
 //TODO set time of next step, 0.6us is the min clock high time, but 1.3ms is the minimum low
+/*
 inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
 {
   printf("%d %d\n",pthis->st,pthis->sub_st);
@@ -599,7 +607,8 @@ inline static void i2c_step_v3(struct i2c_chn_v2* pthis,port sda,port scl)
     break;
   }
 }
-
+*/
+/*
 void i2c_2x1bit_v3(port sda,port scl)
 {
   timer t;
@@ -642,7 +651,8 @@ void i2c_2x1bit_v3(port sda,port scl)
     }
   }
 }
-
+*/
+/*
 unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret)
 {
   unsigned v;
@@ -678,20 +688,21 @@ unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret)
   } while(0);
   return 0;
 }
-
+*/
 unsigned i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if)
 {
   size_t num_bytes_sent;
   do
   {
-  if (i2c_if.write(data.dt[0],data.dt+1,data.wr1_len-1,num_bytes_sent,(data.wr2_len == 0 && data.rd_len == 0)) != I2C_ACK) break;
-  if (data.wr2_len)
-  {
-    if (i2c_if.write(data.dt[data.wr1_len],data.dt+data.wr1_len+1,data.wr2_len-1,num_bytes_sent,data.rd_len == 0) != I2C_ACK) break;
-  }
-  if (data.rd_len)
-    if (i2c_if.read(data.dt[0],data.dt + data.wr1_len+data.wr2_len,data.rd_len,1) != I2C_ACK) break;
-  return 1;
+    if (data.wr_len)
+    {
+      if (i2c_if.write(data.addr,data.dt,data.wr_len,num_bytes_sent,data.rd_len == 0) != I2C_ACK) break;
+    }
+    if (data.rd_len)
+    {
+      if (i2c_if.read(data.addr,data.dt + data.wr_len,data.rd_len,1) != I2C_ACK) break;
+    }
+    return 1;
   } while(0);
   return 0;
 }
@@ -702,7 +713,7 @@ void i2c_response(const struct i2c_frm &packet,char* &str)
   {
     strcpy(str,"OK ");
     if (packet.rd_len != 0)
-      getHexBuffer(packet.dt + packet.wr1_len + packet.wr2_len,packet.rd_len,str);
+      getHexBuffer(packet.dt + packet.wr_len,packet.rd_len,str);
     strcpy(str,"\n");
   }
   else
@@ -746,7 +757,7 @@ static inline unsigned i2c_read_bit(port sda,port scl,unsigned bit_time)
   int value;
   sda <: 1;
   delay_ticks(bit_time);
-  if (i2c_clock_wait_up(scl,bit_time) & 0xE0 == 0 )
+  if ((i2c_clock_wait_up(scl,bit_time) & 0xE0) == 0 )
     return 3;   //nack
   sda :> value;
   delay_ticks(bit_time);
@@ -775,6 +786,7 @@ static inline void i2c_push_bit(port scl,unsigned bit_time)
   scl <: 0;
 }
 
+/*
 static inline unsigned i2c_push_u8(port sda,port scl,unsigned char d,unsigned bit_time)
 {
 //  unsigned CtlAdrsData = ((unsigned) bitrev(data)) >> 24;
@@ -784,10 +796,12 @@ static inline unsigned i2c_push_u8(port sda,port scl,unsigned char d,unsigned bi
 //    }
 //    return i2c_read_bit(p_scl, p_sda, bit_time);
 }
+*/
 
 /*
  * DeviceID or address is left shifted and ored with (0 write , 1 read)
  */
+/*
 static inline i2c_res_t i2c_write(port scl, port sda,unsigned bit_time,unsigned char address,
     const char* data,unsigned len)
 {
@@ -797,6 +811,7 @@ static inline i2c_res_t i2c_write(port scl, port sda,unsigned bit_time,unsigned 
 
   t :> tp;
 }
+*/
 
 /*
  * TODO for command interface
@@ -817,7 +832,6 @@ unsigned i2cw_decode(const unsigned char* c,struct i2c_frm &ret,char stop_char)
 {
   //I2CW ADDRESS DATA
   unsigned v;
-  unsigned count;
   ret.rd_len = 0;
   do
   {
@@ -825,14 +839,15 @@ unsigned i2cw_decode(const unsigned char* c,struct i2c_frm &ret,char stop_char)
     if ((*c != ' ') || (v > 0xFF)) break;
     ret.addr = v;
     c++;
-    ret.wr1_len = 0;
-    while(*c != stop_char)
+    ret.wr_len = 0;
+    while(*c != stop_char && ret.wr_len < sizeof(ret.dt))
     {
       v = readHexByte(c);
       if ( v > 0xFF ) break;
-      ret.dt[ret.wr1_len++] = v;
+      ret.dt[ret.wr_len++] = v;
     }
     if (*c != stop_char) break;
+    if (ret.wr_len == sizeof(ret.dt) ) break;
     return 1;
   } while(0);
   return 0;
@@ -843,9 +858,10 @@ unsigned i2cr_decode(const unsigned char* c,struct i2c_frm &ret)
   //I2CR ADDRESS READ_LEN
   if (!i2cw_decode(c,ret,'\n'))
     return 0;
-  if (ret.wr1_len != 1) return 0;
+  if (ret.wr_len != 1) return 0;
   ret.rd_len = ret.dt[0];
-  ret.wr1_len = 0;
+  ret.wr_len = 0;
+  if (ret.rd_len > sizeof(ret.dt) ) return 0;//overflow
   return 1;
 }
 
@@ -858,5 +874,6 @@ unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret)
   v = readHexByte(c);
   if ((*c != '\n') || (v > 0xFF)) return 0;
   ret.rd_len = v;
+  if (ret.rd_len + ret.wr_len > sizeof(ret.dt) ) return 0; //overflow
   return 1;
 }
