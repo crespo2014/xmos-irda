@@ -14,19 +14,7 @@ typedef enum {
   I2C_ACK,     ///< The slave has nack-ed the last byte.
 } i2c_res_t;
 
-/*
- * Returned error codes for i2c command execution
- */
-enum i2c_ecode
-{
-  i2c_0 = 0,
-  i2c_1 = 1,
-  i2c_data_max,     // if valued more than this then it is an error
-  i2c_success,
-  i2c_overflow,
-  i2c_timeout,
-  i2c_error,
-};
+
 
 /** This interface is used to communication with an I2C master component.
  *  It provides facilities for reading and writing to the bus.

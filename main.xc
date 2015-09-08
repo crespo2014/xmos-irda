@@ -13,8 +13,9 @@
 #include <rxtx.h>
 #include "irda.h"
 #include "serial.h"
-#include "i2c.h"
+//#include "i2c.h"
 #include "cmd.h"
+#include "i2c_custom.h"
 
 out port p_1G = XS1_PORT_1G;
 out port p_1D = XS1_PORT_1D;
@@ -45,7 +46,7 @@ clock    clk      = XS1_CLKBLK_1;
 clock    clk_2    = XS1_CLKBLK_2;
 
 //out buffered port:8 tx_16  = XS1_PORT_1P;
-
+/*
 [[combinable]] void serial_test(client interface serial_tx_if tx,
     streaming chanend rx_c,client interface serial_rx_if rx)
 {
@@ -74,7 +75,8 @@ clock    clk_2    = XS1_CLKBLK_2;
     }
   }
 }
-
+*/
+/*
 [[combinable]] void serial_test_v2(
     streaming chanend rx_c,
     streaming chanend tx_c,
@@ -110,6 +112,7 @@ clock    clk_2    = XS1_CLKBLK_2;
     }
   }
 }
+*/
 /*
 int main()
 {
@@ -156,6 +159,7 @@ int main()
  * Command dummy.
  * reply prompt on enter and ok if there is data
  */
+/*
 void serial_cmd(
     client interface serial_tx_v2_if tx,
     client interface buffer_v1_if buff,
@@ -184,7 +188,7 @@ void serial_cmd(
   }
 
 }
-
+*/
 
 /*
  * Buffered serial input with command prompt reply
@@ -510,7 +514,7 @@ int main()
   return 0;
 }
 */
-
+/*
 void i2c_do(const char * cmd, client interface i2c_master_if i2c_master)
 {
   struct i2c_frm frm;
@@ -537,14 +541,16 @@ void i2c_do(const char * cmd, client interface i2c_master_if i2c_master)
     i2c_execute(frm,i2c_master);
   }
 }
-
+*/
+/*
 void test_i2c_parser(client interface i2c_master_if i2c_master)
 {
   i2c_do("I2CW 03 0001D304\n",i2c_master);
   i2c_do("I2CR 03 04\n",i2c_master);
   i2c_do("I2CWR 03 0001D304 04\n",i2c_master);
 }
-
+*/
+/*
 unsafe int  main()
 {
   interface i2c_master_if i2c_if[1];
@@ -553,6 +559,54 @@ unsafe int  main()
   par
   {
     i2c_master(i2c_if,1,p_1F,p_1C,100);
+    test_i2c_parser(i2c_if[0]);
+  }
+  return 0;
+}
+*/
+
+void i2c_do(const char * cmd, client interface i2c_custom_if i2c_master)
+{
+  struct i2c_frm frm;
+  const char* buff;
+  unsigned ret;
+  buff = cmd;
+  switch (getCommand(cmd,buff))
+  {
+  case i2cw_cmd:
+    ret = i2cw_decode(++buff,frm,'\n');
+    break;
+  case i2cr_cmd:
+    ret = i2cr_decode(++buff,frm);
+    break;
+  case i2cwr_cmd:
+    ret = i2cwr_decode(++buff,frm);
+    break;
+  default:
+    ret = 0;
+    break;
+  }
+  if (ret)
+  {
+    i2c_master.i2c_execute(frm);
+  }
+}
+
+void test_i2c_parser(client interface i2c_custom_if i2c_master)
+{
+  i2c_do("I2CW 03 0001D304\n",i2c_master);
+  i2c_do("I2CR 03 04\n",i2c_master);
+  i2c_do("I2CWR 03 0001D304 04\n",i2c_master);
+}
+
+unsafe int  main()
+{
+  interface i2c_custom_if i2c_if[1];
+  set_port_drive_low(p_1F);
+  set_port_drive_low(p_1C);
+  par
+  {
+    i2c_custom(i2c_if,1,p_1F,p_1C,100);
     test_i2c_parser(i2c_if[0]);
   }
   return 0;

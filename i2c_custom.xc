@@ -72,7 +72,6 @@
 #include <xclib.h>
 #include "rxtx.h"
 #include "i2c_custom.h"
-#include "i2c.h"
 #include "utils.h"
 
 
@@ -690,6 +689,7 @@ unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret)
   return 0;
 }
 */
+/*
 void i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if)
 {
   data.ret_code = i2c_error;
@@ -707,6 +707,7 @@ void i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if)
     data.ret_code = i2c_success;
   } while(0);
 }
+*/
 
 void i2c_response(const struct i2c_frm &packet,char* &str)
 {
@@ -799,33 +800,28 @@ static inline enum i2c_ecode i2c_push_u8(port sda,port scl,unsigned char d,unsig
 /*
  * DeviceID or address is left shifted and ored with (0 write , 1 read)
  */
-static inline i2c_res_t i2c_write(port scl, port sda,unsigned T,unsigned char address,
+static inline enum i2c_ecode i2c_write(port scl, port sda,unsigned T,unsigned char address,
     const char* data,unsigned len)
 {
-  timer t;
-  unsigned tp;
-  i2c_res_t ret;
-  do
+//  timer t;
+//  unsigned tp;
+  enum i2c_ecode ret;
+  i2c_start_bit(scl,sda,T);
+  ret = i2c_push_u8(sda,scl, (address << 1),1);
+  while (len && ret == i2c_0)
   {
-    i2c_start_bit(scl,sda,T);
-    ret = i2c_push_u8(sda,scl, (address << 1),1);
-    if (ret != i2c_0) break;
-    while (len)
-    {
-      ret = i2c_push_u8(sda,scl, *data,1);
-      if (ret != i2c_0) break;
-      data++;
-      len--;
-    }
-    if (ret == i2c_0) ret = i2c_success;
-  } while(0);
+    ret = i2c_push_u8(sda,scl, *data,1);
+    data++;
+    len--;
+  }
+  if (ret == i2c_0) ret = i2c_success;
   return ret;
 }
 
-static inline i2c_res_t i2c_read(port scl, port sda,unsigned T,unsigned char address,
+static inline enum i2c_ecode i2c_read(port scl, port sda,unsigned T,unsigned char address,
     const char* data,unsigned len)
 {
-
+  return i2c_error;
 }
 
 
@@ -848,55 +844,57 @@ unsigned i2cw_decode(const unsigned char* c,struct i2c_frm &ret,char stop_char)
 {
   //I2CW ADDRESS DATA
   unsigned v;
+  unsigned bret = 1;   //ok
   ret.rd_len = 0;
-  do
+
+  v = readHexByte(c);
+  ret.addr = v;
+  if ((*c != ' ') || (v > 0xFF)) bret = 0;
+  if (bret)
   {
-    v = readHexByte(c);
-    if ((*c != ' ') || (v > 0xFF)) break;
-    ret.addr = v;
     c++;
     ret.wr_len = 0;
-    while(*c != stop_char && ret.wr_len < sizeof(ret.dt))
+    while(bret && *c != stop_char && ret.wr_len < sizeof(ret.dt))
     {
       v = readHexByte(c);
-      if ( v > 0xFF ) break;
       ret.dt[ret.wr_len++] = v;
+      if ( v > 0xFF ) bret = 0;
     }
-    if (*c != stop_char) break;
-    if (ret.wr_len == sizeof(ret.dt) ) break;
-    return 1;
-  } while(0);
-  return 0;
+    if (bret && (*c != stop_char)) bret = 0;
+  }
+  return bret;
 }
 
 unsigned i2cr_decode(const unsigned char* c,struct i2c_frm &ret)
 {
   //I2CR ADDRESS READ_LEN
-  if (!i2cw_decode(c,ret,'\n'))
-    return 0;
-  if (ret.wr_len != 1) return 0;
+  unsigned bret;
+  bret = i2cw_decode(c,ret,'\n');
+  if (ret.wr_len != 1 || ret.rd_len > sizeof(ret.dt)) bret = 0;
   ret.rd_len = ret.dt[0];
   ret.wr_len = 0;
-  if (ret.rd_len > sizeof(ret.dt) ) return 0;//overflow
-  return 1;
+  return bret;
 }
 
 unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret)
 {
   unsigned v;
   //I2CR ADDRESS READ_LEN
-  if (!i2cw_decode(c,ret,' '))
-    return 0;
-  v = readHexByte(c);
-  if ((*c != '\n') || (v > 0xFF)) return 0;
-  ret.rd_len = v;
-  if (ret.rd_len + ret.wr_len > sizeof(ret.dt) ) return 0; //overflow
-  return 1;
+  unsigned bret;
+  bret = i2cw_decode(c,ret,' ');
+  if (bret)
+  {
+    v = readHexByte(c);
+    ret.rd_len = v;
+  }
+  if ((v > 0xFF) || (*c != '\n') || ret.rd_len + ret.wr_len > sizeof(ret.dt) ) bret = 0;
+  return bret;
 }
-
+/*
 [[distributable]] void i2c_custom(server interface i2c_custom_if i2c_if[n],size_t n,port scl, port sda, unsigned kbits_per_second)
 {
   unsigned T = ms/kbits_per_second;
+  //size_t num_bytes_sent;
   set_port_drive_low(scl);
   set_port_drive_low(sda);
   //  set_port_pull_up(scl);
@@ -908,21 +906,18 @@ unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret)
      select {
      case (size_t i =0; i < n; i++) i2c_if[i].i2c_execute(struct i2c_frm &data):
          data.ret_code = i2c_error;
-         size_t num_bytes_sent;
-         do
+         if (data.wr_len)
          {
-           if (data.wr_len)
-           {
-             if (i2c_write(scl,sda,T,data.addr,data.dt,data.wr_len) != I2C_ACK) break;
-           }
-           if (data.rd_len)
-           {
-             if (i2c_read(scl,sda,T,data.addr,data.dt + data.wr_len,data.rd_len) != I2C_ACK) break;
-           }
-           data.ret_code = i2c_success;
-         } while (0);
+           data.ret_code = i2c_write(scl,sda,T,data.addr,data.dt,data.wr_len);
+         }
+         if (data.ret_code == i2c_success && data.rd_len)
+         {
+           data.ret_code = i2c_read(scl,sda,T,data.addr,data.dt + data.wr_len,data.rd_len);
+         }
          i2c_stop_bit(scl,sda,T);
          break;
      }
   }
 }
+*/
+

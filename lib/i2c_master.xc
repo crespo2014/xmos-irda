@@ -34,7 +34,7 @@ static unsigned release_clock_and_wait(port i2c_scl,
  *  sample the data line (if required). Timing is done via the fall_time
  *  reference and bit_time period supplied.
  */
-static enum i2c_ecode high_pulse_sample(port i2c_scl, port ?i2c_sda,
+static unsigned high_pulse_sample(port i2c_scl, port ?i2c_sda,
                              unsigned bit_time,
                              unsigned &fall_time) {
   int sample_value;
@@ -45,7 +45,7 @@ static enum i2c_ecode high_pulse_sample(port i2c_scl, port ?i2c_sda,
   tmr when timerafter(fall_time + bit_time / 2 + bit_time / 32) :> void;
   if (!(release_clock_and_wait(i2c_scl, fall_time, (bit_time * 3) / 4) & 0xF0) )
   {
-    return i2c_timeout;
+    return 3;
   }
   tmr :> fall_time;
   if (!isnull(i2c_sda)) {

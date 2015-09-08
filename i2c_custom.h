@@ -9,8 +9,8 @@
 #ifndef I2C_H_
 #define I2C_H_
 
-#include "i2c.h"
-
+//#include "i2c.h"
+/*
 enum i2c_st_v2
 {
   start,
@@ -48,11 +48,12 @@ enum i2c_st_v2
   stop,
   i2c_none,
 };
-
+*/
 /*
  * Status.
  * idle - to start transmition set sda=0, st = addr, sub_st = clk_up, bitmask
  */
+/*
 enum i2c_st {
   idle,     // SDA = 1 SCL = 1
   wr1,      // written
@@ -61,11 +62,13 @@ enum i2c_st {
   rd,     // reading
   stp,        //
 };
+*/
 
 /*
  * I2c substatus
  * Reading and generating signals have identical states
  */
+/*
 enum i2c_sub_st
 {
   scl_none,
@@ -84,6 +87,7 @@ enum i2c_sub_st
   to_signal,
   signaling,
 };
+*/
 
 #define I2C_SDA1  1
 #define I2C_SCL1  2
@@ -104,6 +108,20 @@ enum i2c_sub_st
  * cmd interfaz only send i2c one by one, but it need to be asynchronious
  */
 
+/*
+ * Returned error codes for i2c command execution
+ */
+enum i2c_ecode
+{
+  i2c_0 = 0,
+  i2c_1 = 1,
+  i2c_data_max,     // if valued more than this then it is an error
+  i2c_success,
+  i2c_overflow,
+  i2c_timeout,
+  i2c_error,
+};
+
 struct i2c_frm
 {
     unsigned addr;    //device address
@@ -119,6 +137,7 @@ struct i2c_frm
  * Packet to build from commands
  * I2CW and I2CR
  */
+/*
 struct i2c_packet_v2
 {
     unsigned char addr;
@@ -128,7 +147,8 @@ struct i2c_packet_v2
     unsigned cmd;
     unsigned value;
 };
-
+*/
+/*
 struct i2c_chn_v2
 {
     struct i2c_frm* movable pfrm;
@@ -156,6 +176,7 @@ struct i2c_chn
     unsigned char sda_mask;
     unsigned char scl_mask;
 };
+*/
 
 interface i2c_custom_if
 {
@@ -165,7 +186,7 @@ interface i2c_custom_if
 //extern void i2c_dual(port p);
 //extern void i2c_dual_v2(port p);
 //extern void i2c_2x1bit_v3(port sda,port scl);
-extern void i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if);
+//extern void i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if);
 
 extern unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret);
 extern unsigned i2cr_decode(const unsigned char* c,struct i2c_frm &ret);
