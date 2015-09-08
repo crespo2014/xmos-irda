@@ -723,66 +723,53 @@ void i2c_response(const struct i2c_frm &packet,char* &str)
 }
 
 /*
- * A new i2c implementation that does not block if pins are disconected
- */
-
-/*
  * Release the clock and wait until it become high, (Streching)
  * keep readin the port until one 1 is read or no more tries.
- * d start at 7 it will drop to 0 after 3 tries
- * if bit 7 become 1 then port is 1.
- * The out condition is bit7 1 or bit0 0
+ *  d start at F it will drop to 0 after 4 tries
  *
- * Original fucntion wait for 1 or delay 3/4 tick.
- */
-static inline unsigned i2c_clock_wait_up(port scl,unsigned bit_time)
-{
-  scl <: 1;
-  unsigned d = 0x7;
-  do
-  {
-    delay_ticks(bit_time / 4);
-    scl :> >>d;
-  } while (d & 0x3);  // do 3 times anyway
-  return d;
-}
-
-/*
+ * Up clock and wait. after 2T is timeout.
+ *
  * Read bit from clock at 3/4 part of the high pulse
- * The function make space from the previous
- *
  */
-static inline unsigned i2c_read_bit(port sda,port scl,unsigned bit_time)
+static inline enum i2c_ecode i2c_read_bit(port scl, port sda, unsigned T)
 {
-  int value;
-  sda <: 1;
-  delay_ticks(bit_time);
-  if ((i2c_clock_wait_up(scl,bit_time) & 0xE0) == 0 )
-    return 3;   //nack
-  sda :> value;
-  delay_ticks(bit_time);
+  unsigned d;
+  d = 0x7;
+  sda :> int _;
+  delay_ticks(T / 2 + T / 32);
+  scl <: 1;
+  while(1)
+  {
+    scl :> >>d;
+    if (d & 0x80) break;      // todo take time here and return as fall time.
+    if (!d) return i2c_timeout;
+    delay_ticks(T / 2);
+  }
+  delay_ticks((T * 3) / 4);   // wait before read
+  sda :> d;
+  delay_ticks(T / 4);         // wait before put low
   scl <: 0;
-  return value;
+  return d;   // 0  or 1
 }
 
-static inline void i2c_start_bit(port i2c_scl, port i2c_sda,unsigned bit_time)
+static inline void i2c_start_bit(port i2c_scl, port i2c_sda,unsigned T)
 {
-  unsigned fall_time;
   i2c_scl :> void;
-  delay_ticks(bit_time / 4);
+  delay_ticks(T / 4);
   i2c_sda  <: 0;
-  delay_ticks(bit_time / 2);
+  delay_ticks(T / 2);
   i2c_scl  <: 0;
 }
 
 /*
  * Generate a clock signal to send bit already set in sda
+ * T period in ticks units
  */
-static inline void i2c_push_bit(port scl,unsigned bit_time)
+static inline void i2c_push_bit(port scl,unsigned T)
 {
-  delay_ticks(bit_time / 2);
+  delay_ticks(T / 2);
   scl <: 1;
-  delay_ticks(bit_time / 2);
+  delay_ticks(T / 2);
   scl <: 0;
 }
 

@@ -28,7 +28,11 @@ unsigned readHexChar(const char *&str)
 
 unsigned readHexByte(const char* &str)
 {
-  return readHexChar(str) << 4 | readHexChar(str);
+  unsigned v;
+  v = readHexChar(str);
+  v <<= 4;
+  v |=  readHexChar(str);
+  return v;
 }
 
 unsigned getHexChar(unsigned u4)

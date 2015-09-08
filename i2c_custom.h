@@ -11,15 +11,6 @@
 
 #include "i2c.h"
 
-enum i2c_ecode
-{
-  i2c_success,
-  i2c_ack,
-  i2c_nack,
-  i2c_overflow,
-  i2c_timeout,
-};
-
 enum i2c_st_v2
 {
   start,

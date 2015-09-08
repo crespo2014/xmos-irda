@@ -9,7 +9,7 @@
  *  Since the line going high may be delayed, the fall_time value may
  *  need to be adjusted
  */
-static void release_clock_and_wait(port i2c_scl,
+static unsigned release_clock_and_wait(port i2c_scl,
                                    unsigned &fall_time,
                                    unsigned delay)
 {
@@ -27,13 +27,14 @@ static void release_clock_and_wait(port i2c_scl,
     delay_ticks(delay / 4);
     i2c_scl :> >>d;
   } while (d & 0xF);  // do 3 times anyway
+  return d;
 }
 
 /** 'Pulse' the clock line high and in the middle of the high period
  *  sample the data line (if required). Timing is done via the fall_time
  *  reference and bit_time period supplied.
  */
-static int high_pulse_sample(port i2c_scl, port ?i2c_sda,
+static enum i2c_ecode high_pulse_sample(port i2c_scl, port ?i2c_sda,
                              unsigned bit_time,
                              unsigned &fall_time) {
   int sample_value;
@@ -42,7 +43,11 @@ static int high_pulse_sample(port i2c_scl, port ?i2c_sda,
     i2c_sda :> int _;
   }
   tmr when timerafter(fall_time + bit_time / 2 + bit_time / 32) :> void;
-  release_clock_and_wait(i2c_scl, fall_time, (bit_time * 3) / 4);
+  if (!(release_clock_and_wait(i2c_scl, fall_time, (bit_time * 3) / 4) & 0xF0) )
+  {
+    return i2c_timeout;
+  }
+  tmr :> fall_time;
   if (!isnull(i2c_sda)) {
     i2c_sda :> sample_value;
   }
@@ -58,7 +63,7 @@ static int high_pulse_sample(port i2c_scl, port ?i2c_sda,
 static void high_pulse(port i2c_scl, unsigned bit_time,
                        unsigned &fall_time)
 {
-  high_pulse_sample(i2c_scl, null, bit_time, fall_time);
+   high_pulse_sample(i2c_scl, null, bit_time, fall_time);
 }
 
 /** Output a start bit. The function returns the 'fall time' i.e. the
