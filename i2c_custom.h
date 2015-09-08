@@ -88,13 +88,14 @@ enum i2c_sub_st
   signaling,
 };
 */
-
+/*
 #define I2C_SDA1  1
 #define I2C_SCL1  2
 #define I2C_SDA2  4
 #define I2C_SCL2  8
 #define I2C_MASK1 3
 #define I2C_MASK2 12
+*/
 
 /*
  * main state (idle, start,addr,data_wr, data_ack, data_rd, stop)
@@ -183,14 +184,10 @@ interface i2c_custom_if
     void i2c_execute(struct i2c_frm &data);
 };
 
-//extern void i2c_dual(port p);
-//extern void i2c_dual_v2(port p);
-//extern void i2c_2x1bit_v3(port sda,port scl);
-//extern void i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if);
-
 extern unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret);
 extern unsigned i2cr_decode(const unsigned char* c,struct i2c_frm &ret);
 extern unsigned i2cw_decode(const unsigned char* c,struct i2c_frm &ret,char stop_char);
 
-[[distributable]] void i2c_custom(server interface i2c_custom_if i2c_if[n],size_t n,port scl, port sda, unsigned kbits_per_second);
+ [[distributable]] extern void i2c_custom(server interface i2c_custom_if i2c_if[n],size_t n,port scl, port sda, unsigned kbits_per_second);
+
 #endif /* I2C_H_ */

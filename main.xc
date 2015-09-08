@@ -13,16 +13,14 @@
 #include <rxtx.h>
 #include "irda.h"
 #include "serial.h"
-//#include "i2c.h"
 #include "cmd.h"
 #include "i2c_custom.h"
-
+/*
 out port p_1G = XS1_PORT_1G;
 out port p_1D = XS1_PORT_1D;
 out port po_1I = XS1_PORT_1I;
 in port p_1K = XS1_PORT_1K;
-port p_1F = XS1_PORT_1F;
-port p_1C = XS1_PORT_1C;
+
 
 in port p = XS1_PORT_4A;
 out port p2 = XS1_PORT_4B;
@@ -44,6 +42,7 @@ out port clockOut  = XS1_PORT_1N;
 //out port clk_pin = XS1_PORT_1G;
 clock    clk      = XS1_CLKBLK_1;
 clock    clk_2    = XS1_CLKBLK_2;
+*/
 
 //out buffered port:8 tx_16  = XS1_PORT_1P;
 /*
@@ -309,6 +308,7 @@ int main_irda_clocked_tx(clock clk,out buffered port:32 p32)
  * Use internal timer for timeouts.
  * use port timer for transitions timed.
  */
+/*
 interface in_port_if
 {
   [[notification]] slave void onChange();
@@ -318,7 +318,8 @@ interface in_port_if
   //void trackingOff();
 };
 
-void waitport(in port p/*,server interface in_port_if cmd[2]*/,streaming chanend c[])
+
+void waitport(in port p,streaming chanend c[])
 {
   unsigned char pv,pv1;
   unsigned int tp;
@@ -400,6 +401,7 @@ void portUpdate(out port p)
     }
   }
 }
+*/
 
 /*
  * Signal when a data is received in a channel
@@ -592,12 +594,16 @@ void i2c_do(const char * cmd, client interface i2c_custom_if i2c_master)
   }
 }
 
+
 void test_i2c_parser(client interface i2c_custom_if i2c_master)
 {
   i2c_do("I2CW 03 0001D304\n",i2c_master);
   i2c_do("I2CR 03 04\n",i2c_master);
   i2c_do("I2CWR 03 0001D304 04\n",i2c_master);
 }
+
+port p_1F = XS1_PORT_1F;
+port p_1C = XS1_PORT_1C;
 
 unsafe int  main()
 {
@@ -611,6 +617,12 @@ unsafe int  main()
   }
   return 0;
 }
+/*
+int main()
+{
+  return 0;
+}
+*/
 
 /* todo.
  * analog to digital converter plus interface via serial port

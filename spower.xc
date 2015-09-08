@@ -15,7 +15,7 @@
 
 #include "spower.h"
 
-
+/*
 void switch_power_supply(server interface switch_power_if iface)
 {
 ////  timer t;
@@ -25,3 +25,4 @@ void switch_power_supply(server interface switch_power_if iface)
 //
 //  }
 }
+*/

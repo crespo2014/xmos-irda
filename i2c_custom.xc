@@ -890,7 +890,7 @@ unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret)
   if ((v > 0xFF) || (*c != '\n') || ret.rd_len + ret.wr_len > sizeof(ret.dt) ) bret = 0;
   return bret;
 }
-/*
+
 [[distributable]] void i2c_custom(server interface i2c_custom_if i2c_if[n],size_t n,port scl, port sda, unsigned kbits_per_second)
 {
   unsigned T = ms/kbits_per_second;
@@ -919,5 +919,5 @@ unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret)
      }
   }
 }
-*/
+
 
