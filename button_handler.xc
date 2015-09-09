@@ -6,9 +6,11 @@
 #include "rxtx.h"
 #include "irda.h"
 
+/*
 extern void irda_rd(in port p, chanend c);
 extern void irda_rd_v1(in port p, chanend c);
 extern void irda_rd_v3(in port p, chanend c);
+*/
 /*
 
  //interface to task comunication

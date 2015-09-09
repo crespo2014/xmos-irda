@@ -572,6 +572,7 @@ void i2c_do(const char * cmd, client interface i2c_custom_if i2c_master)
   struct i2c_frm frm;
   const char* buff;
   unsigned ret;
+  ret = 0;
   buff = cmd;
   switch (getCommand(cmd,buff))
   {
@@ -583,9 +584,6 @@ void i2c_do(const char * cmd, client interface i2c_custom_if i2c_master)
     break;
   case i2cwr_cmd:
     ret = i2cwr_decode(++buff,frm);
-    break;
-  default:
-    ret = 0;
     break;
   }
   if (ret)

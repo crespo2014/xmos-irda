@@ -57,3 +57,32 @@ void command(client interface buffer_v1_if   serial,
 }
 */
 
+/*
+ * Buffers that hold data comming from serial channel.
+ * It invoke command interface when a packet is recieved
+ *
+ * v2. integrate into rx, signal when a packet is ready to process
+ * two buffers holder.
+ */
+[[combinable]] void SerialRX_Cmd(streaming chanend ch)
+{
+  struct rx_u8_buff  s_packet;    // static packet
+  struct rx_u8_buff* movable packet = &s_packet;
+  unsigned discarded;     // how many bytes throw away before a valid packet.
+  unsigned char data;
+  packet->len = 0;
+  packet->overflow = 0;
+  discarded = 0;
+  while(1)
+  {
+    select {
+      case ch :> data:
+        if (packet->len < sizeof(packet->dt))
+          packet->dt[packet->len++] = data;
+        else
+          packet->overflow++;
+        break;
+    }
+  }
+}
+

@@ -73,3 +73,4 @@ unsigned isPreffix(const char* pref,const char *str,const char *&last)
   return (*pref == 0);
 }
 
+
