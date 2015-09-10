@@ -63,7 +63,31 @@ void command(client interface buffer_v1_if   serial,
  *
  * v2. integrate into rx, signal when a packet is ready to process
  * two buffers holder.
+ *
+ * v3. two implementation can be done
+ *  - Rx task store data on buffer.
+ *   when timeouts a notyfication is send and the buffer swap with other one
+ *   cmd task will request the buffer.
+ *   cons - event that return buffer to cmd can block the rx for a not acceptable amount of time
+ *
+ * v4. Buffer task reading from channel stream with timeout will store incoming bytes.
+ *   when it timeouts the buffered is processed.
+ *   channel can hold until 8 bytes, that gives enough time to execute the previous command.
+ *
+ * V4.1 create a router that hold all packets using linked list for each interface.
+ *  easy to dispatch packets without blocking task.
+ *
+ *  v4.2 Rx gap between frames can be enough to allow send command to router.
+ *
  */
+enum cmd_st
+{
+  cmd_id,
+  cmd_len,
+  cmd_data,
+  cmd_ascii,
+};
+
 [[combinable]] void SerialRX_Cmd(streaming chanend ch)
 {
   struct rx_u8_buff  s_packet;    // static packet
