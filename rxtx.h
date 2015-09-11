@@ -258,6 +258,42 @@ extern void fastRX_v5(streaming chanend ch,in port p,clock clk);
 extern void fastRX_v6(streaming chanend ch,in port p,clock clk);
 extern void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1);
 [[distributable]] extern void fastTX_v7(server interface fast_tx tx_if,clock clk,out buffered port:8 p);
+
+enum tx_task
+{
+  to_cmd = 0,
+  to_serial_tx,
+  to_max,
+};
+
+enum rx_task
+{
+  serial_rx,
+  cmd_rx,     // command dispatching
+  max_rx,
+};
+
+struct u8_frame_item
+{
+    unsigned char dt[32];
+    unsigned char len;      // actual len of buffer
+    unsigned char overflow; // how many bytes lost
+    struct u8_frame_item * movable next;
+};
+
+interface tx_frame_if
+{
+  [[notification]] slave void ondata();       // means data is waiting to be read
+  [[clears_notification]] void get(struct u8_frame_item  * movable &old_p);
+};
+
+interface rx_frame_if
+{
+  void push(struct u8_frame_item  * movable &old_p,enum tx_task dest);
+};
+
+
+
 #endif /* RXTX_H_ */
 
 

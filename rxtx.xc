@@ -716,4 +716,42 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
     }
   }
 }
+/*
+ * All packet will came to this interface for deliverying
+ * All TX task will be combine in one.#
+ * All RX will be alone in a core
+ * Command can be combine with tx also.
+ */
+[[distributable]] void Router_v2(server interface tx_frame_if process[to_max],interface rx_frame_if rx_if)
+{
+#define max_frame 8
+  unsigned free_frame_idx = 0;  // first free frame on list, every frame below this is null
+  struct u8_frame_item frm[max_frame];
+  struct u8_frame_item * movable free_list[max_frame] = { &frm[0],&frm[1],&frm[2],&frm[3],&frm[4],&frm[5],&frm[6],&frm[7]};
+  // list of frame per interface
+  struct u8_frame_item  * movable first_of[to_max];
+  while(1)
+  {
+    select
+    {
+    case process[int j].get(struct u8_frame_item  * movable &old_p):
+        // get first on the list
+        if (old_p != 0)
+        {
+          --free_frame_idx;
+          free_list[free_frame_idx] = move(old_p);
+        }
+        if (first_of[j] != 0)
+        {
+          struct u8_frame_item  * movable p;
+          p = move(first_of[j]->next);
+          old_p = move(first_of[j]);
+          first_of[j] = move(p);
+        }
+        break;
+    case rx_if.push(struct u8_frame_item  * movable &old_p,enum tx_task dest):
 
+        break;
+    }
+  }
+}
