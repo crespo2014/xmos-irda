@@ -749,8 +749,10 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
           first_of[j] = move(p);
         }
         break;
+        // an input task push data, it need back a free buffer.
     case rx_if.push(struct u8_frame_item  * movable &old_p,enum tx_task dest):
-
+        // todo it is hard to walk thorugh a list and peek an element.
+            // try to using a array of 8 pointer, and a counter of last
         break;
     }
   }
