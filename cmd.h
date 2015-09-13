@@ -13,10 +13,11 @@
 
 enum cmd_e
 {
-  none_cmd,
-  i2cw_cmd,
+  i2cw_cmd = 0,
   i2cr_cmd,
   i2cwr_cmd,
+  cmd_irda_input,   //id for bunary data comming from irda
+  none_cmd,
 };
 
 extern enum cmd_e getCommand(const unsigned char* c,const unsigned char* &t);

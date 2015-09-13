@@ -18,6 +18,7 @@
 // sending cr until get OK will synchronize the communication. do not send cr to fast
 // write 0x00 (clear the line) and CR two times
 
+#if 0
 /*
  * Serial tx over irda led
  * Combinable function
@@ -669,6 +670,7 @@ void serial_buffer(server interface serial_buffer_if cmd,
   }
 }
 */
+#endif
 
 /*
  * Serial Rx with buffer and timeout

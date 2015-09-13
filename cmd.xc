@@ -22,12 +22,6 @@
 #include "utils.h"
 #include "cmd.h"
 
-
-struct cmd_tbl_t {
-  const unsigned char* unsafe str;
-  enum cmd_e cmd;
-};
-
 /*
  * Use a termination character to make not possible past the end of the string
  */
@@ -98,12 +92,20 @@ void ParseCommand(const char* data,unsigned char len,struct rx_u8_buff &ret)
   const char* resp;
   char* l;
   // is ascii command
-  if (*data > ' ' && getCommand(data,l) != none_cmd)
+  if (*data > ' ')
   {
-   resp = "OK\n";
+    if (getCommand(data,l) != none_cmd)
+      resp = "OK\n";
+    else
+      resp = "NOK invalid cmd\n";
   }
   else
-    resp = "NOK\n";
+  {
+    if (*data >= none_cmd)
+      resp = "NOK invalid id\n";
+    else
+      resp = "OK\n";
+  }
   safestrcpy(ret.dt,resp);
   ret.len = safestrlen(ret.dt);
 #endif
