@@ -140,5 +140,7 @@ extern void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsi
 [[combinable]] extern void serial_rx_v4(server interface serial_rx_if uart_if, streaming chanend c,in port rx);
 [[combinable]] extern void serial_tx_v4(server interface uart_v4 uart_if,server interface tx tx_if,out port p);
 
+[[distributable]] extern void serial_tx_v5(server interface uart_v4 uart_if,server interface tx_if tx,out port p);
+extern void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_frame_if router,in port rx);
 
 #endif /* SERIAL_H_ */

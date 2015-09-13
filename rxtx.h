@@ -230,6 +230,13 @@ interface fast_tx
   void push(unsigned char dt);
 };
 
+// for irda write from msb to lsb
+// len is the number of bits
+interface tx_if
+{
+  void send(const char* data,unsigned char len);
+};
+
 [[distributable]] extern void fastTX(server interface fast_tx tx_if,clock clk,out buffered port:32 p);
 extern void fastRX(streaming chanend ch,in port p);
 extern void fastRXParser(streaming chanend ch);
@@ -273,23 +280,18 @@ enum rx_task
   max_rx,
 };
 
-struct u8_frame_item
-{
-    unsigned char dt[32];
-    unsigned char len;      // actual len of buffer
-    unsigned char overflow; // how many bytes lost
-    struct u8_frame_item * movable next;
-};
-
+//Tx or output interface
 interface tx_frame_if
 {
   [[notification]] slave void ondata();       // means data is waiting to be read
-  [[clears_notification]] void get(struct u8_frame_item  * movable &old_p);
+  [[clears_notification]] void get(struct rx_u8_buff  * movable &old_p,enum tx_task dest);
+  void push(struct rx_u8_buff  * movable &old_p);   // return back the frame
 };
 
+//Rx or input interface
 interface rx_frame_if
 {
-  void push(struct u8_frame_item  * movable &old_p,enum tx_task dest);
+  void push(struct rx_u8_buff  * movable &old_p,enum tx_task dest);
 };
 
 
