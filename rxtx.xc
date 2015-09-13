@@ -12,6 +12,7 @@
 #include <platform.h>
 #include "rxtx.h"
 
+#if 0
 /*
  * Buffer manipulator.
  * Store until 4 blocks of 20 bytes each one
@@ -622,7 +623,7 @@ void fastRX_v6(streaming chanend ch,in port p,clock clk)
     }
   }
 }
-
+#endif
 /*
  * v7
  * wait for 1 read as 8bit buffered port at 2 times freq.
@@ -735,20 +736,20 @@ struct frames_buffer
  * All RX will be alone in a core
  * Command can be combine with tx also.
  */
-[[distributable]] void Router_v2(server interface tx_frame_if process[to_max],server interface rx_frame_if rx_if)
+[[distributable]] void Router_v2(server interface packet_tx_if tx_if[max_tx],server interface rx_frame_if rx_if[max_rx])
 {
 #define max_frame 16
   unsigned free_count;  // first free frame on list, every frame below this is null
   struct rx_u8_buff frm[max_frame];
   struct rx_u8_buff * movable free_list[max_frame] = { &frm[0],&frm[1],&frm[2],&frm[3],&frm[4],&frm[5],&frm[6],&frm[7],&frm[8],&frm[9],&frm[10],&frm[11],&frm[12],&frm[13],&frm[14],&frm[15]};
-  struct frames_buffer frames[to_max];    // frames per interface
+  struct frames_buffer frames[max_tx];    // frames per interface
 
   free_count = max_frame;
   while(1)
   {
     select
     {
-    case process[int _].get(struct rx_u8_buff  * movable &old_p,enum tx_task dest):
+    case tx_if[int _].get(struct rx_u8_buff  * movable &old_p,enum tx_task dest):
       // get first on the list
       if (old_p != 0)
       {
@@ -761,25 +762,23 @@ struct frames_buffer
         frames[dest].count--;
       }
       if (frames[dest].count != 0)
-        process[dest].ondata();
+        tx_if[dest].ondata();
       break;
-    case process[int _].push(struct rx_u8_buff  * movable &old_p):
+    case tx_if[int _].push(struct rx_u8_buff  * movable &old_p):
       free_list[free_count++] = move(old_p);
       break;
         // an input task push data, it need back a free buffer.
-    case rx_if.push(struct rx_u8_buff  * movable &old_p,enum tx_task j):
-      if (frames[j].count != frame_buffer_list_max)
+    case rx_if[int _].push(struct rx_u8_buff  * movable &old_p,enum tx_task j):
+      if (frames[j].count != frame_buffer_list_max && free_count)
       {
         unsigned char pos = (frames[j].rd_idx + frames[j].count) & (frame_buffer_list_max -1);
         frames[j].list[pos] = move(old_p);
         frames[j].count++;
         if (frames[j].count == 1)
-          process[j].ondata();
-        if (free_count)
-        {
-          free_count--;
-          old_p = move(free_list[free_count]);
-        }
+          tx_if[j].ondata();
+        // return a free buffer
+        free_count--;
+        old_p = move(free_list[free_count]);
       }
       break;
     }
@@ -789,7 +788,7 @@ struct frames_buffer
 /*
  * Task for tx interface.
  */
-[[combinable]] void TX_Worker(client interface tx_frame_if tx_input[count],client interface tx_if tx_out[count],enum tx_task tx_id[count],unsigned count)
+[[combinable]] void TX_Worker(client interface packet_tx_if tx_input[max_tx],client interface tx_if tx_out[max_tx])
 {
   while(1)
   {
@@ -797,7 +796,7 @@ struct frames_buffer
     {
       case tx_input[int j].ondata():
         struct rx_u8_buff  * movable &pfrm;
-        tx_input[j].get(pfrm,tx_id[j]);
+        tx_input[j].get(pfrm,j);
         if (pfrm != 0)
         {
           tx_out[j].send(pfrm->dt,pfrm->len);

@@ -704,7 +704,7 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
         {
           if (pframe->len != 0)
           {
-            router.push(pframe,to_cmd);
+            router.push(pframe,cmd_tx);
             pframe->len = 0;
             pframe->overflow = 0;
           }
@@ -738,7 +738,7 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
           }
           if (!binary_mode && dt == '\n')
           {
-            router.push(pframe,to_cmd);
+            router.push(pframe,cmd_tx);
             binary_mode = 0;
             pframe->len = 0;
             pframe->overflow = 0;

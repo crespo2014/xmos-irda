@@ -63,20 +63,22 @@
 #include <rxtx.h>
 #include "irda.h"
 
-
+#if 0
+/*
  enum dest_e {
     to_none,
     to_cmd,
     to_ch0_tx,
     to_ch1_tx,
   };
-
+*/
 /*
  * Frame buffer structure
  * - support for destinity
  * - support for peek and push
  *
  */
+/*
 struct frm_buff_t
 {
 #define BUFF_MAX 8
@@ -84,6 +86,7 @@ struct frm_buff_t
   struct tx_frame_t* movable pfrm[BUFF_MAX];// = {&frm[0],&frm[1],&frm[2],&frm[3],&frm[4],&frm[5],&frm[6],&frm[7]};
   unsigned char free_count;  // how many frame with no data
 };
+*/
 
 /*
  * Initialize frame buffer structure
@@ -227,7 +230,7 @@ void Router(
     }
   }
 }
-
+#endif
 /*
  * Command task
  * it will read a command and it will create the answer in the same frame,
@@ -407,6 +410,7 @@ void Router(
   }
 }
 
+#if 0
 /*
  * Transmition channel 0
  */
@@ -580,6 +584,7 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T,client interface faul
        }
     }
 }
+#endif
 /*
  * User interface
  * For error reporting

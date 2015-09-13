@@ -52,7 +52,7 @@ void getHexBuffer(const unsigned char *d,unsigned len,char * &str)
   }
 
 }
-
+#if 0
 void strcpy(char* &dest,const char* src)
 {
   while ((*dest = *src) != 0)
@@ -61,6 +61,7 @@ void strcpy(char* &dest,const char* src)
     ++src;
   }
 }
+#endif
 
 unsigned isPreffix(const char* pref,const char *str,const char *&last)
 {
