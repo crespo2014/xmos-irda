@@ -39,7 +39,12 @@ unsigned getHexChar(unsigned u4)
 {
   return u4 + (u4 < 10) ? '0' : 'A';
 }
-
+/*
+ * Convert a data buffer to hex char string
+ * d : pointer to buffer
+ * len : len of buffer
+ * str : output string
+ */
 void getHexBuffer(const unsigned char *d,unsigned len,char * &str)
 {
   while (len--)
@@ -52,7 +57,7 @@ void getHexBuffer(const unsigned char *d,unsigned len,char * &str)
   }
 
 }
-#if 0
+#if 1
 void strcpy(char* &dest,const char* src)
 {
   while ((*dest = *src) != 0)

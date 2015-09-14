@@ -444,7 +444,101 @@ int main()
   return 0;
 }
 */
+ void printTime_v2(chanend c) {
+     char t1;
+     while (1) {
+         c :> t1;
+         printf(t1 == '2' ? "\n" : t1 == '3' ? "\nS" : t1 == '1' ? "1" : "0");
+     }
+ }
+ void printTime(chanend c) {
+     int t0, t1;
+     while (1) {
+         c :> t1;
+         printf("1 %d T %d \n", t1, t1 + t0);
+         c :> t0;
+         printf("0 %d ", t0);
+     }
+ }
 
+ void print_i(chanend c) {
+     int t1;
+     while (1) {
+         c :> t1;
+         printf("%d\n", t1);
+     }
+ }
+
+ void print_u(chanend c) {
+     unsigned t1;
+     while (1) {
+         c :> t1;
+         printf("%u\n", t1);
+     }
+ }
+
+ void print_us(chanend c)
+ {
+   unsigned t1;
+   while (1) {
+       c :> t1;
+       printf("%uus\n", t1*SYS_TIMER_T_ns/1000);
+   }
+ }
+ void print_b(chanend c) {
+     unsigned t1;
+     while (1) {
+         c :> t1;
+         do {
+             printf("%d", t1 % 2);
+             t1 /= 2;
+         } while (t1);
+         printf("\n");
+     }
+ }
+
+
+
+ //void test_xscope()
+ //{
+ //  xscope_register(2,
+ //             XSCOPE_CONTINUOUS, "Continuous Value 1", XSCOPE_INT, "Value",
+ //             XSCOPE_CONTINUOUS, "Continuous Value 2", XSCOPE_INT, "Value");
+ //  xscope_enable();
+ //  unsigned int i;
+ //  timer t;
+ //  unsigned tp;
+ //  t :> tp;
+ //  for (tp=2;tp !=0;)
+ //  {
+ //    //tp += sec;
+ //    //t when timerafter(tp) :> void;
+ //    for (i = 0; i < 100; i++) {
+ //      xscope_int(0, i);
+ //      xscope_int(1, i/2 /*(i>50) ? -i : i*/ );
+ //    }
+ //  }
+ //}
+
+
+ void print_char(chanend c) {
+     char t1;
+     while (1) {
+         c :> t1;
+         if (t1 == 'E' || t1 == 'S')
+             printf("\n");
+         printf("%c", t1);
+
+     }
+ }
+
+ void print_none(chanend c)
+ {
+   unsigned t1;
+   while (1) {
+           c :> t1;
+   }
+ }
 
 void print_h(streaming chanend c) {
     unsigned char t1;
