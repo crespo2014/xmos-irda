@@ -456,45 +456,42 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
     {
       case p when pinsneq(pv) :> pv:
         t :> tp;
-        if (pv_length == 0)   //ignored tansition
-        {
-         reading = 1;
-         tp += bitlen/2;
-        }
-        else if (pv == 1 && bitcount) // only use 0 to 1 transition and after start
+        if (pv_length != 0 && pv == 1 && bitcount) // only use 0 to 1 transition and after start
         {
             bitcount++;
             v = v << 1;
             if (pv_length > 2)
               v = v | 1;
         }
+        reading = 1;      // start sampling
+        pv_length = 0;
+        tp += bitlen/2;
         break;
       case reading => t when timerafter(tp):> void:
         pv_length++;
         tp += bitlen/2;
-        if (pv_length > 7)  // start or stop
+        if (pv_length < 7)  break;  // keep sampling
+        // start or stop
+        if (pv == 1)  // stop condition
         {
-          if (pv == 1)  // stop condition
+          if (bitcount > 1)
           {
-            if (bitcount > 1)
-            {
-              pframe->dt[0] = cmd_irda_input;
-              pframe->dt[1] = bitcount - 1;
-              pframe->dt[2] = v >> 24;
-              pframe->dt[3] = v >> 16;
-              pframe->dt[4] = v >> 8;
-              pframe->dt[5] = v & 0xFF;
-              pframe->len = 6;
-              router.push(pframe,cmd_tx);
-            }
-            bitcount = 0;
+            pframe->dt[0] = cmd_irda_input;
+            pframe->dt[1] = bitcount - 1;
+            pframe->dt[2] = v >> 24;
+            pframe->dt[3] = v >> 16;
+            pframe->dt[4] = v >> 8;
+            pframe->dt[5] = v & 0xFF;
+            pframe->len = 6;
+            router.push(pframe,cmd_tx);
           }
-          else
-            bitcount = 1;   // counting start as bit
-          v = 0;
-          pv_length = 0;
-          reading = 0;  // no more samples
+          bitcount = 0;
         }
+        else
+          bitcount = 1;   // counting start as bit
+        v = 0;
+        pv_length = 0;
+        reading = 0;  // no more samples
         break;
     }
   }

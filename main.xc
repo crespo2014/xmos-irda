@@ -716,7 +716,6 @@ void serial_manager(
         buff[3] = data >> 8;
         buff[4] = data & 0xFF;
         tx.send(buff,5);
-
 //      irda_send(d,8,tx);
       data++;
       tp = tp + 500*us;

@@ -175,7 +175,11 @@ struct frames_buffer
   struct rx_u8_buff frm[max_frame];
   struct rx_u8_buff * movable free_list[max_frame] = { &frm[0],&frm[1],&frm[2],&frm[3],&frm[4],&frm[5],&frm[6],&frm[7],&frm[8],&frm[9],&frm[10],&frm[11],&frm[12],&frm[13],&frm[14],&frm[15]};
   struct frames_buffer frames[max_tx];    // frames per interface
-
+  for (int i = 0;i<max_tx;++i)
+  {
+   frames[i].count = 0;
+   frames[i].rd_idx = 0;
+  }
   free_count = max_frame;
   while(1)
   {
@@ -227,7 +231,7 @@ struct frames_buffer
     select
     {
       case tx_input[int j].ondata():
-        struct rx_u8_buff  * movable &pfrm;
+        struct rx_u8_buff  * movable pfrm;
         tx_input[j].get(pfrm,j);
         if (pfrm != 0)
         {

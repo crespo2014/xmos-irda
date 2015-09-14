@@ -88,7 +88,7 @@ enum cmd_st
 
 void ParseCommand(const char* data,unsigned char len,struct rx_u8_buff &ret)
 {
-#if 1
+#if 0
   const char* resp;
   char* l;
   // is ascii command
@@ -131,6 +131,7 @@ void ParseCommand(const char* data,unsigned char len,struct rx_u8_buff &ret)
   }
 }
 
+#if 0
 /*
  * User interface
  * For error reporting
@@ -181,5 +182,5 @@ void ParseCommand(const char* data,unsigned char len,struct rx_u8_buff &ret)
   }
 
 }
-
+#endif
 
