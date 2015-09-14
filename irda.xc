@@ -471,6 +471,7 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
         break;
       case reading => t when timerafter(tp):> void:
         pv_length++;
+        tp += bitlen/2;
         if (pv_length > 7)  // start or stop
         {
           if (pv == 1)  // stop condition
