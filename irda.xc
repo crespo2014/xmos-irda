@@ -329,6 +329,52 @@ void IRDA_delta(in port p, chanend c)
 }
 
 #endif
+
+/*
+ * Emulator for irda
+ */
+void irda_emulator(unsigned bitlen,out port p,server interface tx_if tx)
+{
+  timer t;
+  unsigned tp;
+  p <: 1;
+  while(1)
+  {
+    select
+    {
+    case tx.send(const char* data,unsigned char len):
+      if (len == 5)
+      {
+        unsigned int bitmask = (1<<(*data-1));
+        data++;
+        unsigned v= 0;
+        while (--len)
+        {
+          v = (v << 8) | (*data++);
+        }
+        //start bit
+        p <: 0;
+        t :> tp;
+        tp += (4*bitlen);
+        t when timerafter (tp) :> void;
+        p <: 1;
+        tp += bitlen;
+        while (bitmask != 0)  {
+          t when timerafter (tp) :> void;
+          p <: 0;
+          tp = tp + bitlen* (v & bitmask) ? 2 : 1;
+          t when timerafter (tp) :> void;
+          p <: 1;
+          tp += bitlen;
+        }
+        tp = tp + 3*bitlen;   // stop bit
+        t when timerafter (tp) :> void;
+      }
+      break;
+    }
+  }
+}
+
 /*
  * Irda with clocked port
  * Packet format is
@@ -361,6 +407,7 @@ void IRDA_delta(in port p, chanend c)
 }
 /*
  * irda rx task.
+ *
  * it can be combine with the irda tx to avoid receiving the send signal.
  * Sample the irda port every T/2 and count
  * when port change check counter.

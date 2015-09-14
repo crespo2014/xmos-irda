@@ -277,6 +277,7 @@ enum tx_task
 enum rx_task
 {
   serial_rx = 0,
+  irda_rx,
   cmd_rx,     // command dispatching
   max_rx,
 };
@@ -295,7 +296,7 @@ interface rx_frame_if
   void push(struct rx_u8_buff  * movable &old_p,enum tx_task dest);
 };
 
-[[distributable]] extern void Router_v2(server interface packet_tx_if process[max_tx],server interface rx_frame_if rx_if[max_rx]);
+[[distributable]] extern void Router_v2(server interface packet_tx_if tx_if[max_tx],server interface rx_frame_if rx_if[max_rx]);
 [[combinable]] extern void TX_Worker(client interface packet_tx_if tx_input[max_tx],client interface tx_if tx_out[max_tx]);
 
 extern void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1);

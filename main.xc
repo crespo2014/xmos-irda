@@ -228,37 +228,6 @@ void fastTx_test1(client interface fast_tx  ftx)
   }
 }
 */
-/*
-int main_7()
-{
-  interface fast_tx  ftx;
-  streaming chan fast_rx_c;
-  par
-  {
-    fastTX(ftx,clk,irda_32);
-    fastRX(fast_rx_c,p_1K);
-    fastRXParser(fast_rx_c);
-    fastTx_test1(ftx);
-  }
-  return 0;
-}
-
-
-
-int main_6()
-{
-  interface fast_tx  ftx;
-  streaming chan fast_rx_c;
-  par
-  {
-    fastTX_v4(ftx,clk,fast_tx_p);
-    fastRX_v4(fast_rx_c,fast_rx_p,clk_2);
-    fastRXParser_v4(fast_rx_c);
-    fastTx_test1(ftx);
-  }
-  return 0;
-}
-*/
 
 /*
  * This function is optimize.
@@ -730,6 +699,8 @@ void serial_manager(
 
 in port p_1F = XS1_PORT_1F;
 out port p_1G = XS1_PORT_1G;
+in port p_irda = XS1_PORT_1A;
+out port p_irda_feed = XS1_PORT_1B;
 
 int main()
 {
@@ -746,6 +717,7 @@ int main()
     serial_manager(uart_tx,uart_rx);
     TX_Worker(tx,tx_out);
     cmd_v1(rx[cmd_rx],tx_out[cmd_tx]);
+    irda_rx_v5(p_irda,600*us,rx[irda_rx]);
   }
   return 0;
 }
