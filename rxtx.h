@@ -19,8 +19,6 @@
 #define us  100        // 1 usecond
 #define ns  (1/SYS_TIMER_T_ns)
 
-
-
 /*
  * Some Rx task can hold a buffer until it is peek from other task
  * a serail rx can hold this buffer.
@@ -34,117 +32,13 @@ struct rx_u8_buff
     unsigned char len;      // actual len of buffer
     unsigned char overflow; // how many bytes lost
 };
-#if 0
-struct rx_u32_buff
-{
-    unsigned dt[16];
-    unsigned char len;      // actual len of buffer
-    unsigned char overflow; // how many bytes lost
-};
-
-/*
- *  0..|..|..|..|..|..|..|
- */
-
-/*
- * Transmition channel has a list of frames to send
- * it use a pointer that circle looking for full frames forwards and backwards looking for free frames
- * TODO add start index to allow layers of protocols
- */
-struct tx_frame_t
-{
-  unsigned int    len;
-  unsigned char    dt[20];
-};
-
-/*
- * Push interface.
- * Interface to push data on router.
- * - push function will never fail unless all buffer are full.
- * - a trigger is received when data is ready
- * - get data can fail
- */
-interface cmd_push_if {
-  [[notification]] slave void ondata();       // means data is waiting to be read
-  [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p); //push data on the router it never fails
-  unsigned char push(struct tx_frame_t  * movable &old_p); //push data on the router it must not fail
-};
-
-/*
- * Generic TX RX interface.
- * It notifies when data can be read
- * It acts as server on RX and as client in TX
- */
-interface tx_rx_if {
-    [[notification]] slave void ondata();       // data waiting to be read
-    [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);  // get pointer to frame true if pointer is get
-};
-
-struct irda_tx_frame
-{
-    unsigned int dt;    // unsigned long long is a 64Bits type
-    unsigned char bits;
-};
-/*
- * Irda tx is able to send until 32bits of data
- */
-interface irda_tx_if {
-    [[notification]] slave void ondata();       // data waiting to be read
-    [[clears_notification]] unsigned char get(struct irda_tx_frame  * movable &old_p);  // get pointer to frame true if pointer is get
-};
-#endif
 /*
  * Fault reporting interface
  */
 interface fault_if {
   void fault(unsigned int id);
 };
-#if 0
-[[combinable]] extern void CMD(
-    client interface cmd_push_if router,
-    server interface tx_rx_if irda_tx,
-    client interface tx_rx_if irda_rx,
-    client interface fault_if fault);
 
-[[distributable]] extern void Router(
-    server interface tx_rx_if ch0_tx,
-    server interface tx_rx_if ch1_tx,
-    client interface tx_rx_if ch0_rx,
-    client interface tx_rx_if ch1_rx,
-    server interface cmd_push_if cmd,
-    client interface fault_if fault);
-
-extern void RX(
-    server interface tx_rx_if rx,
-    in port RX,unsigned T,
-    client interface fault_if fault);
-
-extern void TX(
-    client interface tx_rx_if tx,
-    out port TX,unsigned T);
-
-extern void irda_TX(
-    client interface tx_rx_if tx,
-    out port TX,
-    unsigned T,
-    unsigned char low,
-    unsigned char high);
-
-[[combinable]] extern void irda_RX(
-    server interface tx_rx_if rx,
-    in port RX,
-    unsigned T,
-    unsigned char high,
-    client interface fault_if fault);
-
-[[combinable]] extern void ui(
-    out port p,
-    server interface fault_if ch0_rx,
-    server interface fault_if ch1_rx,
-    server interface fault_if router,
-    server interface fault_if cmd,
-    server interface fault_if irda_rx);
-#endif
 /*
  * send a byte from MSB to LSB
  * 1 will be 110
@@ -182,91 +76,12 @@ interface out_port_if {
   void update(unsigned char v);
 };
 
-
-#if 0
-/*
- * Interface suporting buffered
- * Channel less
- */
-interface rx_if_v3
-{
-  void push(unsigned int dt);
-  [[notification]] slave void error();
-  [[clears_notification]] void ack();
-  void setSpeed(unsigned int baud);       // baud rate or line speed
-};
-
-/*
- * Keep buffer on tx task
- */
-interface tx_if_v3
-{
-  unsigned char push(unsigned int dt);    // 0 - ok 1 -overflow
-  void setSpeed(unsigned int baud);       // baud rate or line speed
-};
-
-interface buffer_v3_if
-{
-  [[notification]] slave void onRX();
-  [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);
-  [[clears_notification]] unsigned int pull();  // for irda
-  unsigned char push(unsigned int dt);
-  unsigned char write(const unsigned char* dt,unsigned char len);
-  unsigned char printf(const char* str);
-
-};
-
-interface tx
-{
-  [[notification]] slave void ready();
-  [[clears_notification]] [[guarded]] void push(unsigned char dt);
-};
-
-interface fifo
-{
-  unsigned push(const unsigned char* dt,unsigned len);
-};
-
-interface fast_tx
-{
-  void push(unsigned char dt);
-};
-#endif
 // for irda write from msb to lsb
 // len is the number of bits
 interface tx_if
 {
   void send(const char* data,unsigned char len);
 };
-#if 0
-[[distributable]] extern void fastTX(server interface fast_tx tx_if,clock clk,out buffered port:32 p);
-extern void fastRX(streaming chanend ch,in port p);
-extern void fastRXParser(streaming chanend ch);
-
-extern void fastRX_v2(streaming chanend ch,in port p);
-
-[[distributable]] extern void fifo_v1(client interface tx tx_if,server interface fifo ff_if[max],unsigned max);
-
-[[distributable]] extern void fastTX_v3(server interface fast_tx tx_if,
-    clock clk,
-    out buffered port:8 p);
-
-extern void fastRXParser_v3(streaming chanend ch);
-extern void fastRX_v3(streaming chanend ch,
-    in buffered port:32 p,
-    clock clk);
-
-// Fast RX/TX v4
-extern void fastRXParser_v4(streaming chanend ch);
-extern void fastRX_v4(streaming chanend ch,in buffered port:8 p,clock clk);
-
-[[distributable]] extern void fastTX_v4(server interface fast_tx tx_if,clock clk,out buffered port:8 p);
-[[distributable]] extern void fastTX_v5(server interface fast_tx tx_if,clock clk,out buffered port:8 p);
-
-extern void fastRX_v5(streaming chanend ch,in port p,clock clk);
-extern void fastRX_v6(streaming chanend ch,in port p,clock clk);
-#endif
-
 enum tx_task
 {
   cmd_tx = 0,
