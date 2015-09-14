@@ -566,7 +566,7 @@ unsafe int  main()
   return 0;
 }
 */
-
+/*
 void i2c_do(const char * cmd, client interface i2c_custom_if i2c_master)
 {
   struct i2c_frm frm;
@@ -615,12 +615,47 @@ unsafe int  main()
   }
   return 0;
 }
-/*
+*/
+
+// Serial test with router.
+void serial_manager(
+    client interface uart_v4 tx,
+    client interface serial_rx_if rx)
+{
+  while(1)
+  {
+    select
+    {
+      case rx.error():
+        rx.ack();
+        break;
+    }
+  }
+
+}
+
+in port p_1F = XS1_PORT_1F;
+out port p_1G = XS1_PORT_1G;
+
 int main()
 {
+  interface packet_tx_if  tx[max_tx]; //tx worker, cmd in ,
+  interface rx_frame_if  rx[max_rx]; // serial rx, cmd out
+  interface tx_if tx_out[max_tx];
+  interface serial_rx_if uart_rx;
+  interface uart_v4 uart_tx;
+  par
+  {
+    Router_v2(tx,rx);
+    serial_rx_v5(uart_rx,rx[serial_rx],p_1F);
+    serial_tx_v5(uart_tx,tx_out[serial_tx],p_1G);
+    serial_manager(uart_tx,uart_rx);
+    TX_Worker(tx,tx_out);
+    cmd_v1(rx[cmd_rx],tx_out[cmd_tx]);
+  }
   return 0;
 }
-*/
+
 
 /* todo.
  * analog to digital converter plus interface via serial port

@@ -127,7 +127,7 @@ do { \
  * t : timer
  * p : out port
  */
-#define SONY_IRDA_32b_SEND(dt,bitcount,t,p) \
+#define SONY_IRDA_32b_SEND(dt,bitcount,p) \
   do { \
     unsigned int bitmask = (1<<(bitcount-1));  \
     unsigned char len; \
@@ -270,6 +270,8 @@ Philips (1111.....)
     } while(0)
 
 
- void irda_32b_tx_comb(/*client interface tx_rx_if tx_if,*/out buffered port:32 tx);
+ extern void irda_32b_tx_comb(/*client interface tx_rx_if tx_if,*/out buffered port:32 tx);
+
+[[distributable]] extern void irda_tx_v5(clock clk,out buffered port:32 p32,server interface tx_if tx);
 
 #endif /* IRDA_H_ */

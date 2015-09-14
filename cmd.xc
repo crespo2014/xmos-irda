@@ -17,16 +17,10 @@
 #include <stdio.h>
 #include <xscope.h>
 #include <platform.h>
+#include "safestring.h"
 #include "serial.h"
-#include "i2c.h"
 #include "utils.h"
 #include "cmd.h"
-
-
-struct cmd_tbl_t {
-  const unsigned char* unsafe str;
-  enum cmd_e cmd;
-};
 
 /*
  * Use a termination character to make not possible past the end of the string
@@ -38,24 +32,6 @@ enum cmd_e getCommand(const unsigned char* c,const unsigned char* &t)
   if (isPreffix("I2CWR",c,t) && *t == ' ') return i2cwr_cmd;
   return none_cmd;
 }
-
-/*
-
-void command(client interface buffer_v1_if   serial,
-    client interface serial_rx_if rx,
-    client interface serial_tx_v2_if tx,
-    streaming chanend irda_rx,
-    streaming chanend irda_tx)
-{
-  while(1)
-  {
-    select
-    {
-
-    }
-  }
-}
-*/
 
 /*
  * Buffers that hold data comming from serial channel.
@@ -110,5 +86,49 @@ enum cmd_st
   }
 }
 
+void ParseCommand(const char* data,unsigned char len,struct rx_u8_buff &ret)
+{
+#if 1
+  const char* resp;
+  char* l;
+  // is ascii command
+  if (*data > ' ')
+  {
+    if (getCommand(data,l) != none_cmd)
+      resp = "OK\n";
+    else
+      resp = "NOK invalid cmd\n";
+  }
+  else
+  {
+    if (*data >= none_cmd)
+      resp = "NOK invalid id\n";
+    else
+      resp = "OK\n";
+  }
+  safestrcpy(ret.dt,resp);
+  ret.len = safestrlen(ret.dt);
+#endif
+}
+
+/*
+ * Task to parse user commands.
+ */
+[[distributable]] void cmd_v1(client interface rx_frame_if rx,server interface tx_if tx)
+{
+  // packet use to push
+  struct rx_u8_buff tfrm;   // temporal frame
+  struct rx_u8_buff * movable pframe = &tfrm;
+  while(1)
+  {
+    select
+    {
+      case tx.send(const char* data,unsigned char len):
+        ParseCommand(data,len,*pframe);
+        rx.push(pframe,serial_tx);
+        break;
+    }
+  }
+}
 
 

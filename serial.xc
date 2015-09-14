@@ -18,11 +18,12 @@
 // sending cr until get OK will synchronize the communication. do not send cr to fast
 // write 0x00 (clear the line) and CR two times
 
+#if 0
 /*
  * Serial tx over irda led
  * Combinable function
  */
-
+/*
 void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned char baud_rate,unsigned char low,unsigned char high)
 {
     struct tx_frame_t frm;
@@ -116,12 +117,13 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
     }
 
   }
+  */
 /*
  * Combinable serial rx interface
  * rx interface
  *
- * TODO echo flag , interface with tx for echo
  */
+/*
 [[combinable]] void serial_rx_cmb(in port rx,streaming chanend c,server interface serial_rx_if rx_if,out port deb)
 {
   unsigned char baudrate;
@@ -203,6 +205,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
     }
   }
 }
+*/
 /*
  * Serial
  * Combinable, Timed TX with internal buffer
@@ -337,7 +340,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
     }
   }
 }
-
+/*
 void buffer_v1(
     server interface buffer_v1_if cmd,
     streaming chanend rx,
@@ -403,18 +406,15 @@ void buffer_v1(
     }
   }
 }
+*/
 
 /*
  * This a buffer for serial port
  * it stores incoming data until CR is received. then a notification to cmd task is done.
  * Data has to be collected before the next byte is received.
  *
- * TODO
- * Using streaming channel will speed up communications. but it avoid combinable task live on the same core
- * TX with channel should contain a buffer and a error trigger when buffer overflows.
- * RX write to the channel, the baud rate can be set if bytes do not arrive to fast ( anyway buffer side is peek all bytes faster).
  */
-
+/*
 void serial_buffer(server interface serial_buffer_if cmd,
     chanend rx,
     client interface serial_rx_if rx_if,
@@ -487,94 +487,7 @@ void serial_buffer(server interface serial_buffer_if cmd,
     }
   }
 }
-
-/*
-TODO. 
-Remove channels from rx and tx.
-Redifine RX as (push(dt), error, ack )
-TX as (ondata,get(dt&), error,ack )
-distribuitable buffer for rx and tx (onrx,read (one or many) ,write(many),put(),error,ack, )
-does a distributable task support events?
 */
-
-[[distributable]]
-void buffer_v3(client interface rx_if_v3 rx,
-    client interface tx_if_v3 tx,
-    server interface buffer_v3_if cmd)
-{
-  struct tx_frame_t rx_buff;
-  struct tx_frame_t  * movable rx_ptr = &rx_buff;
-  unsigned char rx_st;  // rx buffer status 0 - written, 1 - overflow , 2 - cr received
-  while(1)
-  {
-    select
-    {
-//      case rx.push(unsigned int dt):
-//        if (dt == '\r')
-//        {
-//         if (rx_st == 0)
-//         {
-//           rx_st = 2;
-//           cmd.onRX();
-//         }
-//         else
-//         {
-//           //error
-//           rx_st = 0;
-//           rx_ptr->len = 0;
-//         }
-//        } else
-//        {
-//         tx <: dt;
-//         if (rx_ptr->len < sizeof(rx_ptr->dt))
-//         {
-//           rx_ptr->dt[rx_ptr->len] = dt;
-//           rx_ptr->len++;
-//         }
-//         else
-//           rx_st = 1;
-//        }
-//        break;
-      case cmd.pull() -> unsigned int dt:
-          dt = 0; // to be implemented with irda buffer
-          break;
-      case cmd.get(struct tx_frame_t  * movable &old_p) -> unsigned char b:
-          if (rx_st == 2)
-          {
-            struct tx_frame_t  * movable tmp;
-            tmp = move(old_p);
-            old_p = move(rx_ptr);
-            rx_ptr = move(tmp);
-            b = 1;
-            rx_ptr->len = 0;
-            rx_st = 0;
-          }
-          else
-            b = 0;
-          break;
-      case cmd.push(unsigned int dt) -> unsigned char b:
-          b = tx.push(dt);
-          break;
-      case cmd.write(const unsigned char* dt,unsigned char len) ->  unsigned char b:
-          while(len)
-          {
-            if (tx.push(*dt) != 0) break;
-            len--;
-            dt++;
-          }
-          b = len;
-          break;
-      case cmd.printf(const char* dt) ->  unsigned char b:
-          while (*dt != 0)
-          {
-            if (tx.push(*dt) != 0) break;
-            dt++;
-          }
-          b = *dt;
-          break;
-    }
-  }
-};
 
 [[combinable]] void serial_tx_v3(server interface tx_if_v3 cmd,out port tx)
 {
@@ -666,11 +579,11 @@ void buffer_v3(client interface rx_if_v3 rx,
   baudrate = 1;
   st = 0;     // idle
   data = low;
-  /*
-   * it does not work with xs1, not pull resistor available
-  set_port_drive_low(tx);
-  set_port_pull_up(tx);
-  */
+
+   // it does not work with xs1, not pull resistor available
+  //set_port_drive_low(tx);
+  //set_port_pull_up(tx);
+
   tx_if.ready();
   while(1)
   {
@@ -706,6 +619,7 @@ void buffer_v3(client interface rx_if_v3 rx,
   }
 }
 
+/*
 [[combinable]] void serial_rx_v4(server interface serial_rx_if uart_if, streaming chanend c,in port rx)
 {
   unsigned baudrate;
@@ -751,6 +665,129 @@ void buffer_v3(client interface rx_if_v3 rx,
           break;
       case uart_if.setbaud(unsigned baud):
         baudrate = baud;
+        break;
+    }
+  }
+}
+*/
+#endif
+
+/*
+ * Serial Rx with buffer and timeout
+ */
+void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_frame_if router,in port rx)
+{
+  struct rx_u8_buff tfrm;   // temporal frame
+  struct rx_u8_buff * movable pframe = &tfrm;
+  unsigned baudrate;
+  unsigned binary_mode;
+  unsigned char st;   // status 0 - waiting to be pv, waiting start, 1 - 10 data,
+  timer t;
+  unsigned int tp;
+  unsigned dt;
+  st = 0;
+  baudrate = 1;
+  binary_mode = 0;   // if no data on buffer then no need for timeout
+  pframe->len = 0;
+  pframe->overflow = 0;
+  while(1)
+  {
+    select
+    {
+      case st == 0 => rx when pinsneq(0) :> void: // wait for start
+        t :> tp;
+        tp += (baudrate*(UART_BASE_BIT_LEN_ticks/2));
+        st = 1;
+        dt = 0;
+        break;
+      case st != 0 || binary_mode => t when timerafter(tp) :> void:    // only read if it is not idle
+        rx :> >>dt;
+        if (st == 0)
+        {
+          if (pframe->len != 0)
+          {
+            router.push(pframe,cmd_tx);
+            pframe->len = 0;
+            pframe->overflow = 0;
+          }
+          binary_mode = 0;
+          break;
+        }
+        st++;
+        if (st != 10)
+        {
+          tp += (UART_BASE_BIT_LEN_ticks*baudrate);
+          break;
+        }
+        tp += (UART_BASE_BIT_LEN_ticks*10*2); // 2 bytes gap
+
+        dt = dt >> 24;
+        if ((dt & 0x100) == 0)   // test stop bit
+        {
+          uart_if.error();
+          pframe->len = 0;  // discard data, or push to router and send nok
+          break;
+        }
+        dt &= 0xFF;
+        if (pframe->len == sizeof(pframe->dt))
+          pframe->overflow++;
+        else
+        {
+          pframe->dt[pframe->len] = dt;
+          if (pframe->len == 0)
+          {
+            binary_mode = (dt > ' ');
+          }
+          if (!binary_mode && dt == '\n')
+          {
+            router.push(pframe,cmd_tx);
+            binary_mode = 0;
+            pframe->len = 0;
+            pframe->overflow = 0;
+          }
+        }
+        break;
+      case uart_if.ack():
+          break;
+      case uart_if.setbaud(unsigned baud):
+        baudrate = baud;
+        break;
+    }
+  }
+}
+
+
+[[distributable]] void serial_tx_v5(server interface uart_v4 uart_if,server interface tx_if tx,out port p)
+{
+  unsigned baudrate;
+  unsigned int tp;
+  timer t;
+  baudrate = 1;
+  // it does not work with xs1, not pull resistor available
+  //set_port_drive_low(tx);
+  //set_port_pull_up(tx);
+
+  while(1)
+  {
+    select
+    {
+      case uart_if.setbaud(unsigned baud):
+        baudrate = baud;
+        break;
+      case tx.send(const char* data,unsigned char len):
+        unsigned outData;    // out value
+        while (len--)
+        {
+          outData = (*data) << 1 | 0xE00;
+          t :> tp;
+          for (int i = 0;i<10;i++)
+          {
+            p <: >>outData;
+            tp += (UART_BASE_BIT_LEN_ticks*baudrate);
+            t when timerafter(tp) :> void;
+          }
+          data++;
+        }
         break;
     }
   }

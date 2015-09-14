@@ -74,6 +74,7 @@
 #include "i2c_custom.h"
 #include "utils.h"
 
+#if 0
 
 // This is a combinable i2c TX, but there is not need of combinable tx.
 // the only reason to use i2c is because an user command, that is synchronious.
@@ -733,7 +734,7 @@ void i2c_response(const struct i2c_frm &packet,char* &str)
  *
  * Read bit from clock at 3/4 part of the high pulse
  */
-static inline enum i2c_ecode i2c_read_bit(port scl, port sda, unsigned T)
+static enum i2c_ecode i2c_read_bit(port scl, port sda, unsigned T)
 {
   unsigned d;
   d = 0x7;
@@ -754,7 +755,7 @@ static inline enum i2c_ecode i2c_read_bit(port scl, port sda, unsigned T)
   return d;   // 0  or 1
 }
 
-static inline void i2c_start_bit(port i2c_scl, port i2c_sda,unsigned T)
+static void i2c_start_bit(port i2c_scl, port i2c_sda,unsigned T)
 {
   i2c_scl :> void;
   delay_ticks(T / 4);
@@ -763,7 +764,7 @@ static inline void i2c_start_bit(port i2c_scl, port i2c_sda,unsigned T)
   i2c_scl  <: 0;
 }
 
-static inline void i2c_stop_bit(port scl, port sda,unsigned T)
+static void i2c_stop_bit(port scl, port sda,unsigned T)
 {
   delay_ticks(T/4);
   sda <: 0;
@@ -778,7 +779,7 @@ static inline void i2c_stop_bit(port scl, port sda,unsigned T)
  * Generate a clock signal to send bit already set in sda
  * T period in ticks units
  */
-static inline void i2c_push_bit(port scl,unsigned T)
+static void i2c_push_bit(port scl,unsigned T)
 {
   delay_ticks(T / 2);
   scl <: 1;
@@ -787,7 +788,7 @@ static inline void i2c_push_bit(port scl,unsigned T)
 }
 
 
-static inline enum i2c_ecode i2c_push_u8(port sda,port scl,unsigned char d,unsigned T)
+static enum i2c_ecode i2c_push_u8(port sda,port scl,unsigned char d,unsigned T)
 {
   unsigned data = ((unsigned) bitrev(d)) >> 24;
     for (int i = 8; i != 0; i--) {
@@ -800,7 +801,7 @@ static inline enum i2c_ecode i2c_push_u8(port sda,port scl,unsigned char d,unsig
 /*
  * DeviceID or address is left shifted and ored with (0 write , 1 read)
  */
-static inline enum i2c_ecode i2c_write(port scl, port sda,unsigned T,unsigned char address,
+static enum i2c_ecode i2c_write(port scl, port sda,unsigned T,unsigned char address,
     const char* data,unsigned len)
 {
 //  timer t;
@@ -818,7 +819,7 @@ static inline enum i2c_ecode i2c_write(port scl, port sda,unsigned T,unsigned ch
   return ret;
 }
 
-static inline enum i2c_ecode i2c_read(port scl, port sda,unsigned T,unsigned char address,
+static enum i2c_ecode i2c_read(port scl, port sda,unsigned T,unsigned char address,
     const char* data,unsigned len)
 {
   return i2c_error;
@@ -920,4 +921,5 @@ unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret)
   }
 }
 
+#endif
 

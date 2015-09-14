@@ -11,8 +11,7 @@
 #include <rxtx.h>
 #include "irda.h"
 #include "serial.h"
-
-
+#include "cmd.h"
 
 #define USER_CLK_DIV    255                 //
 #define USER_T_ns       (1000*1000)    //
@@ -39,6 +38,8 @@ div =
 4 - 8ns pulse T = 16ns
 10 - 20ns     T = 40ns
 */
+
+#if 0
 
 /*
  * Combinable Irda tx function using buffered clocked port
@@ -533,30 +534,6 @@ void irda_send_loop(out port p)
    }
 }
 
-void irda_cmd(client interface tx_rx_if irda_rx,server interface fault_if fault)
-{
-  struct tx_frame_t   frm;
-  struct tx_frame_t* movable p = &frm;
-  while(1)
-  {
-    select
-    {
-      case irda_rx.ondata():
-      while (irda_rx.get(p) == 1)
-      {
-        unsigned int v = 0;
-        for (int i= 3;i< p->len;++i)
-        {
-          v <<= 8;
-          v += p->dt[i];
-        }
-        printf("%X\n",v);
-      }
-      break;
-    }
-  }
-}
-
 void readIRDA(in port p, chanend c)
 {
 
@@ -865,7 +842,7 @@ void test_32bits_irda(clock clk,out buffered port:32 p32,out port clk_out)
   configure_port_clock_output(clk_out, clk);
   start_clock(clk);
   printf("%d %d %d %d\n",IRDA_32b_CLK_DIV,IRDA_32b_CARRIER_T_ns,IRDA_32b_BIT_LEN,IRDA_BIT_ticks);
-  SONY_IRDA_32b_SEND(0x5555,4,t,p32);
+  SONY_IRDA_32b_SEND(0x5555,4,p32);
   sync(p32);
 }
 
@@ -928,6 +905,112 @@ void serial_send_test(clock clk,out port p)
 //}
 
 // TODO irda send can be blocking task for cmd interface., also it can be distributable and it will be use for everybody. using clocked port will be simple
+#endif
+/*
+ * Irda with clocked port
+ * Packet format is
+ * bitcount MSB - LSB (4 bytes u32)
+ */
+[[distributable]] void irda_tx_v5(clock clk,out buffered port:32 p32,server interface tx_if tx)
+{
+  configure_clock_xcore(clk,IRDA_32b_CLK_DIV);     // dividing clock ticks
+  configure_in_port(p32, clk);
+  start_clock(clk);
+  while(1)
+  {
+    select
+    {
+      case tx.send(const char* data,unsigned char len):
+        if (len == 5)
+        {
+          unsigned bitcount = *data++;
+          unsigned v= 0;
+          while (--len)
+          {
+            v = (v << 8) | (*data++);
+          }
+          SONY_IRDA_32b_SEND(v,bitcount,p32);
+          sync(p32);
+        }
+        break;
+    }
+  }
+}
+/*
+ * irda rx task.
+ * it can be combine with the irda tx to avoid receiving the send signal.
+ * Sample the irda port every T/2 and count
+ * when port change check counter.
+ * stop sampling if no start signal was recieved.
+ * ic coutn reach 10 also stop timing out
+ * read bits from MSB to LSB
+ *
+ * send to router as irda_id
+ */
+
+[[combinable]] void irda_rx_v5(in port p,unsigned bitlen,client interface rx_frame_if router)
+{
+  unsigned char pv;
+  unsigned char reading;
+  unsigned char bitcount;
+  unsigned pv_length;
+  unsigned v;
+  unsigned tp;
+  timer t;
+  struct rx_u8_buff tfrm;   // temporal frame
+  struct rx_u8_buff * movable pframe = &tfrm;
+
+  bitcount = 0;
+  pv_length = 0;
+  reading = 0;    //0 no data, 1 sampling, 2 - waiting pin change
+  p :> pv;
+  while(1)
+  {
+    select
+    {
+      case p when pinsneq(pv) :> pv:
+        t :> tp;
+        if (pv_length == 0)   //ignored tansition
+        {
+         reading = 1;
+         tp += bitlen/2;
+        }
+        else if (pv == 1 && bitcount) // only use 0 to 1 transition and after start
+        {
+            bitcount++;
+            v = v << 1;
+            if (pv_length > 2)
+              v = v | 1;
+        }
+        break;
+      case reading => t when timerafter(tp):> void:
+        pv_length++;
+        if (pv_length > 7)  // start or stop
+        {
+          if (pv == 1)  // stop condition
+          {
+            if (bitcount > 1)
+            {
+              pframe->dt[0] = cmd_irda_input;
+              pframe->dt[1] = bitcount - 1;
+              pframe->dt[2] = v >> 24;
+              pframe->dt[3] = v >> 16;
+              pframe->dt[4] = v >> 8;
+              pframe->dt[5] = v & 0xFF;
+              pframe->len = 6;
+              router.push(pframe,cmd_tx);
+            }
+            bitcount = 0;
+          }
+          else
+            bitcount = 1;   // counting start as bit
+          v = 0;
+          pv_length = 0;
+          reading = 0;  // no more samples
+        }
+        break;
+    }
+  }
 
 
-
+}

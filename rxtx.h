@@ -230,6 +230,13 @@ interface fast_tx
   void push(unsigned char dt);
 };
 
+// for irda write from msb to lsb
+// len is the number of bits
+interface tx_if
+{
+  void send(const char* data,unsigned char len);
+};
+
 [[distributable]] extern void fastTX(server interface fast_tx tx_if,clock clk,out buffered port:32 p);
 extern void fastRX(streaming chanend ch,in port p);
 extern void fastRXParser(streaming chanend ch);
@@ -261,37 +268,34 @@ extern void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out po
 
 enum tx_task
 {
-  to_cmd = 0,
-  to_serial_tx,
-  to_max,
+  cmd_tx = 0,
+  serial_tx,
+  max_tx,
 };
 
 enum rx_task
 {
-  serial_rx,
+  serial_rx = 0,
   cmd_rx,     // command dispatching
   max_rx,
 };
 
-struct u8_frame_item
-{
-    unsigned char dt[32];
-    unsigned char len;      // actual len of buffer
-    unsigned char overflow; // how many bytes lost
-    struct u8_frame_item * movable next;
-};
-
-interface tx_frame_if
+//Tx or output interface
+interface packet_tx_if
 {
   [[notification]] slave void ondata();       // means data is waiting to be read
-  [[clears_notification]] void get(struct u8_frame_item  * movable &old_p);
+  [[clears_notification]] void get(struct rx_u8_buff  * movable &old_p,enum tx_task dest);
+  void push(struct rx_u8_buff  * movable &old_p);   // return back the frame
 };
 
+//Rx or input interface
 interface rx_frame_if
 {
-  void push(struct u8_frame_item  * movable &old_p,enum tx_task dest);
+  void push(struct rx_u8_buff  * movable &old_p,enum tx_task dest);
 };
 
+[[distributable]] extern void Router_v2(server interface packet_tx_if process[max_tx],server interface rx_frame_if rx_if[max_rx]);
+[[combinable]] extern void TX_Worker(client interface packet_tx_if tx_input[max_tx],client interface tx_if tx_out[max_tx]);
 
 
 #endif /* RXTX_H_ */
