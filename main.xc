@@ -697,6 +697,26 @@ void serial_manager(
 
 }
 
+[[combinable]] void irda_send_loop(client interface tx_if tx)
+{
+  timer t;
+  unsigned tp;
+  unsigned d;
+  t :> tp;
+  d = 1;
+  while(1)
+  {
+    select
+    {
+      case t when timerafter(tp) :> void:
+      irda_send(d,8,tx);
+      d++;
+      tp = tp + 500*us;
+      break;
+    }
+  }
+}
+
 in port p_1F = XS1_PORT_1F;
 out port p_1G = XS1_PORT_1G;
 in port p_irda = XS1_PORT_1A;
@@ -709,6 +729,8 @@ int main()
   interface tx_if tx_out[max_tx];
   interface serial_rx_if uart_rx;
   interface uart_v4 uart_tx;
+
+  interface tx_if irda_emu;
   par
   {
     Router_v2(tx,rx);
@@ -718,6 +740,8 @@ int main()
     TX_Worker(tx,tx_out);
     cmd_v1(rx[cmd_rx],tx_out[cmd_tx]);
     irda_rx_v5(p_irda,600*us,rx[irda_rx]);
+    irda_emulator(600*us,p_irda_feed,irda_emu);
+    irda_send_loop(irda_emu);
   }
   return 0;
 }

@@ -330,10 +330,20 @@ void IRDA_delta(in port p, chanend c)
 
 #endif
 
+void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
+{
+  unsigned char buff[5];
+  buff[0] = bitcount;
+  buff[1] = data >> 24;
+  buff[2] = data >> 16;
+  buff[3] = data >> 8;
+  buff[4] = data & 0xFF;
+  tx.send(buff,5);
+}
 /*
  * Emulator for irda
  */
-void irda_emulator(unsigned bitlen,out port p,server interface tx_if tx)
+[[distributable]] void irda_emulator(unsigned bitlen,out port p,server interface tx_if tx)
 {
   timer t;
   unsigned tp;
