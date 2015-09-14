@@ -131,4 +131,55 @@ void ParseCommand(const char* data,unsigned char len,struct rx_u8_buff &ret)
   }
 }
 
+/*
+ * User interface
+ * For error reporting
+ * 2 hz flashing led
+ */
+[[combinable]] void ui(
+    out port p,
+    server interface fault_if ch0_rx,
+    server interface fault_if ch1_rx,
+    server interface fault_if router,
+    server interface fault_if cmd,
+    server interface fault_if irda_rx)
+{
+  unsigned int faults;
+  unsigned char led_on = 0;
+  timer t;
+  unsigned int tp;
+  t :> tp;
+  tp += 500*ms;
+  while(1)
+  {
+    select
+    {
+      case ch0_rx.fault(unsigned int id):
+        faults |= id;
+        break;
+      case ch1_rx.fault(unsigned int id):
+        faults |= id;
+        break;
+      case router.fault(unsigned int id):
+        faults |= id;
+        break;
+      case cmd.fault(unsigned int id):
+        faults |= id;
+        break;
+      case irda_rx.fault(unsigned int id):
+        faults |= id;
+        break;
+      case t when timerafter(tp) :>void:
+        tp += 500*ms;
+        if (led_on)
+          p <:0;
+        else
+          p <: faults;
+        led_on = !led_on;
+        break;
+    }
+  }
+
+}
+
 

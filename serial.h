@@ -72,6 +72,7 @@ interface serial_rx_if
   void setbaud(unsigned baud);
 };
 
+#if 0
 /*
  * For byte to byte send interface.
  * Avoid bloquing on channel.
@@ -117,12 +118,13 @@ interface buffer_v1_if
   [[notification]] slave void onRX(); // CR received a buffer is ready to be pick
   [[clears_notification]] unsigned char get(struct tx_frame_t  * movable &old_p);
 };
-
+#endif
 interface uart_v4
 {
   void setbaud(unsigned baud);
 };
 
+#if 0
 extern void buffer_v1(server interface buffer_v1_if cmd,
     streaming chanend rx,
     streaming chanend tx);
@@ -139,6 +141,7 @@ extern void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsi
 
 [[combinable]] extern void serial_rx_v4(server interface serial_rx_if uart_if, streaming chanend c,in port rx);
 [[combinable]] extern void serial_tx_v4(server interface uart_v4 uart_if,server interface tx tx_if,out port p);
+#endif
 
 [[distributable]] extern void serial_tx_v5(server interface uart_v4 uart_if,server interface tx_if tx,out port p);
 extern void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_frame_if router,in port rx);

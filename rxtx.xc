@@ -3,6 +3,49 @@
  *
  *  Created on: 11 Aug 2015
  *      Author: lester.crespo
+ *
+ *  unidirectional 1 wire protocol.
+ *  We use two wires 1 for RX and other for TX.
+ *  it is like a serial port
+ *  Each device act as a hub , rerouting incoming data from one interface to another that introduce a delay in client response.
+ *  We want to support continuos data comming from clients.
+ *
+ *  I need to create a protocol over this interface.
+ *  (id)(cmd)(data)
+ *
+ *  Protocol
+ *  ID - device id, it is decremented every time it pass a bridge. when it reach zero the device become active and send remaining data to process unit.
+ *  DATA : max size of data will be 10 bytes to allow buffering
+ *  (cmd + data)
+ *  WR (bit7) + addres( 7bits 0-128) + data    <=== id + cmd + address or (NOK)
+ *
+ *  each command will recevied an ack - sent commands will be in a queue waiting for ack until certian time elapse (timeout)
+ *
+ *                -------------------
+ *  ---- RX -----|                   |------- TX -----
+ *  CH0          |  **CMD UNIT   **  |  CH2
+ *  ---- TX -----|                   |-------- RX ----
+ *                -------------------
+ *  Data comming from Ch0 will got to cmd unit if id was 0 or to CH2
+ *  Data coming from CH2 go to a queue to be send to CH0
+ *  cmd unit also push data to queue
+ *
+ *  CH0_RX ---> CMD ---   ---CH1_RX
+ *                    ^   ^
+ *  CHO_TX <-------- ROUTER <----- CH1_TX
+ *
+
+ *
+ *
+ * TODO Combinable task using clocked port.
+ * case p <: data:  // executed when buffered port is ready
+ * Sendign state ( 0 - idle , 1 - sending, 2 - waiting for time )
+ *
+ * Modify buffer behavior
+ * max-size, use-count, next-write
+ * if uxe-count == max-size then full
+ * next-write is increment on each store
+ * next to read is (next-write + max-size + use_count) % max-size
  */
 
 #include <timer.h>
@@ -11,6 +54,8 @@
 #include <xscope.h>
 #include <platform.h>
 #include "rxtx.h"
+
+
 
 #if 0
 /*
@@ -686,32 +731,35 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
  * Upper limit is
  * 192ns per bit, 1728ns per byte, 578703.7bytes/sec 556.1403Kb/sec 5Mbyte/sec
  *
- * 1920ns per byte 520833bytes/sec
+ * 1920ns per byte 520.833bytes/sec
  */
 [[distributable]] void fastTX_v7(server interface tx_if tx,clock clk,out buffered port:8 p)
 {
   configure_clock_xcore(clk,6);     // 24ns
   configure_in_port(p, clk);
   start_clock(clk);
-  int i;
   while(1)
   {
     select
     {
       case tx.send(const char* data,unsigned char len):
-        i = 8;
-        p <: (unsigned char)0x7;
-        do
+        // Give two bytes packet gap
+        p <: (unsigned short)0;
+        while(len--)
         {
-          if (dt & 0x80)
-            p <: (unsigned char)0x03;
-          else
-            p <: (unsigned char)0x01;
-          dt <<=1;
-          i--;
-          //p <: (unsigned char)0x0;  //24 * 8 = 192ns
-        } while(i!=0);
-        p <: (unsigned char)0x0;  //24 * 8 = 192ns
+          p <: (unsigned char)0x7;    //start
+          unsigned dt = *data++;
+          unsigned i = 8;
+          while(i--)
+          {
+            if (dt & 0x80)
+              p <: (unsigned char)0x03;
+            else
+              p <: (unsigned char)0x01;
+            dt <<=1;
+          }
+          p <: (unsigned char)0x0;  //24 * 8 = 192ns
+        }
         break;
     }
   }

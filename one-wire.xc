@@ -230,7 +230,7 @@ void Router(
     }
   }
 }
-#endif
+
 /*
  * Command task
  * it will read a command and it will create the answer in the same frame,
@@ -410,7 +410,6 @@ void Router(
   }
 }
 
-#if 0
 /*
  * Transmition channel 0
  */
@@ -585,54 +584,5 @@ void RX(server interface tx_rx_if rx,in port RX,unsigned T,client interface faul
     }
 }
 #endif
-/*
- * User interface
- * For error reporting
- * 2 hz flashing led
- */
-[[combinable]] void ui(
-    out port p,
-    server interface fault_if ch0_rx,
-    server interface fault_if ch1_rx,
-    server interface fault_if router,
-    server interface fault_if cmd,
-    server interface fault_if irda_rx)
-{
-  unsigned int faults;
-  unsigned char led_on = 0;
-  timer t;
-  unsigned int tp;
-  t :> tp;
-  tp += 500*ms;
-  while(1)
-  {
-    select
-    {
-      case ch0_rx.fault(unsigned int id):
-        faults |= id;
-        break;
-      case ch1_rx.fault(unsigned int id):
-        faults |= id;
-        break;
-      case router.fault(unsigned int id):
-        faults |= id;
-        break;
-      case cmd.fault(unsigned int id):
-        faults |= id;
-        break;
-      case irda_rx.fault(unsigned int id):
-        faults |= id;
-        break;
-      case t when timerafter(tp) :>void:
-        tp += 500*ms;
-        if (led_on)
-          p <:0;
-        else
-          p <: faults;
-        led_on = !led_on;
-        break;
-    }
-  }
 
-}
 
