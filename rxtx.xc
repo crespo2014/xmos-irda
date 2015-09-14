@@ -688,7 +688,7 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
  *
  * 1920ns per byte 520833bytes/sec
  */
-[[distributable]] void fastTX_v7(server interface fast_tx tx_if,clock clk,out buffered port:8 p)
+[[distributable]] void fastTX_v7(server interface tx_if tx,clock clk,out buffered port:8 p)
 {
   configure_clock_xcore(clk,6);     // 24ns
   configure_in_port(p, clk);
@@ -698,10 +698,9 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
   {
     select
     {
-      case tx_if.push(unsigned char dt):
+      case tx.send(const char* data,unsigned char len):
         i = 8;
         p <: (unsigned char)0x7;
-        //p <: (unsigned char)0x0;    // could be remove if error check is removed
         do
         {
           if (dt & 0x80)

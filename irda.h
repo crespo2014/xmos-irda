@@ -270,7 +270,7 @@ Philips (1111.....)
     } while(0)
 
 
- extern void irda_32b_tx_comb(/*client interface tx_rx_if tx_if,*/out buffered port:32 tx);
+ //extern void irda_32b_tx_comb(/*client interface tx_rx_if tx_if,*/out buffered port:32 tx);
 
 [[distributable]] extern void irda_tx_v5(clock clk,out buffered port:32 p32,server interface tx_if tx);
 

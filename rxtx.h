@@ -34,7 +34,7 @@ struct rx_u8_buff
     unsigned char len;      // actual len of buffer
     unsigned char overflow; // how many bytes lost
 };
-
+#if 0
 struct rx_u32_buff
 {
     unsigned dt[16];
@@ -92,14 +92,14 @@ interface irda_tx_if {
     [[notification]] slave void ondata();       // data waiting to be read
     [[clears_notification]] unsigned char get(struct irda_tx_frame  * movable &old_p);  // get pointer to frame true if pointer is get
 };
-
+#endif
 /*
  * Fault reporting interface
  */
 interface fault_if {
   void fault(unsigned int id);
 };
-
+#if 0
 [[combinable]] extern void CMD(
     client interface cmd_push_if router,
     server interface tx_rx_if irda_tx,
@@ -144,7 +144,7 @@ extern void irda_TX(
     server interface fault_if router,
     server interface fault_if cmd,
     server interface fault_if irda_rx);
-
+#endif
 /*
  * send a byte from MSB to LSB
  * 1 will be 110
@@ -182,6 +182,8 @@ interface out_port_if {
   void update(unsigned char v);
 };
 
+
+#if 0
 /*
  * Interface suporting buffered
  * Channel less
@@ -229,14 +231,14 @@ interface fast_tx
 {
   void push(unsigned char dt);
 };
-
+#endif
 // for irda write from msb to lsb
 // len is the number of bits
 interface tx_if
 {
   void send(const char* data,unsigned char len);
 };
-
+#if 0
 [[distributable]] extern void fastTX(server interface fast_tx tx_if,clock clk,out buffered port:32 p);
 extern void fastRX(streaming chanend ch,in port p);
 extern void fastRXParser(streaming chanend ch);
@@ -263,8 +265,7 @@ extern void fastRX_v4(streaming chanend ch,in buffered port:8 p,clock clk);
 
 extern void fastRX_v5(streaming chanend ch,in port p,clock clk);
 extern void fastRX_v6(streaming chanend ch,in port p,clock clk);
-extern void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1);
-[[distributable]] extern void fastTX_v7(server interface fast_tx tx_if,clock clk,out buffered port:8 p);
+#endif
 
 enum tx_task
 {
@@ -296,6 +297,9 @@ interface rx_frame_if
 
 [[distributable]] extern void Router_v2(server interface packet_tx_if process[max_tx],server interface rx_frame_if rx_if[max_rx]);
 [[combinable]] extern void TX_Worker(client interface packet_tx_if tx_input[max_tx],client interface tx_if tx_out[max_tx]);
+
+extern void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1);
+[[distributable]] extern void fastTX_v7(server interface tx_if tx,clock clk,out buffered port:8 p);
 
 
 #endif /* RXTX_H_ */
