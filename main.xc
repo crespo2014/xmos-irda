@@ -701,16 +701,24 @@ void serial_manager(
 {
   timer t;
   unsigned tp;
-  unsigned d;
+  unsigned data;
   t :> tp;
-  d = 1;
+  data = 1;
   while(1)
   {
     select
     {
       case t when timerafter(tp) :> void:
-      irda_send(d,8,tx);
-      d++;
+        unsigned char buff[5];
+        buff[0] = 8;
+        buff[1] = data >> 24;
+        buff[2] = data >> 16;
+        buff[3] = data >> 8;
+        buff[4] = data & 0xFF;
+        tx.send(buff,5);
+
+//      irda_send(d,8,tx);
+      data++;
       tp = tp + 500*us;
       break;
     }
@@ -739,8 +747,8 @@ int main()
     serial_manager(uart_tx,uart_rx);
     TX_Worker(tx,tx_out);
     cmd_v1(rx[cmd_rx],tx_out[cmd_tx]);
-    irda_rx_v5(p_irda,600*us,rx[irda_rx]);
-    irda_emulator(600*us,p_irda_feed,irda_emu);
+    irda_rx_v5(p_irda,10*us,rx[irda_rx]);
+    irda_emulator(10*us,p_irda_feed,irda_emu);
     irda_send_loop(irda_emu);
   }
   return 0;

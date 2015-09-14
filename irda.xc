@@ -330,6 +330,7 @@ void IRDA_delta(in port p, chanend c)
 
 #endif
 
+#if 0
 void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
 {
   unsigned char buff[5];
@@ -340,6 +341,7 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
   buff[4] = data & 0xFF;
   tx.send(buff,5);
 }
+#endif
 /*
  * Emulator for irda
  */
@@ -372,10 +374,14 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
         while (bitmask != 0)  {
           t when timerafter (tp) :> void;
           p <: 0;
-          tp = tp + bitlen* (v & bitmask) ? 2 : 1;
+          if (v & bitmask)
+            tp = tp + bitlen*2;
+          else
+            tp = tp + bitlen;
           t when timerafter (tp) :> void;
           p <: 1;
           tp += bitlen;
+          bitmask >>= 1;
         }
         tp = tp + 3*bitlen;   // stop bit
         t when timerafter (tp) :> void;
