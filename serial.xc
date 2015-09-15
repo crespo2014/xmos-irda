@@ -124,7 +124,7 @@ void serial_to_irda_timed(client interface tx_rx_if src, out port tx,unsigned ch
 /*
  * Serial Rx with buffer and timeout
  */
-void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_frame_if router,in port rx,out port debug)
+void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_frame_if router,in port rx)
 {
   struct rx_u8_buff tfrm;   // temporal frame
   struct rx_u8_buff * movable pframe = &tfrm;
@@ -137,7 +137,6 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
   baudrate = 1;
   pframe->len = 0;
   pframe->overflow = 0;
-  debug <: 0;
   while(1)
   {
     select
@@ -149,23 +148,22 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
         break;
       case st != 0 => t when timerafter(tp) :> void:    // only read if it is not idle
         rx :> >>dt;
-        debug <: 1;
-        debug <: 0;
         st++;
         if (st < 11) // read until 10 bits
         {
           tp += (UART_BASE_BIT_LEN_ticks*baudrate);
         }else if (st == 11)
         {
+          tp += (UART_BASE_BIT_LEN_ticks*10*1.5); // all bits have been read, wait for 1 1/2 bytes gap
           dt >>= 22;
           if ( (dt & 0x201) != 0x200 )   // test stop bit
           {
             uart_if.error();
-            pframe->len = 0;  // discard data, or push to router and send nok
-            st = 0;
+            //pframe->len = 0;  // discard data, or push to router and send nok
+            pframe->overflow++;  //next status is 12
+            //st = 0;
             break;
           }
-          tp += (UART_BASE_BIT_LEN_ticks*10*1.5); // all bits have been read, wait for 1 1/2 bytes gap
           dt = dt >> 1;
           if (pframe->len == sizeof(pframe->dt))
           {
@@ -177,7 +175,7 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
         } else if (st >= 12)
         {
           // timeout waiting for new byte (gap between bytes)
-          if (pframe->len != 0 && (pframe->overflow || pframe->dt[0] < ' ' ||  pframe->dt[pframe->len-1] == '\n'))
+          if (pframe->overflow || (pframe->len != 0 && (pframe->dt[0] < ' ' ||  pframe->dt[pframe->len-1] == '\n')))
           {
             router.push(pframe,cmd_tx);
           }

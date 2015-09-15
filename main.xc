@@ -742,7 +742,7 @@ int main()
   par
   {
     Router_v2(tx,rx);
-    serial_rx_v5(uart_rx,rx[serial_rx],p_1F,debug);
+    serial_rx_v5(uart_rx,rx[serial_rx],p_1F);
     serial_tx_v5(uart_tx,tx_out[serial_tx],p_1G);
     serial_manager(uart_tx,uart_rx);
     TX_Worker(tx,tx_out);

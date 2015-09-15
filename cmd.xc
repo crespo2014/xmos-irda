@@ -124,12 +124,13 @@ void ParseCommand(const char* data,unsigned char len,struct rx_u8_buff &ret)
     select
     {
       case tx.send(const char* data,unsigned char len):
-        printf("\n<");
+        printf("in :");
         printbuff(data,len);
         ParseCommand(data,len,*pframe);
-        printf("\n>");
+        printf("\nout :");
         printbuff(pframe->dt,pframe->len);
         rx.push(pframe,serial_tx);
+        printf("\n");
         break;
     }
   }
