@@ -728,6 +728,7 @@ in port p_1F = XS1_PORT_1F;
 out port p_1G = XS1_PORT_1G;
 in port p_irda = XS1_PORT_1A;
 out port p_irda_feed = XS1_PORT_1B;
+out port debug = XS1_PORT_1H;
 
 int main()
 {
@@ -741,7 +742,7 @@ int main()
   par
   {
     Router_v2(tx,rx);
-    serial_rx_v5(uart_rx,rx[serial_rx],p_1F);
+    serial_rx_v5(uart_rx,rx[serial_rx],p_1F,debug);
     serial_tx_v5(uart_tx,tx_out[serial_tx],p_1G);
     serial_manager(uart_tx,uart_rx);
     TX_Worker(tx,tx_out);

@@ -85,7 +85,10 @@ void printbuff(const char* d,unsigned len)
 {
   while (len--)
   {
-    printf("%c",*d);
+    if (*d < ' ')
+      printf("\\x%X",*d);
+    else
+      printf("%c",*d);
     d++;
   }
 }

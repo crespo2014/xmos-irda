@@ -128,6 +128,6 @@ interface uart_v4
 };
 
 [[distributable]] extern void serial_tx_v5(server interface uart_v4 uart_if,server interface tx_if tx,out port p);
-extern void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_frame_if router,in port rx);
+extern void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_frame_if router,in port rx,out port debug);
 
 #endif /* SERIAL_H_ */
