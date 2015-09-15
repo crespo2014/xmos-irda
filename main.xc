@@ -11,6 +11,7 @@
 #include <xscope.h>
 #include <platform.h>
 #include <rxtx.h>
+#include <safestring.h>
 #include "irda.h"
 #include "serial.h"
 #include "cmd.h"
@@ -697,6 +698,7 @@ void serial_manager(
 
 }
 
+#if 0
 [[combinable]] void irda_send_loop(client interface tx_if tx)
 {
   timer t;
@@ -723,11 +725,36 @@ void serial_manager(
     }
   }
 }
+#endif
+
+void serial_send_loop(out port tx)
+{
+  const char* buff;
+  unsigned len;
+  unsigned i =0;
+  timer t;
+  unsigned tp;
+  t :> tp;
+  while(1) {
+    t when timerafter(tp) :> void;
+    tp = tp + 500*us;
+    if (i == 3) i = 0;
+    if (i ==0)
+      buff = "I2CW 03 0001D304\n";
+    else if (i == 1)
+      buff = "I2CR 03 04\n";
+    else if (i == 2)
+      buff = "I2CWR 03 0001D304 04\n";
+    len = safestrlen(buff);
+    UART_TIMED_SEND(buff,len,tx,1,t);
+    i++;
+  }
+}
 
 in port p_1F = XS1_PORT_1F;
 out port p_1G = XS1_PORT_1G;
 in port p_irda = XS1_PORT_1A;
-out port p_irda_feed = XS1_PORT_1B;
+out port p_feed = XS1_PORT_1B;
 out port debug = XS1_PORT_1H;
 
 int main()
@@ -738,7 +765,7 @@ int main()
   interface serial_rx_if uart_rx;
   interface uart_v4 uart_tx;
 
-  interface tx_if irda_emu;
+  //interface tx_if irda_emu;
   par
   {
     Router_v2(tx,rx);
@@ -748,8 +775,9 @@ int main()
     TX_Worker(tx,tx_out);
     cmd_v1(rx[cmd_rx],tx_out[cmd_tx]);
     irda_rx_v5(p_irda,10*us,rx[irda_rx]);
-    irda_emulator(10*us,p_irda_feed,irda_emu);
-    irda_send_loop(irda_emu);
+    //irda_emulator(10*us,p_irda_feed,irda_emu);
+    serial_send_loop(p_feed);
+    //irda_send_loop(irda_emu);
   }
   return 0;
 }

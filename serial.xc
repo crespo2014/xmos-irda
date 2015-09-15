@@ -194,17 +194,17 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
 }
 
 
+
+
 [[distributable]] void serial_tx_v5(server interface uart_v4 uart_if,server interface tx_if tx,out port p)
 {
   unsigned baudrate;
-  unsigned int tp;
   timer t;
   baudrate = 1;
   // it does not work with xs1, not pull resistor available
   //set_port_drive_low(tx);
   //set_port_pull_up(tx);
   p <: 1;   // the rx will mistake as 0xFF data
-  //t when timerafter(tp) :> void;
   while(1)
   {
     select
@@ -213,6 +213,8 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
         baudrate = baud;
         break;
       case tx.send(const char* data,unsigned char len):
+        UART_TIMED_SEND(data,len,p,baudrate,t);
+#if 0
         unsigned outData;    // out value
         t :> tp;
         while (len--)
@@ -228,6 +230,7 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
         }
         tp += (UART_BASE_BIT_LEN_ticks*baudrate*10);  // 1 byte gap
         t when timerafter(tp) :> void;
+#endif
         break;
     }
   }

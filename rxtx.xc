@@ -185,7 +185,7 @@ struct frames_buffer
   {
     select
     {
-    case tx_if[int _].get(struct rx_u8_buff  * movable &old_p,enum tx_task dest):
+    case tx_if[int j].get(struct rx_u8_buff  * movable &old_p,enum tx_task dest):
       // get first on the list
       if (old_p != 0)
       {
@@ -198,7 +198,7 @@ struct frames_buffer
         frames[dest].count--;
       }
       if (frames[dest].count != 0)
-        tx_if[dest].ondata();
+        tx_if[j].ondata();
       break;
     case tx_if[int _].push(struct rx_u8_buff  * movable &old_p):
       free_list[free_count++] = move(old_p);
