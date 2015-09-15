@@ -5,6 +5,8 @@
  *      Author: lester
  */
 
+#include "stdio.h"
+
 // read hexadecimal char and return number.
 
 unsigned readHexChar(const char *&str)
@@ -77,6 +79,15 @@ unsigned isPreffix(const char* pref,const char *str,const char *&last)
     ++last;
   }
   return (*pref == 0);
+}
+
+void printbuff(const char* d,unsigned len)
+{
+  while (len--)
+  {
+    printf("%c",*d);
+    d++;
+  }
 }
 
 
