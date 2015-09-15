@@ -61,6 +61,56 @@ do { \
   p  @ count <: high;  /* end of stop bit*/ \
 }while(0)
 
+#define UART_TIME_SEND(p,dt,baud,t,tp) \
+    unsigned outData = dt << 1 | 0x200;   /*stop bit 10 as 1, start bit 0 as 0 */ \
+    for (int i = 0;i<10;i++) { \
+      t when timerafter(tp) :> void; \
+      p <: >>outData; \
+      tp += (UART_BASE_BIT_LEN_ticks*baudrate); }
+
+/*
+ * TODO Serial over irda
+ * A frame is a 10x bitlen width. Tb
+ * pulse size Tp
+ *
+ * Sending a 1
+ * t = tb
+ * while (t > Tp)
+ * pulse or not
+ * t -= Tp
+ * if next is 1 then t += Tb and repeat
+ * if next is 0 then
+ *
+ * FROM LSB to MSB
+ *
+ * if bitlen < ton then pick another bit or exit and adjust tp
+ * calculate port value bit *1
+ * generated pulse
+ * bitlen -= ton+toff
+ */
+
+#define SERIAL_OVER_IRDA_TIMED(p,data,bitcount,Tbit,Ton,Toff,t,tp) \
+    do { \
+      unsigned bitmask = 1; \
+      unsigned bitlen = 0; \
+      unsigned adjust = 0; /* for toff */ \
+      unsigned char pv; \
+      while (bitcount--) {  \
+        bitlen = bitlen + Tbit - adjust; /* load bit data */ \
+        if (bitmask & data) pv = 1; else pv = 0;   \
+        do { \
+          if (bitlen < Ton) break; \
+          t when timerafter(tp) :> void; p <: pv; \
+          tp += Ton; bitlen -= Ton; \
+          t when timerafter(tp) :> void; p <: 0; \
+          tp += Toff; \
+          if (bitlen < Toff) { adjust = toff ;break;} else adjust = 0; \
+        } while(0); \
+      bitmask <<= 1; \
+      }\
+    } while (0)
+
+
 /*
  * Serial rx will write to a chan.
  * A buffer will hold data until cr to send to cmd interface
