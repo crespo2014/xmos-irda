@@ -123,7 +123,7 @@ do { \
     pdata++; \
   } \
   tp__ += (UART_BASE_BIT_LEN_ticks*baudrate*10);  /* 1 byte gap */ \
-  t when timerafter(tp) :> void;  \
+  t when timerafter(tp__) :> void;  \
  } while(0)
 
 /*

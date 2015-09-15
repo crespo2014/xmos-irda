@@ -154,7 +154,7 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
           tp += (UART_BASE_BIT_LEN_ticks*baudrate);
         }else if (st == 11)
         {
-          tp += (UART_BASE_BIT_LEN_ticks*10*1.5); // all bits have been read, wait for 1 1/2 bytes gap
+          tp += (UART_BASE_BIT_LEN_ticks*baudrate*5); // all bits have been read, wait for 1 1/2 bytes gap
           dt >>= 22;
           if ( (dt & 0x201) != 0x200 )   // test stop bit
           {
