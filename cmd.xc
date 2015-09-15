@@ -88,7 +88,7 @@ enum cmd_st
 
 void ParseCommand(const char* data,unsigned char len,struct rx_u8_buff &ret)
 {
-#if 0
+#if 1
   const char* resp;
   char* l;
   // is ascii command
@@ -124,7 +124,11 @@ void ParseCommand(const char* data,unsigned char len,struct rx_u8_buff &ret)
     select
     {
       case tx.send(const char* data,unsigned char len):
+        printf("\n<");
+        printbuff(data,len);
         ParseCommand(data,len,*pframe);
+        printf("\n>");
+        printbuff(pframe->dt,pframe->len);
         rx.push(pframe,serial_tx);
         break;
     }
