@@ -19,6 +19,9 @@ extern unsigned getHexChar(unsigned char num);
 extern unsigned getHexByte(unsigned char num);
 extern void getHexBuffer(const unsigned char *d,unsigned len,char * &str);
 
+//convert unsigned 8bit number to hex string and update pointer
+void u8ToHex(unsigned char num,char * &str);
+
 // copy str and update dest with last copied character
 extern void strcpy(char* &dest,const char* src);
 

@@ -57,8 +57,17 @@ void getHexBuffer(const unsigned char *d,unsigned len,char * &str)
     str++;
     d++;
   }
-
 }
+
+void u8ToHex(unsigned char num,char * &str)
+{
+  *str = getHexChar(num >> 4);
+  str++;
+  *str = getHexChar(num & 0x0F);
+  str++;
+}
+
+
 #if 1
 void strcpy(char* &dest,const char* src)
 {

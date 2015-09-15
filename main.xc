@@ -757,6 +757,9 @@ in port p_irda = XS1_PORT_1A;
 out port p_feed = XS1_PORT_1B;
 out port debug = XS1_PORT_1H;
 
+port sda = XS1_PORT_1I;
+port scl = XS1_PORT_1J;
+
 int main()
 {
   interface packet_tx_if  tx[max_tx]; //tx worker, cmd in ,
@@ -765,15 +768,18 @@ int main()
   interface serial_rx_if uart_rx;
   interface uart_v4 uart_tx;
 
+  interface i2c_custom_if i2c[1];
+
   //interface tx_if irda_emu;
   par
   {
     Router_v2(tx,rx);
     serial_rx_v5(uart_rx,rx[serial_rx],p_1F);
     serial_tx_v5(uart_tx,tx_out[serial_tx],p_1G);
+    i2c_custom(i2c,1,scl,sda,100);
     serial_manager(uart_tx,uart_rx);
     TX_Worker(tx,tx_out);
-    cmd_v1(rx[cmd_rx],tx_out[cmd_tx]);
+    cmd_v1(rx[cmd_rx],tx_out[cmd_tx],i2c[0]);
     irda_rx_v5(p_irda,10*us,rx[irda_rx]);
     //irda_emulator(10*us,p_irda_feed,irda_emu);
     serial_send_loop(p_feed);

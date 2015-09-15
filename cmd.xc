@@ -86,35 +86,88 @@ enum cmd_st
   }
 }
 
-void ParseCommand(const char* data,unsigned char len,struct rx_u8_buff &ret)
+void ascii_i2cw(const char* buff,struct rx_u8_buff &ret,client interface i2c_custom_if i2c)
 {
-#if 1
   const char* resp;
-  char* l;
-  // is ascii command
+  struct i2c_frm frm;
+  do
+  {
+    if (!i2cw_decode(buff,frm,'\n'))
+    {
+      resp ="I2CW invalid format";
+      break;
+    }
+    i2c.i2c_execute(frm);
+    if (frm.ret_code != i2c_success)
+    {
+      char* t = ret.dt;
+      strcpy(t,"I2CW NOK E: ");
+      u8ToHex(frm.ret_code,t);
+      *t = 0;
+      ret.len = safestrlen(ret.dt);
+      return;
+    }
+  } while(0);
+  safestrcpy(ret.dt,resp);
+  ret.len = safestrlen(ret.dt);
+}
+
+void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_custom_if i2c)
+{
+  const char* resp;
+  struct i2c_frm frm;
+  do
+  {
+    if (!i2cr_decode(buff,frm))
+    {
+      resp ="I2CR invalid format";
+      break;
+    }
+    i2c.i2c_execute(frm);
+    if (frm.ret_code != i2c_success)
+    {
+      char* t = ret.dt;
+      strcpy(t,"I2CW NOK E: ");
+      u8ToHex(frm.ret_code,t);
+      *t = 0;
+      ret.len = safestrlen(ret.dt);
+      return;
+    }
+  } while(0);
+  safestrcpy(ret.dt,resp);
+  ret.len = safestrlen(ret.dt);
+}
+
+void ProcessCommand(const char* data,unsigned char len,struct rx_u8_buff &pframe,client interface i2c_custom_if i2c)
+{
+  const unsigned char* l;
   if (*data > ' ')
   {
-    if (getCommand(data,l) != none_cmd)
-      resp = "OK\n";
-    else
-      resp = "NOK invalid cmd\n";
+    //cmd_id = getCommand(data,l);
+    switch (getCommand(data,l))
+    {
+     case i2cw_cmd:
+       ascii_i2cw(++l,pframe,i2c);
+       break;
+     default:
+       char* str = pframe.dt;
+       strcpy(str,"Ascii cmd unimplemented");
+       pframe.len = str - pframe.dt;
+       break;
+    }
   }
   else
   {
-    if (*data >= none_cmd)
-      resp = "NOK invalid id\n";
-    else
-      resp = "OK\n";
+    char* str = pframe.dt;
+    strcpy(str,"Binary cmd unimplemented");
+    pframe.len = str - pframe.dt;
   }
-  safestrcpy(ret.dt,resp);
-  ret.len = safestrlen(ret.dt);
-#endif
 }
 
 /*
  * Task to parse user commands.
  */
-[[distributable]] void cmd_v1(client interface rx_frame_if rx,server interface tx_if tx)
+[[distributable]] void cmd_v1(client interface rx_frame_if rx,server interface tx_if tx,client interface i2c_custom_if i2c)
 {
   // packet use to push
   struct rx_u8_buff tfrm;   // temporal frame
@@ -126,7 +179,7 @@ void ParseCommand(const char* data,unsigned char len,struct rx_u8_buff &ret)
       case tx.send(const char* data,unsigned char len):
         printf("in :");
         printbuff(data,len);
-        ParseCommand(data,len,*pframe);
+        ProcessCommand(data,len,*pframe,i2c);
         printf("\nout :");
         printbuff(pframe->dt,pframe->len);
         rx.push(pframe,serial_tx);

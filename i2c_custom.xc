@@ -709,7 +709,7 @@ void i2c_execute(struct i2c_frm &data,client interface i2c_master_if i2c_if)
   } while(0);
 }
 */
-
+#endif
 void i2c_response(const struct i2c_frm &packet,char* &str)
 {
   if (packet.ret_code == i2c_success)
@@ -921,5 +921,4 @@ unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret)
   }
 }
 
-#endif
 
