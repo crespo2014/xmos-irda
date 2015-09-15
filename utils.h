@@ -23,7 +23,7 @@ extern void getHexBuffer(const unsigned char *d,unsigned len,char * &str);
 void u8ToHex(unsigned char num,char * &str);
 
 // copy str and update dest with last copied character
-extern void strcpy(char* &dest,const char* src);
+//extern void strcpy(char* &dest,const char* src);
 
 // print a ascii buffer
 extern void printbuff(const char* d,unsigned len);

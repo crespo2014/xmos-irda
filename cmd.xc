@@ -22,6 +22,8 @@
 #include "utils.h"
 #include "cmd.h"
 
+
+
 /*
  * Use a termination character to make not possible past the end of the string
  */
@@ -64,54 +66,33 @@ enum cmd_st
   cmd_ascii,
 };
 
-[[combinable]] void SerialRX_Cmd(streaming chanend ch)
-{
-  struct rx_u8_buff  s_packet;    // static packet
-  struct rx_u8_buff* movable packet = &s_packet;
-  unsigned discarded;     // how many bytes throw away before a valid packet.
-  unsigned char data;
-  packet->len = 0;
-  packet->overflow = 0;
-  discarded = 0;
-  while(1)
-  {
-    select {
-      case ch :> data:
-        if (packet->len < sizeof(packet->dt))
-          packet->dt[packet->len++] = data;
-        else
-          packet->overflow++;
-        break;
-    }
-  }
-}
 
 void ascii_i2cw(const char* buff,struct rx_u8_buff &ret,client interface i2c_custom_if i2c)
 {
+
   const char* resp;
   struct i2c_frm frm;
   do
   {
     if (!i2cw_decode(buff,frm,'\n'))
     {
-      resp ="I2CW invalid format";
+      safestrcpy(ret.dt,"I2CW invalid format");
       break;
     }
     i2c.i2c_execute(frm);
     if (frm.ret_code != i2c_success)
     {
       char* t = ret.dt;
-      strcpy(t,"I2CW NOK E: ");
+      safestrcpy(t,"I2CW NOK E: ");
+      t += safestrlen(t);
       u8ToHex(frm.ret_code,t);
       *t = 0;
-      ret.len = safestrlen(ret.dt);
       return;
     }
   } while(0);
-  safestrcpy(ret.dt,resp);
   ret.len = safestrlen(ret.dt);
 }
-
+#if 0
 void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_custom_if i2c)
 {
   const char* resp;
@@ -163,7 +144,7 @@ void ProcessCommand(const char* data,unsigned char len,struct rx_u8_buff &pframe
     pframe.len = str - pframe.dt;
   }
 }
-
+#endif
 /*
  * Task to parse user commands.
  */
@@ -177,6 +158,7 @@ void ProcessCommand(const char* data,unsigned char len,struct rx_u8_buff &pframe
     select
     {
       case tx.send(const char* data,unsigned char len):
+          /*
         printf("in :");
         printbuff(data,len);
         ProcessCommand(data,len,*pframe,i2c);
@@ -184,6 +166,7 @@ void ProcessCommand(const char* data,unsigned char len,struct rx_u8_buff &pframe
         printbuff(pframe->dt,pframe->len);
         rx.push(pframe,serial_tx);
         printf("\n");
+        */
         break;
     }
   }

@@ -135,6 +135,30 @@ struct i2c_frm
 };
 
 /*
+ * No delay after scl go down
+ */
+#define I2C_START(scl,sda,T,t,tp) \
+do { \
+  t when timerafter(tp) :> void; \
+  scl :> void; /* or set to 1 */ \
+  tp += T/4; t when timerafter(tp) :> void; \
+  sda <: 0; \
+  tp += T/2; t when timerafter(tp) :> void; \
+  scl <: 0; \
+  } while(0)
+
+#define I2C_STOP(scl,sda,T,t,tp) \
+do { \
+  t when timerafter(tp) :> void; \
+  sda <: 0; \
+  tp += T/2; t when timerafter(tp) :> void; \
+  scl <: 1; \
+  tp += T; t when timerafter(tp) :> void; \
+  sda <: 0; \
+  tp += T/4; t when timerafter(tp) :> void; \
+  } while(0)
+
+/*
  * Packet to build from commands
  * I2CW and I2CR
  */

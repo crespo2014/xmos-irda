@@ -5,7 +5,7 @@
  *      Author: lester
  */
 
-#include "stdio.h"
+#include <stdio.h>
 
 // read hexadecimal char and return number.
 
@@ -68,7 +68,7 @@ void u8ToHex(unsigned char num,char * &str)
 }
 
 
-#if 1
+#if 0
 void strcpy(char* &dest,const char* src)
 {
   while ((*dest = *src) != 0)
