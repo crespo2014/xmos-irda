@@ -803,33 +803,28 @@ int main()
   set_port_drive_low(sda);
   set_port_no_inv(scl);
   set_port_no_inv(sda);
-//  unsigned char c;
-//      scl :> c;
-//      scl when pinseq(1) :> c;
-//      printf("x%X\n",c);
-
-//  scl <: 1;
-//  scl <: 0;
-//  scl <: 1;
-//  for (int i = 0;i< 5;i++)
-//  {
-//    t :> tp;
-//    t when timerafter(tp + sec) :> void;
-//    unsigned char c;
-//    scl :> c;
-//    printf("x%X\n",c);
-//  }
   t :> tp;
+  scl <: 0;
+  tp += T/8;
+  t when timerafter(tp) :> void;
+  sda :> int _;
+  tp += T/8;
+  t when timerafter(tp) :> void;
+  scl :> int _;
+  t :> tp;
+  wr[0] = 3;
+//  ret = I2C_WRITE_BUFF(addr,wr,1,scl,sda,T,t,tp);
+//  printf("ret=%d\n",ret);
   ret = I2C_READ_BUFF(addr,rd,5,scl,sda,T,t,tp);
   I2C_STOP(scl,sda,100,t,tp);
+  printf("ret=%d\n",ret);
   for (int i = 0;i< 5;i++)
   {
     printf("x%X ",rd[i]);
   }
   printf("\n");
   // set read address
-  wr[0] = 2;
-  //ret = I2C_WRITE_BUFF(addr,wr,1,scl,sda,T,t,tp);
+
   return 0;
 }
 

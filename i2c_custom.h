@@ -40,8 +40,6 @@ struct i2c_frm
 static inline void I2C_START(port scl, port sda,unsigned T,timer t,unsigned &tp)
 {
   t when timerafter(tp) :> void;
-  sda <: 1;
-  scl <: 1;
   tp += T/4; t when timerafter(tp) :> void;
   sda <: 0;
   tp += T/2; t when timerafter(tp) :> void;
@@ -164,7 +162,7 @@ static inline enum i2c_ecode I2C_READ_BUFF(unsigned char addr,unsigned char* pda
 {
   I2C_START(scl,sda,T,t,tp);
   enum i2c_ecode ecode = I2C_SEND_U8((addr << 1) | 1 ,scl,sda,T,t,tp);
-  while (len-- && ecode == i2c_ack)
+  while (len && ecode == i2c_ack)
   {
     int i;
     unsigned data;
@@ -180,6 +178,7 @@ static inline enum i2c_ecode I2C_READ_BUFF(unsigned char addr,unsigned char* pda
     }
     if (i != 0) break;
     *pdata = data;
+    len--;
     if (len)
     {
       sda <: 0;   //ack need more bytes
