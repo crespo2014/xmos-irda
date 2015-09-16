@@ -66,6 +66,7 @@ do { \
   sda <: 0; \
   tp += T/2; t when timerafter(tp) :> void; \
   scl <: 0; \
+  tp += T/2; \
   } while(0)
 
 #define I2C_STOP(scl,sda,T,t,tp) \
@@ -76,7 +77,7 @@ do { \
   scl <: 1; \
   tp += T; t when timerafter(tp) :> void; \
   sda <: 0; \
-  tp += T/4; t when timerafter(tp) :> void; \
+  tp += T/4; \
   } while(0)
 
 /*

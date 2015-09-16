@@ -103,14 +103,13 @@ static enum i2c_ecode i2c_write(port scl, port sda,unsigned T,unsigned char addr
   t :> tp;
   enum i2c_ecode ret;
   I2C_START(scl,sda,T,t,tp);
-  ret = i2c_push_u8(sda,scl, (address << 1),1);
+  I2C_SEND_U8((address << 1),scl,sda,T,t,tp,ret);
   while (len && ret == i2c_ack)
   {
-    ret = i2c_push_u8(sda,scl, *data,1);
+    I2C_SEND_U8(*data,scl,sda,T,t,tp,ret);
     data++;
     len--;
   }
-  if (ret == i2c_0) ret = i2c_success;
   return ret;
 }
 
@@ -191,7 +190,7 @@ void i2c_decode_answer(struct i2c_frm &data,struct rx_u8_buff &ret)
 {
   switch (data.ret_code)
   {
-  case i2c_success:
+  case i2c_ack:
     char* t = ret.dt;
     safestrcpy(t,"I2C OK ");
     t += safestrlen(t);
@@ -233,7 +232,7 @@ void i2c_decode_answer(struct i2c_frm &data,struct rx_u8_buff &ret)
          {
            data.ret_code = i2c_write(scl,sda,T,data.addr,data.dt,data.wr_len);
          }
-         if (data.ret_code == i2c_success && data.rd_len)
+         if (data.ret_code == i2c_ack && data.rd_len)
          {
            data.ret_code = i2c_read(scl,sda,T,data.addr,data.dt + data.wr_len,data.rd_len);
          }
