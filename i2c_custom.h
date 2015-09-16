@@ -82,19 +82,21 @@ inline static enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp
   enum i2c_ecode ret;
   t when timerafter(tp) :> void;
   scl <: 1;
-  scl :> ret;
-  printf("%d\n",ret);
-  select {
-  case scl when pinseq(1) :> void:
-    tp += 3*T/4;
+  // wait for signal become high
+  for (int i = 8;i != 0;i--)
+  {
+    scl :> ret;
+    if (ret == 1) break;
+    tp += (T/4);
     t when timerafter(tp) :> tp;
-    tp += T/4; /* next transition*/
-    ret = i2c_ack;
-    break;
-  case t when timerafter(tp + 1.5*T) :> void:
-    ret = i2c_timeout;
-    break;
   }
+  if (ret == 1)
+  {
+    tp += 3*T/4;    // read value atthis point
+    ret = i2c_ack;
+  }
+  else
+    ret = i2c_timeout;
   return ret;
 }
 
