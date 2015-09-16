@@ -751,14 +751,14 @@ void serial_send_loop(out port tx)
   }
 }
 
-in port p_1F = XS1_PORT_1F;
+in port p_1F = XS1_PORT_1C;
 out port p_1G = XS1_PORT_1G;
 in port p_irda = XS1_PORT_1A;
 out port p_feed = XS1_PORT_1B;
-out port debug = XS1_PORT_1H;
+out port debug = XS1_PORT_1I;
 
-port sda = XS1_PORT_1I;
-port scl = XS1_PORT_1J;
+port sda = XS1_PORT_1H;
+port scl = XS1_PORT_1F;
 
 #if 0
 int main()
@@ -792,15 +792,44 @@ int main()
 
 int main()
 {
+  unsigned T = 100;
+  unsigned addr =0x50;
   timer t;
   unsigned tp;
   enum i2c_ecode ret;
-  unsigned char* buff = "\x1\x2\x4\x8\x16\x32";
-  //set_port_drive_low(scl);
-  //set_port_drive_low(sda);
+  unsigned char wr[2];
+  unsigned char rd[10];
+  set_port_drive_low(scl);
+  set_port_drive_low(sda);
+  set_port_no_inv(scl);
+  set_port_no_inv(sda);
+//  unsigned char c;
+//      scl :> c;
+//      scl when pinseq(1) :> c;
+//      printf("x%X\n",c);
+
+//  scl <: 1;
+//  scl <: 0;
+//  scl <: 1;
+//  for (int i = 0;i< 5;i++)
+//  {
+//    t :> tp;
+//    t when timerafter(tp + sec) :> void;
+//    unsigned char c;
+//    scl :> c;
+//    printf("x%X\n",c);
+//  }
   t :> tp;
-  ret = I2C_WRITE_BUFF(1,buff,5,scl,sda,100,t,tp);
+  ret = I2C_READ_BUFF(addr,rd,5,scl,sda,T,t,tp);
   I2C_STOP(scl,sda,100,t,tp);
+  for (int i = 0;i< 5;i++)
+  {
+    printf("x%X ",rd[i]);
+  }
+  printf("\n");
+  // set read address
+  wr[0] = 2;
+  //ret = I2C_WRITE_BUFF(addr,wr,1,scl,sda,T,t,tp);
   return 0;
 }
 

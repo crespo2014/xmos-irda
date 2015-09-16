@@ -96,7 +96,7 @@
  * write use address and data
  * w/r is a combination
  */
-
+#if 1
 unsigned i2cw_decode(const unsigned char* c,struct i2c_frm &ret,char stop_char)
 {
   //I2CW ADDRESS DATA
@@ -148,10 +148,11 @@ unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret)
   if ((v > 0xFF) || (*c != '\n') || ret.rd_len + ret.wr_len > sizeof(ret.dt) ) bret = 0;
   return bret;
 }
+#endif
 
 void i2c_decode_answer(struct i2c_frm &data,struct rx_u8_buff &ret)
 {
-#if 1
+#if 0
   switch (data.ret_code)
   {
   case i2c_ack:
@@ -173,9 +174,10 @@ void i2c_decode_answer(struct i2c_frm &data,struct rx_u8_buff &ret)
 #endif
 }
 
+
 [[distributable]] void i2c_custom(server interface i2c_custom_if i2c_if[n],size_t n,port scl, port sda, unsigned kbits_per_second)
 {
-  unsigned T = ms/kbits_per_second;
+  //unsigned T = ms/kbits_per_second;
   timer t;
   unsigned tp;
   //size_t num_bytes_sent;
@@ -200,9 +202,9 @@ void i2c_decode_answer(struct i2c_frm &data,struct rx_u8_buff &ret)
          {
           // data.ret_code = i2c_read(scl,sda,T,data.addr,data.dt + data.wr_len,data.rd_len);
          }
-#endif
          I2C_STOP(scl,sda,T,t,tp);
          t when timerafter(tp) :> void;
+#endif
          break;
      }
   }
