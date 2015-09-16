@@ -37,7 +37,7 @@ struct i2c_frm
 /*
  * No delay after scl go down
  */
-inline void I2C_START(port scl, port sda,unsigned T,timer t,unsigned &tp)
+static inline void I2C_START(port scl, port sda,unsigned T,timer t,unsigned &tp)
 {
   t when timerafter(tp) :> void;
   scl :> void; /* or set to 1 */
@@ -76,8 +76,9 @@ inline void I2C_SEND_BIT(port scl,port sda,unsigned T,timer t,unsigned &tp)
  * Release the clock and wait until it become high, (Streching)
  * Read bit from clock at 3/4 part of the high pulse
  */
-enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp)
+inline static enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp)
 {
+  enum i2c_ecode ret;
   t when timerafter(tp) :> void;
   scl <: 1;
   select {
@@ -85,12 +86,13 @@ enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp)
     tp += 3*T/4;
     t when timerafter(tp) :> tp;
     tp += T/4; /* next transition*/
-    return i2c_ack;
+    ret = i2c_ack;
     break;
   case t when timerafter(tp + 1.5*T) :> void:
-    return i2c_timeout;
+    ret = i2c_timeout;
     break;
   }
+  return ret;
 }
 
 /*
@@ -109,14 +111,14 @@ inline void I2C_CLK_DOWN(port scl,unsigned T,timer t,unsigned &tp)
  */
 inline enum i2c_ecode I2C_SEND_U8(unsigned char u8,port scl,port sda,unsigned T,timer t,unsigned &tp)
 {
-  unsigned v__ = u8;
+  unsigned v = u8;
   v = bitrev(v) >> 24;
   for (int i = 8; i != 0; i--)
   {
-     sda <: >> v__;
+     sda <: >> v;
      I2C_SEND_BIT(scl,sda,T,t,tp);
   }
-  enum i2c_ecode ecode = I2C_CLK_UP(scl,T,t,tp,ecode);
+  enum i2c_ecode ecode = I2C_CLK_UP(scl,T,t,tp);
   if (ecode == i2c_ack) sda :> ecode;
   I2C_CLK_DOWN(scl,T,t,tp);
   return ecode;
@@ -125,11 +127,10 @@ inline enum i2c_ecode I2C_SEND_U8(unsigned char u8,port scl,port sda,unsigned T,
 /*
  * DeviceID or address is left shifted and ored with (0 write , 1 read)
  */
-inline enum i2c_ecode I2C_WRITE_BUFF(unsigned char addr,const unsigned char* pdata,unsigned len,port scl,port sda,unsigned T,timer t, unsigned tp)
+static inline enum i2c_ecode I2C_WRITE_BUFF(unsigned char addr,const unsigned char* pdata,unsigned len,port scl,port sda,unsigned T,timer t, unsigned &tp)
 {
   I2C_START(scl,sda,T,t,tp);
-  I2C_SEND_U8(addr << 1,scl,sda,T,t,tp,ecode);
-  enum i2c_ecode ecode = i2c_ack;
+  enum i2c_ecode ecode = I2C_SEND_U8(addr << 1,scl,sda,T,t,tp);
   while (len && ecode == i2c_ack)
   {
     ecode = I2C_SEND_U8(*pdata,scl,sda,T,t,tp);
