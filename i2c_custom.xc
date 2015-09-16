@@ -76,48 +76,11 @@
 #include "safestring.h"
 
 
-//void i2c_response(const struct i2c_frm &packet,char* &str)
+//static enum i2c_ecode i2c_read(port scl, port sda,unsigned T,unsigned char address,
+//    const char* data,unsigned len)
 //{
-//  if (packet.ret_code == i2c_success)
-//  {
-//    safestrcpy(str,"I2C OK ");
-//    str = str + safestrlen(str);
-//    if (packet.rd_len != 0)
-//      getHexBuffer(packet.dt + packet.wr_len,packet.rd_len,str);
-//    safestrcpy(str,"\n");
-//  }
-//  else
-//  {
-//    safestrcpy(str,"I2C NOK\n");
-//  }
+//  return i2c_error;
 //}
-
-/*
- * DeviceID or address is left shifted and ored with (0 write , 1 read)
- */
-static enum i2c_ecode i2c_write(port scl, port sda,unsigned T,unsigned char address,
-    const char* data,unsigned len)
-{
-  timer t;
-  unsigned tp;
-  t :> tp;
-  enum i2c_ecode ret;
-  I2C_START(scl,sda,T,t,tp);
-  I2C_SEND_U8((address << 1),scl,sda,T,t,tp,ret);
-  while (len && ret == i2c_ack)
-  {
-    I2C_SEND_U8(*data,scl,sda,T,t,tp,ret);
-    data++;
-    len--;
-  }
-  return ret;
-}
-
-static enum i2c_ecode i2c_read(port scl, port sda,unsigned T,unsigned char address,
-    const char* data,unsigned len)
-{
-  return i2c_error;
-}
 
 /*
  * TODO for command interface
@@ -188,6 +151,7 @@ unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret)
 
 void i2c_decode_answer(struct i2c_frm &data,struct rx_u8_buff &ret)
 {
+#if 1
   switch (data.ret_code)
   {
   case i2c_ack:
@@ -206,6 +170,7 @@ void i2c_decode_answer(struct i2c_frm &data,struct rx_u8_buff &ret)
     break;
   }
   ret.len = safestrlen(ret.dt);
+#endif
 }
 
 [[distributable]] void i2c_custom(server interface i2c_custom_if i2c_if[n],size_t n,port scl, port sda, unsigned kbits_per_second)
@@ -225,19 +190,18 @@ void i2c_decode_answer(struct i2c_frm &data,struct rx_u8_buff &ret)
      select {
      case (size_t i =0; i < n; i++) i2c_if[i].i2c_execute(struct i2c_frm &data):
          t :> tp;
-         data.ret_code = i2c_error;
-         I2C_START(scl,sda,T,t,tp);
 #if 1
          if (data.wr_len)
          {
-           data.ret_code = i2c_write(scl,sda,T,data.addr,data.dt,data.wr_len);
+           //I2C_WRITE_BUFF(data.addr,data.dt,data.wr_len,scl,sda,T,t,tp,data.ret_code);
          }
          if (data.ret_code == i2c_ack && data.rd_len)
          {
-           data.ret_code = i2c_read(scl,sda,T,data.addr,data.dt + data.wr_len,data.rd_len);
+          // data.ret_code = i2c_read(scl,sda,T,data.addr,data.dt + data.wr_len,data.rd_len);
          }
 #endif
          I2C_STOP(scl,sda,T,t,tp);
+         t when timerafter(tp) :> void;
          break;
      }
   }

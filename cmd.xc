@@ -69,27 +69,16 @@ enum cmd_st
 
 void ascii_i2cw(const char* buff,struct rx_u8_buff &ret,client interface i2c_custom_if i2c)
 {
-
-  const char* resp;
   struct i2c_frm frm;
-  do
+  if (!i2cw_decode(buff,frm,'\n'))
   {
-    if (!i2cw_decode(buff,frm,'\n'))
-    {
-      safestrcpy(ret.dt,"I2CW invalid format");
-      break;
-    }
+    safestrcpy(ret.dt,"I2CW invalid format");
+  }
+  else
+  {
     i2c.i2c_execute(frm);
-    if (frm.ret_code != i2c_success)
-    {
-      char* t = ret.dt;
-      safestrcpy(t,"I2CW NOK E: ");
-      t += safestrlen(t);
-      u8ToHex(frm.ret_code,t);
-      *t = 0;
-      return;
-    }
-  } while(0);
+    i2c_decode_answer(frm,ret);
+  }
   ret.len = safestrlen(ret.dt);
 }
 #if 0

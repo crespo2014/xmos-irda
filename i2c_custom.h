@@ -128,14 +128,30 @@ do {  \
  */
 #define I2C_SEND_U8(u8,scl,sda,T,t,tp,ecode) \
   do { \
-    unsigned data = ((unsigned) bitrev(u8)) >> 24; \
+    unsigned data__ = ((unsigned) bitrev(u8)) >> 24; \
     for (int i = 8; i != 0; i--) { \
-         sda <: >> data; \
+         sda <: >> data__; \
          I2C_SEND_BIT(scl,sda,T,t,tp); } \
     I2C_CLK_UP(scl,T,t,tp,ecode); \
     if (ecode == i2c_ack) sda :> ecode; \
     I2C_CLK_DOWN(scl,T,t,tp); \
   } while(0)
+
+/*
+ * DeviceID or address is left shifted and ored with (0 write , 1 read)
+ */
+#define I2C_WRITE_BUFF(addr,pdata,len,scl,sda,T,t,tp,ecode) \
+    do { \
+      I2C_START(scl,sda,T,t,tp); \
+      I2C_SEND_U8((addr << 1),scl,sda,T,t,tp,ecode); \
+      unsigned len__ = len; \
+      const char* data__ = pdata; \
+      while (len__ && ecode == i2c_ack) {  \
+        I2C_SEND_U8(*data__,scl,sda,T,t,tp,ecode);  \
+        data__++;\
+        len__--; \
+      } \
+    } while(0)
 
 /*
  * Packet to build from commands
@@ -161,6 +177,7 @@ interface i2c_custom_if
 extern unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret);
 extern unsigned i2cr_decode(const unsigned char* c,struct i2c_frm &ret);
 extern unsigned i2cw_decode(const unsigned char* c,struct i2c_frm &ret,char stop_char);
+extern void i2c_decode_answer(struct i2c_frm &data,struct rx_u8_buff &ret);
 
  [[distributable]] extern void i2c_custom(server interface i2c_custom_if i2c_if[n],size_t n,port scl, port sda, unsigned kbits_per_second);
 
