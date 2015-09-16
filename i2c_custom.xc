@@ -176,6 +176,8 @@ void i2c_decode_answer(struct i2c_frm &data,struct rx_u8_buff &ret)
 [[distributable]] void i2c_custom(server interface i2c_custom_if i2c_if[n],size_t n,port scl, port sda, unsigned kbits_per_second)
 {
   unsigned T = ms/kbits_per_second;
+  timer t;
+  unsigned tp;
   //size_t num_bytes_sent;
   set_port_drive_low(scl);
   set_port_drive_low(sda);
@@ -184,17 +186,15 @@ void i2c_decode_answer(struct i2c_frm &data,struct rx_u8_buff &ret)
   scl <: 1;   // p_scl :> void;
   delay_ticks(1);
   sda <: 1;
-  timer t;
-  unsigned tp;
   while (1) {
      select {
-     case i2c_if[int i].i2c_execute(struct i2c_frm &data):
+     case i2c_if[unsigned i].i2c_execute(struct i2c_frm &data):
          t :> tp;
 #if 0
          data.ret_code = i2c_ack;
          if (data.wr_len)
          {
-           I2C_WRITE_BUFF(data.addr,data.dt,data.wr_len,scl,sda,T,t,tp,data.ret_code);
+           data.ret_code = I2C_WRITE_BUFF(data.addr,data.dt,data.wr_len,scl,sda,T,t,tp);
          }
          if (data.ret_code == i2c_ack && data.rd_len)
          {

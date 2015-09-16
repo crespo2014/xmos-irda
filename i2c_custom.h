@@ -40,7 +40,8 @@ struct i2c_frm
 static inline void I2C_START(port scl, port sda,unsigned T,timer t,unsigned &tp)
 {
   t when timerafter(tp) :> void;
-  scl :> void; /* or set to 1 */
+  sda <: 1;
+  scl <: 1;
   tp += T/4; t when timerafter(tp) :> void;
   sda <: 0;
   tp += T/2; t when timerafter(tp) :> void;
@@ -48,21 +49,21 @@ static inline void I2C_START(port scl, port sda,unsigned T,timer t,unsigned &tp)
   tp += T/2;
 }
 
-inline void I2C_STOP(port scl,port sda,unsigned T,timer t,unsigned &tp)
+static inline void I2C_STOP(port scl,port sda,unsigned T,timer t,unsigned &tp)
 {
   t when timerafter(tp) :> void;
   sda <: 0;
   tp += T/2; t when timerafter(tp) :> void;
   scl <: 1;
   tp += T; t when timerafter(tp) :> void;
-  sda <: 0;
+  sda <: 1;
   tp += T/4;
 }
 
 /*
  * Generate a clock pulse
  */
-inline void I2C_SEND_BIT(port scl,port sda,unsigned T,timer t,unsigned &tp)
+static inline void I2C_SEND_BIT(port scl,port sda,unsigned T,timer t,unsigned &tp)
 {
   t when timerafter(tp) :> void;
   scl <: 1;
@@ -81,6 +82,8 @@ inline static enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp
   enum i2c_ecode ret;
   t when timerafter(tp) :> void;
   scl <: 1;
+  scl :> ret;
+  printf("%d\n",ret);
   select {
   case scl when pinseq(1) :> void:
     tp += 3*T/4;
@@ -98,7 +101,7 @@ inline static enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp
 /*
  * Put clock signal down
  */
-inline void I2C_CLK_DOWN(port scl,unsigned T,timer t,unsigned &tp)
+static inline void I2C_CLK_DOWN(port scl,unsigned T,timer t,unsigned &tp)
 {
    t when timerafter(tp) :> void;
    scl <: 0;
@@ -109,7 +112,7 @@ inline void I2C_CLK_DOWN(port scl,unsigned T,timer t,unsigned &tp)
  * Send byte
  * Clock signal should be low
  */
-inline enum i2c_ecode I2C_SEND_U8(unsigned char u8,port scl,port sda,unsigned T,timer t,unsigned &tp)
+static inline enum i2c_ecode I2C_SEND_U8(unsigned char u8,port scl,port sda,unsigned T,timer t,unsigned &tp)
 {
   unsigned v = u8;
   v = bitrev(v) >> 24;

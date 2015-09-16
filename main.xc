@@ -790,21 +790,15 @@ int main()
 }
 #endif
 
-inline void jump(port p)
-{
-   p <: 0;
-   p <: 1;
-}
-
 int main()
 {
   timer t;
   unsigned tp;
   enum i2c_ecode ret;
   unsigned char* buff = "\x1\x2\x4\x8\x16\x32";
+  //set_port_drive_low(scl);
+  //set_port_drive_low(sda);
   t :> tp;
-  jump(sda);
-  I2C_START(scl,sda,100,t,tp);
   ret = I2C_WRITE_BUFF(1,buff,5,scl,sda,100,t,tp);
   I2C_STOP(scl,sda,100,t,tp);
   return 0;
