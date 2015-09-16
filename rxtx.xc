@@ -273,3 +273,18 @@ void RX_Packer(streaming chanend ch,unsigned timeout,client interface rx_frame_i
     }
   }
 }
+
+/*
+ * Fast rx tx v8.
+ * Starting at t0. as high pulse. using T as period.
+ * The distance between Tstart and the pulse is the data.
+ *
+ * |-----|----|  1 - long distance.
+ * 0          T
+ *
+ * |--|-------|  0 - short distance
+ * 0          T
+ *
+ * Rx will read until a zero is inputed.
+ * clz function returns distance of pulse
+ */

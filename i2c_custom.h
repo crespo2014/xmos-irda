@@ -9,28 +9,7 @@
 #ifndef I2C_H_
 #define I2C_H_
 
-
-/*
-#define I2C_SDA1  1
-#define I2C_SCL1  2
-#define I2C_SDA2  4
-#define I2C_SCL2  8
-#define I2C_MASK1 3
-#define I2C_MASK2 12
-*/
-
-/*
- * main state (idle, start,addr,data_wr, data_ack, data_rd, stop)
- * substates (transition, update/prepare, send(clk) )
- *
- * how many data to read/write
- * each byte requered a ack.
- * each frame required read or write count bytes
- *
- * push a i2c frame will return data in the same frame
- * cmd interfaz only send i2c one by one, but it need to be asynchronious
- */
-
+#include <xclib.h>
 /*
  * Returned error codes for i2c command execution
  */
@@ -58,100 +37,107 @@ struct i2c_frm
 /*
  * No delay after scl go down
  */
-#define I2C_START(scl,sda,T,t,tp) \
-do { \
-  t when timerafter(tp) :> void; \
-  scl :> void; /* or set to 1 */ \
-  tp += T/4; t when timerafter(tp) :> void; \
-  sda <: 0; \
-  tp += T/2; t when timerafter(tp) :> void; \
-  scl <: 0; \
-  tp += T/2; \
-  } while(0)
+inline void I2C_START(port scl, port sda,unsigned T,timer t,unsigned &tp)
+{
+  t when timerafter(tp) :> void;
+  scl :> void; /* or set to 1 */
+  tp += T/4; t when timerafter(tp) :> void;
+  sda <: 0;
+  tp += T/2; t when timerafter(tp) :> void;
+  scl <: 0;
+  tp += T/2;
+}
 
-#define I2C_STOP(scl,sda,T,t,tp) \
-do { \
-  t when timerafter(tp) :> void; \
-  sda <: 0; \
-  tp += T/2; t when timerafter(tp) :> void; \
-  scl <: 1; \
-  tp += T; t when timerafter(tp) :> void; \
-  sda <: 0; \
-  tp += T/4; \
-  } while(0)
+inline void I2C_STOP(port scl,port sda,unsigned T,timer t,unsigned &tp)
+{
+  t when timerafter(tp) :> void;
+  sda <: 0;
+  tp += T/2; t when timerafter(tp) :> void;
+  scl <: 1;
+  tp += T; t when timerafter(tp) :> void;
+  sda <: 0;
+  tp += T/4;
+}
 
 /*
  * Generate a clock pulse
  */
-#define I2C_SEND_BIT(scl,sda,T,t,tp) \
-do {  \
-  t when timerafter(tp) :> void; \
-  scl <: 1; \
-  tp += T/2; t when timerafter(tp) :> void; \
-  scl <: 0; \
-  tp += T/2; \
-} while(0)
+inline void I2C_SEND_BIT(port scl,port sda,unsigned T,timer t,unsigned &tp)
+{
+  t when timerafter(tp) :> void;
+  scl <: 1;
+  tp += T/2; t when timerafter(tp) :> void;
+  scl <: 0;
+  tp += T/2;
+}
 
 /*
  * Raise the clock signal and confirm or timeout
  * Release the clock and wait until it become high, (Streching)
  * Read bit from clock at 3/4 part of the high pulse
  */
-#define I2C_CLK_UP(scl,T,t,tp,ecode) \
-  do { \
-    t when timerafter(tp) :> void; \
-    scl <: 1; \
-    select { \
-    case scl when pinseq(1) :> void: \
-      ecode = i2c_ack; \
-      tp += 3*T/4; t when timerafter(tp) :> tp; \
-      break; \
-    case t when timerafter(tp + 1.5*T) :> void: \
-      ecode = i2c_timeout; \
-      break; \
-    } \
-    tp += T/4; /* next transition*/ \
-  } while(0)
+enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp)
+{
+  t when timerafter(tp) :> void;
+  scl <: 1;
+  select {
+  case scl when pinseq(1) :> void:
+    tp += 3*T/4;
+    t when timerafter(tp) :> tp;
+    tp += T/4; /* next transition*/
+    return i2c_ack;
+    break;
+  case t when timerafter(tp + 1.5*T) :> void:
+    return i2c_timeout;
+    break;
+  }
+}
 
 /*
  * Put clock signal down
  */
-#define I2C_CLK_DOWN(scl,T,t,tp) \
-  do { \
-     t when timerafter(tp) :> void; \
-     scl <: 0; tp += T/2; \
-  } while(0)
+inline void I2C_CLK_DOWN(port scl,unsigned T,timer t,unsigned &tp)
+{
+   t when timerafter(tp) :> void;
+   scl <: 0;
+   tp += T/2;
+}
 
 /*
  * Send byte
  * Clock signal should be low
  */
-#define I2C_SEND_U8(u8,scl,sda,T,t,tp,ecode) \
-  do { \
-    unsigned data__ = ((unsigned) bitrev(u8)) >> 24; \
-    for (int i = 8; i != 0; i--) { \
-         sda <: >> data__; \
-         I2C_SEND_BIT(scl,sda,T,t,tp); } \
-    I2C_CLK_UP(scl,T,t,tp,ecode); \
-    if (ecode == i2c_ack) sda :> ecode; \
-    I2C_CLK_DOWN(scl,T,t,tp); \
-  } while(0)
+inline enum i2c_ecode I2C_SEND_U8(unsigned char u8,port scl,port sda,unsigned T,timer t,unsigned &tp)
+{
+  unsigned v__ = u8;
+  v = bitrev(v) >> 24;
+  for (int i = 8; i != 0; i--)
+  {
+     sda <: >> v__;
+     I2C_SEND_BIT(scl,sda,T,t,tp);
+  }
+  enum i2c_ecode ecode = I2C_CLK_UP(scl,T,t,tp,ecode);
+  if (ecode == i2c_ack) sda :> ecode;
+  I2C_CLK_DOWN(scl,T,t,tp);
+  return ecode;
+}
 
 /*
  * DeviceID or address is left shifted and ored with (0 write , 1 read)
  */
-#define I2C_WRITE_BUFF(addr,pdata,len,scl,sda,T,t,tp,ecode) \
-    do { \
-      I2C_START(scl,sda,T,t,tp); \
-      I2C_SEND_U8((addr << 1),scl,sda,T,t,tp,ecode); \
-      unsigned len__ = len; \
-      const char* data__ = pdata; \
-      while (len__ && ecode == i2c_ack) {  \
-        I2C_SEND_U8(*data__,scl,sda,T,t,tp,ecode);  \
-        data__++;\
-        len__--; \
-      } \
-    } while(0)
+inline enum i2c_ecode I2C_WRITE_BUFF(unsigned char addr,const unsigned char* pdata,unsigned len,port scl,port sda,unsigned T,timer t, unsigned tp)
+{
+  I2C_START(scl,sda,T,t,tp);
+  I2C_SEND_U8(addr << 1,scl,sda,T,t,tp,ecode);
+  enum i2c_ecode ecode = i2c_ack;
+  while (len && ecode == i2c_ack)
+  {
+    ecode = I2C_SEND_U8(*pdata,scl,sda,T,t,tp);
+    pdata++;
+    len--;
+  }
+  return ecode;
+}
 
 /*
  * Packet to build from commands

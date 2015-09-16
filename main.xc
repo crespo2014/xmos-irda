@@ -760,6 +760,7 @@ out port debug = XS1_PORT_1H;
 port sda = XS1_PORT_1I;
 port scl = XS1_PORT_1J;
 
+#if 0
 int main()
 {
   interface packet_tx_if  tx[max_tx]; //tx worker, cmd in ,
@@ -787,7 +788,19 @@ int main()
   }
   return 0;
 }
+#endif
 
+int main()
+{
+  timer t;
+  unsigned tp;
+  enum i2c_ecode ret;
+  unsigned char* buff = "\x1\x2\x4\x8\x16\x32";
+  t :> tp;
+  I2C_START(scl,sda,100,t,tp);
+  I2C_WRITE_BUFF(1,buff,5,scl,sda,100,t,tp,ret);
+  return 0;
+}
 
 /* todo.
  * analog to digital converter plus interface via serial port

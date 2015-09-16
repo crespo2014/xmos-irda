@@ -188,12 +188,13 @@ void i2c_decode_answer(struct i2c_frm &data,struct rx_u8_buff &ret)
   unsigned tp;
   while (1) {
      select {
-     case (size_t i =0; i < n; i++) i2c_if[i].i2c_execute(struct i2c_frm &data):
+     case i2c_if[int i].i2c_execute(struct i2c_frm &data):
          t :> tp;
-#if 1
+#if 0
+         data.ret_code = i2c_ack;
          if (data.wr_len)
          {
-           //I2C_WRITE_BUFF(data.addr,data.dt,data.wr_len,scl,sda,T,t,tp,data.ret_code);
+           I2C_WRITE_BUFF(data.addr,data.dt,data.wr_len,scl,sda,T,t,tp,data.ret_code);
          }
          if (data.ret_code == i2c_ack && data.rd_len)
          {
