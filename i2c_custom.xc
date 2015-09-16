@@ -92,81 +92,6 @@
 //  }
 //}
 
-
-/*
- * Release the clock and wait until it become high, (Streching)
- * keep readin the port until one 1 is read or no more tries.
- *  d start at F it will drop to 0 after 4 tries
- *
- * Up clock and wait. after 2T is timeout.
- *
- * Read bit from clock at 3/4 part of the high pulse
- */
-static enum i2c_ecode i2c_read_bit(port scl, port sda, unsigned T)
-{
-  unsigned d;
-  d = 0x7;
-  sda :> int _;
-  delay_ticks(T / 2 + T / 32);
-  scl <: 1;
-  while(1)
-  {
-    scl :> >>d;
-    if (d & 0x80) break;      // todo take time here and return as fall time.
-    if (!d) return i2c_timeout;
-    delay_ticks(T / 2);
-  }
-  delay_ticks((T * 3) / 4);   // wait before read
-  sda :> d;
-  delay_ticks(T / 4);         // wait before put low
-  scl <: 0;
-  return d;   // 0  or 1
-}
-
-
-//static void i2c_start_bit(port i2c_scl, port i2c_sda,unsigned T)
-//{
-//  i2c_scl :> void;
-//  delay_ticks(T / 4);
-//  i2c_sda  <: 0;
-//  delay_ticks(T / 2);
-//  i2c_scl  <: 0;
-//}
-//
-//static void i2c_stop_bit(port scl, port sda,unsigned T)
-//{
-//  delay_ticks(T/4);
-//  sda <: 0;
-//  delay_ticks(T/2);
-//  scl <: 1;
-//  delay_ticks(T);
-//  sda <: 1;
-//  delay_ticks(T/4);
-//}
-
-
-/*
- * Generate a clock signal to send bit already set in sda
- * T period in ticks units
- */
-static void i2c_push_bit(port scl,unsigned T)
-{
-  delay_ticks(T / 2);
-  scl <: 1;
-  delay_ticks(T / 2);
-  scl <: 0;
-}
-
-static enum i2c_ecode i2c_push_u8(port sda,port scl,unsigned char d,unsigned T)
-{
-  unsigned data = ((unsigned) bitrev(d)) >> 24;
-    for (int i = 8; i != 0; i--) {
-      sda <: >> data;
-      i2c_push_bit(scl, T);
-    }
-    return i2c_read_bit(scl, sda, T);
-}
-
 /*
  * DeviceID or address is left shifted and ored with (0 write , 1 read)
  */
@@ -179,7 +104,7 @@ static enum i2c_ecode i2c_write(port scl, port sda,unsigned T,unsigned char addr
   enum i2c_ecode ret;
   I2C_START(scl,sda,T,t,tp);
   ret = i2c_push_u8(sda,scl, (address << 1),1);
-  while (len && ret == i2c_0)
+  while (len && ret == i2c_ack)
   {
     ret = i2c_push_u8(sda,scl, *data,1);
     data++;

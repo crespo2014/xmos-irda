@@ -9,85 +9,7 @@
 #ifndef I2C_H_
 #define I2C_H_
 
-//#include "i2c.h"
-/*
-enum i2c_st_v2
-{
-  start,
-  wrbit1,
-  wrbit2,
-  wrbit3,
-  wrbit4,
-  wrbit5,
-  wrbit6,
-  wrbit7,
-  wrbit8,
-  wrack,      // reading ack
-  wr_ack_rd,  // safe to read
-  start_2,
-  wr2bit1,
-  wr2bit2,
-  wr2bit3,
-  wr2bit4,
-  wr2bit5,
-  wr2bit6,
-  wr2bit7,
-  wr2bit8,
-  wr2ack,     // prepare for read ack
-  wr2_ack_rd,  // safe to read
-  rdbit1,
-  rdbit2,
-  rdbit3,
-  rdbit4,
-  rdbit5,
-  rdbit6,
-  rdbit7,
-  rdbit8,
-  rdack,    //what is next
-  rdack_done,
-  stop,
-  i2c_none,
-};
-*/
-/*
- * Status.
- * idle - to start transmition set sda=0, st = addr, sub_st = clk_up, bitmask
- */
-/*
-enum i2c_st {
-  idle,     // SDA = 1 SCL = 1
-  wr1,      // written
-  start2,
-  wr2,    // written after a second start (dummy write)
-  rd,     // reading
-  stp,        //
-};
-*/
 
-/*
- * I2c substatus
- * Reading and generating signals have identical states
- */
-/*
-enum i2c_sub_st
-{
-  scl_none,
-  scl_up,       // clock is 1
-  scl_down,     // clock just go down ,SCL is 0, but SDA is unknown
-  scl_none2,
-  read_send,        // ready to generate the signal
-  read_done,    // it is different to clock down
-  // ack sending
-  ack_send,
-  ack_done,
-
-  to_read,    // up the clock
-  reading,    // possible clock strech
-
-  to_signal,
-  signaling,
-};
-*/
 /*
 #define I2C_SDA1  1
 #define I2C_SCL1  2
@@ -114,10 +36,9 @@ enum i2c_sub_st
  */
 enum i2c_ecode
 {
-  i2c_0 = 0,
-  i2c_1 = 1,
+  i2c_ack = 0,
+  i2c_nack = 1,
   i2c_data_max,     // if valued more than this then it is an error
-  i2c_success,
   i2c_overflow,
   i2c_timeout,
   i2c_error,
@@ -159,6 +80,63 @@ do { \
   } while(0)
 
 /*
+ * Generate a clock pulse
+ */
+#define I2C_SEND_BIT(scl,sda,T,t,tp) \
+do {  \
+  t when timerafter(tp) :> void; \
+  scl <: 1; \
+  tp += T/2; t when timerafter(tp) :> void; \
+  scl <: 0; \
+  tp += T/2; \
+} while(0)
+
+/*
+ * Raise the clock signal and confirm or timeout
+ * Release the clock and wait until it become high, (Streching)
+ * Read bit from clock at 3/4 part of the high pulse
+ */
+#define I2C_CLK_UP(scl,T,t,tp,ecode) \
+  do { \
+    t when timerafter(tp) :> void; \
+    scl <: 1; \
+    select { \
+    case scl when pinseq(1) :> void: \
+      ecode = i2c_ack; \
+      tp += 3*T/4; t when timerafter(tp) :> tp; \
+      break; \
+    case t when timerafter(tp + 1.5*T) :> void: \
+      ecode = i2c_timeout; \
+      break; \
+    } \
+    tp += T/4; /* next transition*/ \
+  } while(0)
+
+/*
+ * Put clock signal down
+ */
+#define I2C_CLK_DOWN(scl,T,t,tp) \
+  do { \
+     t when timerafter(tp) :> void; \
+     scl <: 0; tp += T/2; \
+  } while(0)
+
+/*
+ * Send byte
+ * Clock signal should be low
+ */
+#define I2C_SEND_U8(u8,scl,sda,T,t,tp,ecode) \
+  do { \
+    unsigned data = ((unsigned) bitrev(u8)) >> 24; \
+    for (int i = 8; i != 0; i--) { \
+         sda <: >> data; \
+         I2C_SEND_BIT(scl,sda,T,t,tp); } \
+    I2C_CLK_UP(scl,T,t,tp,ecode); \
+    if (ecode == i2c_ack) sda :> ecode; \
+    I2C_CLK_DOWN(scl,T,t,tp); \
+  } while(0)
+
+/*
  * Packet to build from commands
  * I2CW and I2CR
  */
@@ -171,35 +149,6 @@ struct i2c_packet_v2
     unsigned char ack;    // true if operation was success
     unsigned cmd;
     unsigned value;
-};
-*/
-/*
-struct i2c_chn_v2
-{
-    struct i2c_frm* movable pfrm;
-    enum i2c_st_v2 st;
-    enum i2c_sub_st sub_st;
-    unsigned char dt;           // data currently sending
-    unsigned char bit_mask;     // for rd/rw byte
-    unsigned char byte_count;   // how many bytes left to write or read
-    unsigned short baud;        // to support different rates on bus.
-    unsigned short baud_count;    //set to baud, when reach zero the channel is update
-    unsigned char sda_mask;
-    unsigned char scl_mask;
-};
-struct i2c_chn
-{
-    struct i2c_frm frm;
-    struct i2c_frm* movable pfrm;
-    enum i2c_st st;
-    enum i2c_sub_st sub_st;
-    unsigned char dt;         // data currently sending
-    unsigned char bit_mask;   // for rd/rw byte
-    unsigned char byte_count;   // how many bytes left to write or read
-    unsigned short baud;    // to support different rates on bus.
-    unsigned short baud_count;    //set to baud, when reach zero the channel is update
-    unsigned char sda_mask;
-    unsigned char scl_mask;
 };
 */
 
