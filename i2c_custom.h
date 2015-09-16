@@ -77,7 +77,7 @@ static inline void I2C_SEND_BIT(port scl,port sda,unsigned T,timer t,unsigned &t
  * Release the clock and wait until it become high, (Streching)
  * Read bit from clock at 3/4 part of the high pulse
  */
-inline static enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp)
+static inline enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp)
 {
   enum i2c_ecode ret;
   t when timerafter(tp) :> void;
@@ -110,6 +110,15 @@ static inline void I2C_CLK_DOWN(port scl,unsigned T,timer t,unsigned &tp)
    tp += T/2;
 }
 
+static inline enum i2c_ecode I2C_READ_BIT(port sda,unsigned T,timer t,unsigned &tp)
+{
+  enum i2c_ecode ecode;
+  t when timerafter(tp) :> void;
+  sda :> ecode;
+  tp += T/4;
+  return ecode;
+}
+
 /*
  * Send byte
  * Clock signal should be low
@@ -124,7 +133,7 @@ static inline enum i2c_ecode I2C_SEND_U8(unsigned char u8,port scl,port sda,unsi
      I2C_SEND_BIT(scl,sda,T,t,tp);
   }
   enum i2c_ecode ecode = I2C_CLK_UP(scl,T,t,tp);
-  if (ecode == i2c_ack) sda :> ecode;
+  if (ecode == i2c_ack) ecode = I2C_READ_BIT(sda,T,t,tp);
   I2C_CLK_DOWN(scl,T,t,tp);
   return ecode;
 }
