@@ -94,7 +94,7 @@ static inline enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp
     scl :> ret;
     if (ret == 1)
     {
-      tp += (T*3/4);
+      tp += (T/4);
       break;
     }
     tp += (T/4);
@@ -106,23 +106,30 @@ static inline enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp
 /*
  * Put clock signal down
  */
-static inline void I2C_CLK_DOWN(port scl,unsigned T,timer t,unsigned &tp)
-{
-   t when timerafter(tp) :> void;
-   scl <: 0;
-   tp += T/2;
-}
+//static inline void I2C_CLK_DOWN(port scl,unsigned T,timer t,unsigned &tp)
+//{
+//   t when timerafter(tp) :> void;
+//   scl <: 0;
+//   tp += T/2;
+//}
 
 /*
  * sda should be 1 and ready for read before call this function
+ * clock is put back to 0
  */
-static inline unsigned char I2C_READ_BIT(port sda,unsigned T,timer t,unsigned &tp)
+static inline unsigned char I2C_READ_BIT(port scl,port sda,unsigned T,timer t,unsigned &tp)
 {
-  unsigned char v;
-  t when timerafter(tp) :> void;
-  sda :> v;
-  tp += T/4;
-  return v;
+  enum i2c_ecode ecode = I2C_CLK_UP(scl,T,t,tp);
+  if (ecode == i2c_ack)
+  {
+    t when timerafter(tp) :> void;
+    sda :> ecode;
+    tp += T/4;
+    t when timerafter(tp) :> void;
+    scl <: 0;
+    tp += T/2;
+  }
+  return ecode;
 }
 
 /*
@@ -139,10 +146,7 @@ static inline enum i2c_ecode I2C_SEND_U8(unsigned char u8,port scl,port sda,unsi
      I2C_SEND_BIT(scl,T,t,tp);
   }
   sda :> int _; // prepared for reading
-  enum i2c_ecode ecode = I2C_CLK_UP(scl,T,t,tp);
-  if (ecode == i2c_ack) ecode = I2C_READ_BIT(sda,T,t,tp);
-  I2C_CLK_DOWN(scl,T,t,tp);
-  return ecode;
+  return I2C_READ_BIT(scl,sda,T,t,tp);
 }
 
 /*
@@ -178,11 +182,9 @@ static inline enum i2c_ecode I2C_READ_BUFF(unsigned char addr,unsigned char* pda
     sda :> int _; // prepared for reading
     for (i=8;i;--i)
     {
-      ecode = I2C_CLK_UP(scl,T,t,tp);
-      if (ecode != i2c_ack) return ecode;
-      ecode = I2C_READ_BIT(sda,T,t,tp);
+      ecode = I2C_READ_BIT(scl,sda,T,t,tp);
+      if (ecode > 1) return ecode;    // neither ack or nack
       data = (data << 1) | ecode;
-      I2C_CLK_DOWN(scl,T,t,tp);
     }
     *pdata = data;
     pdata++;
