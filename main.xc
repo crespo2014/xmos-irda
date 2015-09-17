@@ -801,18 +801,7 @@ int main()
   unsigned char rd[16];
   debug <: 1; // link to scl
   //set_port_drive_low(scl);
-  set_port_drive_low(sda);
-  set_port_no_inv(scl);
-  set_port_no_inv(sda);
-  t :> tp;
-  scl <: 0;
-  tp += T/8;
-  t when timerafter(tp) :> void;
-  sda :> int _;
-  tp += T/8;
-  t when timerafter(tp) :> void;
-  scl :> int _;
-  t :> tp;
+  //set_port_drive_low(sda);
   wr[0] = 0;
   ret = I2C_WRITE_BUFF(addr,wr,1,scl,sda,T,t,tp);
   printf("ret=%d :",ret);

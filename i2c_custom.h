@@ -39,24 +39,30 @@ struct i2c_frm
  */
 static inline void I2C_START(port scl, port sda,unsigned T,timer t,unsigned &tp)
 {
-  t when timerafter(tp) :> void;
-  tp += T/4; t when timerafter(tp) :> void;
+  t :> tp;
   sda <: 0;
-  tp += T/2; t when timerafter(tp) :> void;
+  tp += T/2;
+  t when timerafter(tp) :> void;
   scl <: 0;
   tp += T/2;
 }
 
+/*
+ * do not call this function with the scl line up
+ */
 static inline void I2C_STOP(port scl,port sda,unsigned T,timer t,unsigned &tp)
 {
   t when timerafter(tp) :> void;
   scl <: 0;
   sda <: 0;
-  tp += T/2; t when timerafter(tp) :> void;
+  tp += T/2;
+  t when timerafter(tp) :> void;
   scl <: 1;
-  tp += T; t when timerafter(tp) :> void;
+  tp += T/2;
+  t when timerafter(tp) :> void;
   sda <: 1;
   tp += T/4;
+  t when timerafter(tp) :> void;
 }
 
 /*
@@ -66,10 +72,10 @@ static inline void I2C_SEND_BIT(port scl,unsigned T,timer t,unsigned &tp)
 {
   t when timerafter(tp) :> void;
   scl <: 1;
-  tp += T/2;
+  tp += (T/2);
   t when timerafter(tp) :> void;
   scl <: 0;
-  tp += T/2;
+  tp += (T/2);
 }
 
 /*
@@ -107,14 +113,16 @@ static inline void I2C_CLK_DOWN(port scl,unsigned T,timer t,unsigned &tp)
    tp += T/2;
 }
 
-static inline enum i2c_ecode I2C_READ_BIT(port sda,unsigned T,timer t,unsigned &tp)
+/*
+ * sda should be 1 and ready for read before call this function
+ */
+static inline unsigned char I2C_READ_BIT(port sda,unsigned T,timer t,unsigned &tp)
 {
-  enum i2c_ecode ecode;
-  sda <: 1;   // prepare for read
+  unsigned char v;
   t when timerafter(tp) :> void;
-  sda :> ecode;
+  sda :> v;
   tp += T/4;
-  return ecode;
+  return v;
 }
 
 /*
@@ -130,7 +138,7 @@ static inline enum i2c_ecode I2C_SEND_U8(unsigned char u8,port scl,port sda,unsi
      sda <: >> v;
      I2C_SEND_BIT(scl,T,t,tp);
   }
-  sda :> int _;
+  sda :> int _; // prepared for reading
   enum i2c_ecode ecode = I2C_CLK_UP(scl,T,t,tp);
   if (ecode == i2c_ack) ecode = I2C_READ_BIT(sda,T,t,tp);
   I2C_CLK_DOWN(scl,T,t,tp);
@@ -150,6 +158,7 @@ static inline enum i2c_ecode I2C_WRITE_BUFF(unsigned char addr,const unsigned ch
     pdata++;
     len--;
   }
+  t when timerafter(tp) :> void;
   return ecode;
 }
 
@@ -166,7 +175,7 @@ static inline enum i2c_ecode I2C_READ_BUFF(unsigned char addr,unsigned char* pda
     int i;
     unsigned data;
     data = 0;
-    sda :> int _;
+    sda :> int _; // prepared for reading
     for (i=8;i;--i)
     {
       ecode = I2C_CLK_UP(scl,T,t,tp);
@@ -186,6 +195,7 @@ static inline enum i2c_ecode I2C_READ_BUFF(unsigned char addr,unsigned char* pda
       sda <: 1;   // no more bytes
     I2C_SEND_BIT(scl,T,t,tp);
   }
+  t when timerafter(tp) :> void;
   return i2c_ack;
 }
 
