@@ -55,10 +55,10 @@ static inline void I2C_STOP(port scl,port sda,unsigned T,timer t,unsigned &tp)
   t when timerafter(tp) :> void;
   scl <: 0;
   sda <: 0;
-  tp += T/2;
+  tp += T/4;
   t when timerafter(tp) :> void;
   scl <: 1;
-  tp += T/2;
+  tp += T/4;
   t when timerafter(tp) :> void;
   sda <: 1;
   tp += T/4;
