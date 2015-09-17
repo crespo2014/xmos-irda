@@ -798,8 +798,9 @@ int main()
   unsigned tp;
   enum i2c_ecode ret;
   unsigned char wr[2];
-  unsigned char rd[10];
-  set_port_drive_low(scl);
+  unsigned char rd[16];
+  debug <: 1; // link to scl
+  //set_port_drive_low(scl);
   set_port_drive_low(sda);
   set_port_no_inv(scl);
   set_port_no_inv(sda);
@@ -812,15 +813,18 @@ int main()
   t when timerafter(tp) :> void;
   scl :> int _;
   t :> tp;
-  wr[0] = 3;
-//  ret = I2C_WRITE_BUFF(addr,wr,1,scl,sda,T,t,tp);
-//  printf("ret=%d\n",ret);
-  ret = I2C_READ_BUFF(addr,rd,5,scl,sda,T,t,tp);
-  I2C_STOP(scl,sda,100,t,tp);
-  printf("ret=%d\n",ret);
-  for (int i = 0;i< 5;i++)
+  wr[0] = 0;
+  ret = I2C_WRITE_BUFF(addr,wr,1,scl,sda,T,t,tp);
+  printf("ret=%d :",ret);
+  while(1)
   {
-    printf("x%X ",rd[i]);
+    ret = I2C_READ_BUFF(addr,rd,16,scl,sda,T,t,tp);
+    I2C_STOP(scl,sda,100,t,tp);
+    printf("\nret=%d :",ret);
+    for (int i = 0;i< 16;i++)
+    {
+      printf("x%X ",rd[i]);
+    }
   }
   printf("\n");
   // set read address

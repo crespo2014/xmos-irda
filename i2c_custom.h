@@ -66,7 +66,8 @@ static inline void I2C_SEND_BIT(port scl,unsigned T,timer t,unsigned &tp)
 {
   t when timerafter(tp) :> void;
   scl <: 1;
-  tp += T/2; t when timerafter(tp) :> void;
+  tp += T/2;
+  t when timerafter(tp) :> void;
   scl <: 0;
   tp += T/2;
 }
@@ -80,23 +81,20 @@ static inline enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp
 {
   unsigned char ret;
   t when timerafter(tp) :> void;
-  scl :> ret;
+  scl <: 1;
   // wait for signal become high
   for (int i = 8;i != 0;i--)
   {
     scl :> ret;
-    if (ret == 1) break;
+    if (ret == 1)
+    {
+      tp += (T*3/4);
+      break;
+    }
     tp += (T/4);
     t when timerafter(tp) :> tp;
   }
-  if (ret == 1)
-  {
-    tp += (T*3/4);    // read value atthis point
-    ret = i2c_ack;
-  }
-  else
-    ret = i2c_timeout;
-  return ret;
+  return (ret == 1) ? i2c_ack : i2c_timeout;
 }
 
 /*
@@ -162,7 +160,8 @@ static inline enum i2c_ecode I2C_READ_BUFF(unsigned char addr,unsigned char* pda
 {
   I2C_START(scl,sda,T,t,tp);
   enum i2c_ecode ecode = I2C_SEND_U8((addr << 1) | 1 ,scl,sda,T,t,tp);
-  while (len && ecode == i2c_ack)
+  if (ecode != i2c_ack) return ecode;
+  while (len)
   {
     int i;
     unsigned data;
@@ -171,13 +170,13 @@ static inline enum i2c_ecode I2C_READ_BUFF(unsigned char addr,unsigned char* pda
     for (i=8;i;--i)
     {
       ecode = I2C_CLK_UP(scl,T,t,tp);
-      if (ecode != i2c_ack) break;
+      if (ecode != i2c_ack) return ecode;
       ecode = I2C_READ_BIT(sda,T,t,tp);
       data = (data << 1) | ecode;
       I2C_CLK_DOWN(scl,T,t,tp);
     }
-    if (i != 0) break;
     *pdata = data;
+    pdata++;
     len--;
     if (len)
     {
@@ -186,10 +185,8 @@ static inline enum i2c_ecode I2C_READ_BUFF(unsigned char addr,unsigned char* pda
     else
       sda <: 1;   // no more bytes
     I2C_SEND_BIT(scl,T,t,tp);
-    ecode = i2c_ack;
-    pdata++;
   }
-  return ecode;
+  return i2c_ack;
 }
 
 /*
