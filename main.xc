@@ -800,10 +800,13 @@ int main()
   unsigned char wr[2];
   unsigned char rd[16];
   debug <: 1; // link to scl
+  scl <: 1;
+  sda <: 1;
   //set_port_drive_low(scl);
   //set_port_drive_low(sda);
   wr[0] = 0;
   ret = I2C_WRITE_BUFF(addr,wr,1,scl,sda,T,t,tp);
+  t when timerafter(tp) :> void;
   printf("ret=%d :",ret);
   while(1)
   {
