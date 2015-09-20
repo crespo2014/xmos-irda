@@ -16,6 +16,7 @@
 #include "serial.h"
 #include "cmd.h"
 #include "i2c_custom.h"
+#include "spi_custom.h"
 /*
 out port p_1G = XS1_PORT_1G;
 out port p_1D = XS1_PORT_1D;
@@ -757,6 +758,9 @@ in port p_irda = XS1_PORT_1A;
 out port p_feed = XS1_PORT_1B;
 out port debug = XS1_PORT_1I;
 
+out port spi_out = XS1_PORT_4C;
+in port spi_in = XS1_PORT_1H;
+
 port sda = XS1_PORT_1O;
 port scl = XS1_PORT_1P;
 
@@ -790,6 +794,7 @@ int main()
 }
 #endif
 
+#if 0
 int main()
 {
   unsigned T = 100;
@@ -830,6 +835,31 @@ int main()
   printf("\n");
   // set read address
 
+  return 0;
+}
+#endif
+
+/*
+ * SPI with canbus test
+ */
+int main()
+{
+  struct spi_frm frm;
+  frm.wr_len = 1;
+  frm.buff[0] = 0x55;
+  frm.rd_len = 4;
+  frm.rd_pos = 1;
+  unsigned char opv = 0;
+  timer t;
+  unsigned tp;
+
+ // SPI_EXECUTE_v2(frm,spi_out,opv,1,2,4,spi_in,1,us,t,tp);
+  SPI_EXECUTE(frm,debug,p_1G,p_irda,us,t,tp);
+
+  for (int i = 0;i< 4;i++)
+  {
+    printf("%02X ",frm.buff[i]);
+  }
   return 0;
 }
 

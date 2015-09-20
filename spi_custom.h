@@ -75,7 +75,7 @@ struct spi_frm
  * write data, do not read
  * from msb to lsb
  */
-static inline SPI_SEND_U8(unsigned char u8,port scl,port mosi,unsigned T,timer t, unsigned& tp)
+static inline void SPI_SEND_U8(unsigned char u8,out port scl,out port mosi,unsigned T,timer t, unsigned& tp)
 {
   t when timerafter(tp) :> void;
   unsigned v = bitrev((unsigned)u8) >> 24;
@@ -91,7 +91,7 @@ static inline SPI_SEND_U8(unsigned char u8,port scl,port mosi,unsigned T,timer t
   }
 }
 
-static inline SPI_SEND_RECV_U8(unsigned char u8,unsigned char &inu8,port scl,port mosi,port miso,unsigned T,timer t, unsigned& tp)
+static inline void SPI_SEND_RECV_U8(unsigned char u8,unsigned char &inu8,out port scl,out port mosi,in port miso,unsigned T,timer t, unsigned& tp)
 {
   unsigned v = bitrev((unsigned)u8) >> 24;
   for (int i=8;i;i--)
@@ -114,7 +114,7 @@ static inline SPI_SEND_RECV_U8(unsigned char u8,unsigned char &inu8,port scl,por
 /*
  * clock should be 0
  */
-static inline SPI_RECV_U8(unsigned char &inu8,port scl,port mosi,port miso,unsigned T,timer t, unsigned& tp)
+static inline void SPI_RECV_U8(unsigned char &inu8,out port scl,out port mosi,in port miso,unsigned T,timer t, unsigned& tp)
 {
   mosi <: 1;  // dummy
   for (int i=8;i;i--)
@@ -133,10 +133,11 @@ static inline SPI_RECV_U8(unsigned char &inu8,port scl,port mosi,port miso,unsig
 /*
  * write until rd_pos, rd and wr until wr_len, read until rd_len
  */
-static inline SPI_EXECUTE(struct spi_frm &frm,port scl,port mosi,port miso,unsigned T,timer t, unsigned& tp)
+static inline void SPI_EXECUTE(struct spi_frm &frm,out port scl,out port mosi,in port miso,unsigned T,timer t, unsigned& tp)
 {
   unsigned rdpos = frm.wr_len;
   unsigned wrpos = 0;
+  t :> tp;
   while (wrpos < frm.rd_pos)
   {
     SPI_SEND_U8(frm.buff[wrpos],scl,mosi,T,t,tp);
@@ -157,7 +158,7 @@ static inline SPI_EXECUTE(struct spi_frm &frm,port scl,port mosi,port miso,unsig
 }
 
 
-static inline SPI_SEND_U8_v2(unsigned char u8,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,unsigned T,timer t, unsigned& tp)
+static inline void SPI_SEND_U8_v2(unsigned char u8,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,unsigned T,timer t, unsigned& tp)
 {
   t when timerafter(tp) :> void;
   unsigned mask =0x80;
@@ -176,27 +177,87 @@ static inline SPI_SEND_U8_v2(unsigned char u8,out port oport,unsigned char &opv,
     t when timerafter(tp) :> void;
     oport <: opv;
     tp += (T/2);
+    mask >>= 1;
   }
 }
 
-static inline SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,in port iport,unsigned char miso_mask,unsigned T,timer t, unsigned& tp)
+static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,in port iport,unsigned char miso_mask,unsigned T,timer t, unsigned& tp)
 {
-  unsigned v = bitrev((unsigned)u8) >> 24;
-  for (int i=8;i;i--)
+  unsigned mask = 0x80;
+  while(mask)
   {
-    mosi <: >> v;
+    if (mask & u8)
+      opv |= mosi_mask;
+    else
+      opv &= (~mosi_mask);
+    oport <: opv;
+    opv |= scl_mask;  // next
     t when timerafter(tp) :> void;
-    scl <: 1;
-    miso :> >>inu8;
+    oport <: opv;
+    unsigned char v;
+    iport :> v;
+    inu8 <<= 1;           //MSB to LSB input
+    if (v & miso_mask)
+      inu8 |= 0x1;
     tp += (T/2);
-//    t when timerafter(tp) :> void;
-//
-//    tp += (T/4);
+    opv &= (~scl_mask);
     t when timerafter(tp) :> void;
-    scl <: 0;
+    oport <: opv;
     tp += (T/2);
+    mask>>=1;
   }
-  //todo rotare inu8
+}
+
+static inline void SPI_RECV_U8_v2(unsigned char &inu8,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,in port iport,unsigned char miso_mask,unsigned T,timer t, unsigned& tp)
+{
+  opv |= mosi_mask;
+  oport <: opv;
+  unsigned mask = 0x80;
+  while(mask)
+  {
+    opv |= scl_mask;  // next
+    t when timerafter(tp) :> void;
+    oport <: opv;
+    unsigned char v;
+    iport :> v;
+    inu8 <<= 1;           //MSB to LSB input
+    if (v & miso_mask)
+      inu8 |= 0x1;
+    tp += (T/2);
+    opv &= (~scl_mask);
+    t when timerafter(tp) :> void;
+    oport <: opv;
+    tp += (T/2);
+    mask>>=1;
+  }
+}
+
+static inline void SPI_EXECUTE_v2(struct spi_frm &frm,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port iport,unsigned char miso_mask,unsigned T,timer t, unsigned& tp)
+{
+  unsigned rdpos = frm.wr_len;
+  unsigned wrpos = 0;
+  opv |= ss_mask;
+  oport <: opv;
+  t :> tp;
+  while (wrpos < frm.rd_pos)
+  {
+    SPI_SEND_U8_v2(frm.buff[wrpos],oport,opv,scl_mask,mosi_mask,T,t,tp);
+    wrpos++;
+  }
+  while (wrpos < frm.wr_len)
+  {
+    SPI_SEND_RECV_U8_v2(frm.buff[wrpos],frm.buff[rdpos],oport,opv,scl_mask,mosi_mask,iport,miso_mask,T,t,tp);
+    wrpos++;
+    rdpos++;
+  }
+  while (rdpos - frm.rd_pos < frm.rd_len)
+  {
+    SPI_RECV_U8_v2(frm.buff[rdpos],oport,opv,scl_mask,mosi_mask,iport,miso_mask,T,t,tp);
+    rdpos++;
+  }
+  t when timerafter(tp) :> void;
+  opv &= (~ss_mask);
+  oport <: opv;
 }
 
 #endif /* SPI_CUSTOM_H_ */
