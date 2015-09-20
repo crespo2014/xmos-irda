@@ -156,4 +156,47 @@ static inline SPI_EXECUTE(struct spi_frm &frm,port scl,port mosi,port miso,unsig
   t when timerafter(tp) :> void;
 }
 
+
+static inline SPI_SEND_U8_v2(unsigned char u8,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,unsigned T,timer t, unsigned& tp)
+{
+  t when timerafter(tp) :> void;
+  unsigned mask =0x80;
+  while (mask)
+  {
+    if (mask & u8)
+      opv |= mosi_mask;
+    else
+      opv &= (~mosi_mask);
+    oport <: opv;
+    opv |= scl_mask;  // next
+    t when timerafter(tp) :> void;
+    oport <: opv;
+    opv &= (~scl_mask);
+    tp += (T/2);
+    t when timerafter(tp) :> void;
+    oport <: opv;
+    tp += (T/2);
+  }
+}
+
+static inline SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,in port iport,unsigned char miso_mask,unsigned T,timer t, unsigned& tp)
+{
+  unsigned v = bitrev((unsigned)u8) >> 24;
+  for (int i=8;i;i--)
+  {
+    mosi <: >> v;
+    t when timerafter(tp) :> void;
+    scl <: 1;
+    miso :> >>inu8;
+    tp += (T/2);
+//    t when timerafter(tp) :> void;
+//
+//    tp += (T/4);
+    t when timerafter(tp) :> void;
+    scl <: 0;
+    tp += (T/2);
+  }
+  //todo rotare inu8
+}
+
 #endif /* SPI_CUSTOM_H_ */

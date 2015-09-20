@@ -133,7 +133,6 @@ static inline unsigned char I2C_READ_BIT(port scl,port sda,unsigned T,timer t,un
 static inline enum i2c_ecode I2C_SEND_U8(unsigned char u8,port scl,port sda,unsigned T,timer t,unsigned &tp)
 {
   unsigned char mask=0x80;
-  //printf(">%X\n",u8);
   while (mask)
   {
     if (mask & u8)

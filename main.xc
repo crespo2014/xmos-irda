@@ -800,19 +800,23 @@ int main()
   unsigned char wr[2];
   unsigned char rd[16];
   debug <: 1; // link to scl
-#ifdef TEST
-  scl <: 1;
-  sda <: 1;
-#else
-  set_port_drive_low(scl);
-  set_port_drive_low(sda);
-  scl :> int _;
-  sda :> int _;
-#endif
+
+  t :> tp;
+  I2C_STOP(scl,sda,T,t,tp);
+#if 0
   wr[0] = 0;
-  //ret = I2C_WRITE_BUFF(addr,wr,1,scl,sda,T,t,tp);
-  //t when timerafter(tp) :> void;
-  //printf("ret=%d :",ret);
+  ret = I2C_WRITE_BUFF(addr,wr,1,scl,sda,T,t,tp);
+  printf("wr=%d ",ret);
+  t when timerafter(tp) :> void;
+  // random read
+  for (unsigned i=0; i< 2000;i++)
+  {
+    ret = I2C_READ_BUFF(addr,rd,1,scl,sda,T,t,tp);
+    I2C_STOP(scl,sda,T,t,tp);
+    printf("rdt=%d ",ret);
+    printf("%d = %02X\n",i,rd[0]);
+  }
+#endif
   while(1)
   {
     ret = I2C_READ_BUFF(addr,rd,16,scl,sda,T,t,tp);
