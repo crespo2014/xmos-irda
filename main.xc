@@ -757,8 +757,8 @@ in port p_irda = XS1_PORT_1A;
 out port p_feed = XS1_PORT_1B;
 out port debug = XS1_PORT_1I;
 
-port sda = XS1_PORT_1H;
-port scl = XS1_PORT_1F;
+port sda = XS1_PORT_1O;
+port scl = XS1_PORT_1P;
 
 #if 0
 int main()
@@ -800,22 +800,27 @@ int main()
   unsigned char wr[2];
   unsigned char rd[16];
   debug <: 1; // link to scl
+#ifdef TEST
   scl <: 1;
   sda <: 1;
-  //set_port_drive_low(scl);
-  //set_port_drive_low(sda);
+#else
+  set_port_drive_low(scl);
+  set_port_drive_low(sda);
+  scl :> int _;
+  sda :> int _;
+#endif
   wr[0] = 0;
-  ret = I2C_WRITE_BUFF(addr,wr,1,scl,sda,T,t,tp);
-  t when timerafter(tp) :> void;
-  printf("ret=%d :",ret);
+  //ret = I2C_WRITE_BUFF(addr,wr,1,scl,sda,T,t,tp);
+  //t when timerafter(tp) :> void;
+  //printf("ret=%d :",ret);
   while(1)
   {
     ret = I2C_READ_BUFF(addr,rd,16,scl,sda,T,t,tp);
-    I2C_STOP(scl,sda,100,t,tp);
+    I2C_STOP(scl,sda,T,t,tp);
     printf("\nret=%d :",ret);
     for (int i = 0;i< 16;i++)
     {
-      printf("x%X ",rd[i]);
+      printf("%02X ",rd[i]);
     }
   }
   printf("\n");

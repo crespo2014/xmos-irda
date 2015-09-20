@@ -9,6 +9,8 @@
 #ifndef I2C_H_
 #define I2C_H_
 
+#define TEST1 1
+
 #include <xclib.h>
 /*
  * Returned error codes for i2c command execution
@@ -39,8 +41,9 @@ struct i2c_frm
  */
 static inline void I2C_START(port scl, port sda,unsigned T,timer t,unsigned &tp)
 {
-  t :> tp;
   sda <: 0;
+  t :> tp;
+  tp += T/2;
   t when timerafter(tp) :> void;
   scl <: 0;
   tp += T/2;
@@ -51,14 +54,13 @@ static inline void I2C_START(port scl, port sda,unsigned T,timer t,unsigned &tp)
  */
 static inline void I2C_STOP(port scl,port sda,unsigned T,timer t,unsigned &tp)
 {
-  sda <: 0; // at this point scl is 0
+  sda <: 0; // at this point scl is 0 it is legal
   t when timerafter(tp) :> void;
-  tp += T/4;
-  scl <: 1;
-  tp += T/4;
+  scl :> int _;
+  tp += T/2;
   t when timerafter(tp) :> void;
-  sda <: 1;
-  tp += T/4;
+  sda :> int _;
+  tp += T/2;
   t when timerafter(tp) :> void;
 }
 
@@ -85,8 +87,10 @@ static inline enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp
 {
   unsigned char ret;
   t when timerafter(tp) :> void;
-  scl :> int _;  // port go to float state
+  scl :> ret;  // port go to float state
+#ifdef TEST
   scl <: 1;     // for simulation
+#endif
   // wait for signal become high
   for (int i = 8;i != 0;i--)
   {
@@ -96,7 +100,7 @@ static inline enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp
       tp += (T/4);
       break;
     }
-    tp += (T/4);
+    tp += (T/2);
     t when timerafter(tp) :> tp;
   }
   return (ret == 1) ? i2c_ack : i2c_timeout;
@@ -128,12 +132,16 @@ static inline unsigned char I2C_READ_BIT(port scl,port sda,unsigned T,timer t,un
  */
 static inline enum i2c_ecode I2C_SEND_U8(unsigned char u8,port scl,port sda,unsigned T,timer t,unsigned &tp)
 {
-  unsigned v = u8;
-  v = bitrev(v) >> 24;
-  for (int i = 8; i != 0; i--)
+  unsigned char mask=0x80;
+  //printf(">%X\n",u8);
+  while (mask)
   {
-     sda <: >> v;
+    if (mask & u8)
+      sda <: 1;
+    else
+      sda <: 0;
      I2C_SEND_BIT(scl,T,t,tp);
+     mask >>=1;
   }
   sda :> int _; // prepared for reading
   return I2C_READ_BIT(scl,sda,T,t,tp);
