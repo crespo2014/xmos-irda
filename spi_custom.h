@@ -236,9 +236,10 @@ static inline void SPI_EXECUTE_v2(struct spi_frm &frm,out port oport,unsigned ch
 {
   unsigned rdpos = frm.wr_len;
   unsigned wrpos = 0;
-  opv |= ss_mask;
+  opv &= (~ss_mask);
   oport <: opv;
   t :> tp;
+  tp += T/2;
   while (wrpos < frm.rd_pos)
   {
     SPI_SEND_U8_v2(frm.buff[wrpos],oport,opv,scl_mask,mosi_mask,T,t,tp);
@@ -256,7 +257,7 @@ static inline void SPI_EXECUTE_v2(struct spi_frm &frm,out port oport,unsigned ch
     rdpos++;
   }
   t when timerafter(tp) :> void;
-  opv &= (~ss_mask);
+  opv |= ss_mask;
   oport <: opv;
 }
 

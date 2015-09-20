@@ -845,18 +845,22 @@ int main()
 int main()
 {
   struct spi_frm frm;
-  frm.wr_len = 1;
-  frm.buff[0] = 0x55;
-  frm.rd_len = 4;
-  frm.rd_pos = 1;
+  frm.wr_len = 2;
+  frm.buff[0] = 0x3;
+  frm.buff[0] = 0x0;
+  frm.rd_len = 1;
+  frm.rd_pos = 2;
   unsigned char opv = 0;
   timer t;
   unsigned tp;
 
- // SPI_EXECUTE_v2(frm,spi_out,opv,1,2,4,spi_in,1,us,t,tp);
-  SPI_EXECUTE(frm,debug,p_1G,p_irda,us,t,tp);
+  opv = 4;    // disable chip select
+  spi_out <: opv;
 
-  for (int i = 0;i< 4;i++)
+  SPI_EXECUTE_v2(frm,spi_out,opv,1,2,4,spi_in,1,us,t,tp);
+  //SPI_EXECUTE(frm,debug,p_1G,p_irda,us,t,tp);
+
+  for (int i = 0;i< 5;i++)
   {
     printf("%02X ",frm.buff[i]);
   }
