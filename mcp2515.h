@@ -37,6 +37,7 @@
 #define CAN_INTE  0x2B
 #define CAN_INTF  0x2C
 #define CAN_CTRL  0x0F
+#define CAN_STAT  0x0E
 
 
 
