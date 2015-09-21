@@ -752,8 +752,10 @@ void serial_send_loop(out port tx)
   }
 }
 
-in port p_1F = XS1_PORT_1C;
-out port p_1G = XS1_PORT_1G;
+in port ip1E = XS1_PORT_1E;
+in port ip1F = XS1_PORT_1F;
+in port ip1C = XS1_PORT_1C;
+out port op1G = XS1_PORT_1G;
 in port p_irda = XS1_PORT_1A;
 out port p_feed = XS1_PORT_1B;
 out port debug = XS1_PORT_1I;
@@ -847,7 +849,7 @@ int main()
   struct spi_frm frm;
   frm.wr_len = 2;
   frm.buff[0] = 0x3;
-  frm.buff[0] = 0x0;
+  frm.buff[1] = 0x0;
   frm.rd_len = 1;
   frm.rd_pos = 2;
   unsigned char opv = 0;
