@@ -71,7 +71,7 @@ static inline void I2C_SEND_BIT(port scl,unsigned T,timer t,unsigned &tp)
 {
   // clk_up can be use to allow streching at this level.
   t when timerafter(tp) :> void;
-  scl <: 1;
+  scl :> int _;
   tp += (T/2);
   t when timerafter(tp) :> void;
   scl <: 0;   // sda could be 1 after this.
@@ -88,9 +88,6 @@ static inline enum i2c_ecode I2C_CLK_UP(port scl,unsigned T,timer t,unsigned &tp
   unsigned char ret;
   t when timerafter(tp) :> void;
   scl :> ret;  // port go to float state
-#ifdef TEST
-  scl <: 1;     // for simulation
-#endif
   // wait for signal become high
   for (int i = 8;i != 0;i--)
   {

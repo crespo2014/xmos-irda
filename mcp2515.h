@@ -10,6 +10,8 @@
 #ifndef MCP2515_H_
 #define MCP2515_H_
 
+#include "spi_custom.h"
+
 #define BFP_CTRL    0x0C
 
 #define RXF_0       0x00    // first filter
@@ -52,6 +54,7 @@
 #define RXB_DLC    5
 #define RXB_DATA   6
 #define RXB_DATA_MAX 8
+#define RXB_MAX_OFFSET  (RXB_DATA + RXB_DATA_MAX)
 
 #define TXB_0         0x30  // first buffer
 #define TXB_COUNT     3     // max 3 tx buffers
@@ -64,6 +67,7 @@
 #define TXB_DLC       5     // X RTR X X DLC3 ..DLC0 DATA LENGTH CODE
 #define TXB_DATA      6
 #define TXB_DATA_MAX  8
+#define TXB_MAX_OFFSET   (TXB_DATA + TXB_DATA_MAX)
 
 #define TXB_CTRL_ABTF    (1<<6)
 #define TXB_CTRL_MLOA    (1<<5)
@@ -74,11 +78,11 @@
 
 #define TX_RTSCTRL        0x0D    //TxnRts Pin control and status register
 #define TX_RTSCTRL_B2RTS  (1<<5)  // Reads state of TX2RTS pin when in Digital Input mode
-                                  // Reads as ‘0’ when pin is in ‘Request-to-Send’ mode
+                                  // Reads as 0 when pin is in Request-to-Send mode
 #define TX_RTSCTRL_B1RTS  (1<<4)  // Reads state of TX1RTS pin when in Digital Input mode
-                                  // Reads as ‘0’ when pin is in ‘Request-to-Send’ mode
+                                  // Reads as 0 when pin is in Request-to-Send mode
 #define TX_RTSCTRL_B0RTS  (1<<3)  // Reads state of TX0RTS pin when in Digital Input mode
-                                  // Reads as ‘0’ when pin is in ‘Request-to-Send’ mode
+                                  // Reads as 0 when pin is in Request-to-Send mode
 #define TX_RTSCTRL_B2RTSM (1<<2)  // 1 = Pin is used to request message transmission of TXB2 buffer (on falling edge)
                                   // 0 = Digital input
 #define TX_RTSCTRL_B1RTSM (1<<1)  // 1 = Pin is used to request message transmission of TXB1 buffer (on falling edge)
@@ -118,7 +122,7 @@
 #define RXB_CTRL_BUKT    (1<<2)
 #define RXB_CTRL_BUKT1   (1<<1)  //BUKT1: Read-only Copy of BUKT bit (used internally by the MCP2515)
 /*
- * FILHIT0: Filter Hit bit – indicates which acceptance filter enabled reception of message
+ * FILHIT0: Filter Hit bit  indicates which acceptance filter enabled reception of message
  * 1 = Acceptance Filter 1 (RXF1)
  * 0 = Acceptance Filter 0 (RXF0)
  * Note: If a rollover from RXB0 to RXB1 occurs, the FILHIT bit will reflect the filter that accepted the message that rolled over.
@@ -144,12 +148,12 @@
 
 /*
  * B1BFS: RX1BF Pin State bit (Digital Output mode only)
- * Reads as ‘0’ when RX1BF is configured as interrupt pin
+ * Reads as 0 when RX1BF is configured as interrupt pin
  */
 #define BFP_CTRL_B1BFS     (1<<5)
 /*
  * B0BFS: RX0BF Pin State bit (Digital Output mode only)
- * Reads as ‘0’ when RX0BF is configured as interrupt pin
+ * Reads as 0 when RX0BF is configured as interrupt pin
  */
 #define BFP_CTRL_B0BFS     (1<<4)
 /*
@@ -177,7 +181,7 @@
  */
 #define BFP_CTRL_B0BFM     (1<<2)
 /*
- * SRR: Standard Frame Remote Transmit Request bit (valid only if IDE bit = ‘0’)
+ * SRR: Standard Frame Remote Transmit Request bit (valid only if IDE bit = 0)
  * 1 = Standard Frame Remote Transmit Request Received
  * 0 = Standard Data Frame Received
  */
@@ -196,5 +200,124 @@
  */
 #define RXB_DLC_RTR        (1<<6)
 #define RXB_DLC_LEN_MASK   0x0F
+
+#define CAN_ONE_SHOT    (1 << 3)
+
+#define MODE_NORMAL     (0 << 5)
+#define MODE_SLEEP      (0x1 << 5)
+#define MODE_LOOPBACK   (0x2 << 5)
+#define MODE_LISTEN     (0x3 << 5)
+#define MODE_CONFIGURE  (0x4 << 5)
+#define MODE_MASK       (0x7 << 5)
+
+#define SPI_RESET       0xC0
+#define SPI_READ        0x03
+#define SPI_RD_RXB      0x90
+#define SPI_RD_RXB_SHIFT 0x1    // shift buffer idx
+#define SPI_WRITE         0x02
+#define SPI_LOAD_TXB      0x40    // bits 0-3 is the index
+#define SPI_RTS           0x80
+#define SPI_RD_STATUS     0x90
+#define SPI_RXB_STATUS    0xB0
+#define SPI_BIT_UPDATE    0x05
+
+
+
+struct mcp2515_cnf_t
+{
+  unsigned char can_ctrl,can_status,rxb_status;
+  unsigned char rxb_ctrl[RXB_COUNT];
+  unsigned char txb_ctrl[TXB_COUNT];
+
+  unsigned char buff[5+TXB_DATA_MAX];      //sidh sidl eid8 eid0
+  unsigned char cnf1,cnf2,cnf3,tec,rec,eflg;
+};
+
+
+ static inline void MCP2515_WRITE(unsigned char addres,unsigned char value,struct spi_frm &frm)
+ {
+   frm.buff[0] = SPI_WRITE;
+   frm.buff[1] = addres;
+   frm.buff[2] = value;
+   frm.wr_len = 3;
+   frm.rd_len = 0;
+   frm.rd_pos = 0;
+ }
+ /*
+  * Request a read for a data
+  */
+ static inline void MCP2515_READ(unsigned char addres,struct spi_frm &frm)
+ {
+   frm.buff[0] = SPI_READ;
+   frm.buff[1] = addres;
+   frm.wr_len = 2;
+   frm.rd_len = 1;
+   frm.rd_pos = 2;
+ }
+
+static inline void MCP2515_SET_MODE(struct mcp2515_cnf_t &mcp,unsigned char mode)
+{
+  mcp.can_ctrl = (mcp.can_ctrl & (~MODE_MASK)) | mode;
+}
+
+static inline void MCP2515_SET_CTRL(struct mcp2515_cnf_t &mcp,unsigned char bit)
+{
+  mcp.can_ctrl = mcp.can_ctrl | bit;
+}
+
+static inline void MCP2515_CLEAR_CTRL(struct mcp2515_cnf_t &mcp,unsigned char bit)
+{
+  mcp.can_ctrl = mcp.can_ctrl & (~bit);
+}
+
+/*
+ * Use response from spi interface
+ * The first read byte is the value
+ */
+static inline void MCP2515_UPDATE_CTRL(struct mcp2515_cnf_t &mcp,struct spi_frm &frm)
+{
+  mcp.can_ctrl = frm.buff[frm.wr_len];
+}
+
+static inline void MCP2515_RTS(unsigned char mask,struct spi_frm &frm)
+{
+  frm.buff[0] = SPI_RTS | (mask & 0x03);
+  frm.wr_len = 1;
+  frm.rd_len = 0;
+  frm.rd_pos = 0;
+}
+
+static inline void MCP2515_READ_CAN_STATUS(struct spi_frm &frm)
+{
+  frm.buff[0] = SPI_RD_STATUS;
+  frm.wr_len = 1;
+  frm.rd_len = 1;
+  frm.rd_pos = 2;
+}
+static inline void MCP2515_UPDATE_CAN_STATUS(struct mcp2515_cnf_t &mcp,struct spi_frm &frm)
+{
+  mcp.can_status = frm.buff[frm.wr_len];
+}
+
+static inline void MCP2515_READ_RXB_STATUS(struct spi_frm &frm)
+{
+  frm.buff[0] = SPI_RXB_STATUS;
+  frm.wr_len = 1;
+  frm.rd_len = 1;
+  frm.rd_pos = 2;
+}
+static inline void MCP2515_UPDATE_RXB_STATUS(struct mcp2515_cnf_t &mcp,struct spi_frm &frm)
+{
+  mcp.rxb_status = frm.buff[frm.wr_len];
+}
+
+/*
+ * Read the rx buffer
+ */
+static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
+{
+
+}
+
 
 #endif /* MCP2515_H_ */

@@ -251,7 +251,7 @@ static inline void SPI_EXECUTE_v2(struct spi_frm &frm,out port oport,unsigned ch
     wrpos++;
     rdpos++;
   }
-  while (rdpos - frm.rd_pos < frm.rd_len)
+  while (rdpos - frm.wr_len < frm.rd_len)
   {
     SPI_RECV_U8_v2(frm.buff[rdpos],oport,opv,scl_mask,mosi_mask,iport,miso_mask,T,t,tp);
     rdpos++;

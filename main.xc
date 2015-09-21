@@ -17,6 +17,7 @@
 #include "cmd.h"
 #include "i2c_custom.h"
 #include "spi_custom.h"
+#include "mcp2515.h"
 /*
 out port p_1G = XS1_PORT_1G;
 out port p_1D = XS1_PORT_1D;
@@ -755,13 +756,15 @@ void serial_send_loop(out port tx)
 in port ip1E = XS1_PORT_1E;
 in port ip1F = XS1_PORT_1F;
 in port ip1C = XS1_PORT_1C;
-out port op1G = XS1_PORT_1G;
 in port p_irda = XS1_PORT_1A;
+in port spi_in = XS1_PORT_1H;
+
+
+out port op1G = XS1_PORT_1G;
 out port p_feed = XS1_PORT_1B;
 out port debug = XS1_PORT_1I;
 
 out port spi_out = XS1_PORT_4C;
-in port spi_in = XS1_PORT_1H;
 
 port sda = XS1_PORT_1O;
 port scl = XS1_PORT_1P;
@@ -847,25 +850,44 @@ int main()
 int main()
 {
   struct spi_frm frm;
-  frm.wr_len = 2;
-  frm.buff[0] = 0x3;
-  frm.buff[1] = 0x0;
-  frm.rd_len = 1;
-  frm.rd_pos = 2;
   unsigned char opv = 0;
   timer t;
   unsigned tp;
+  const unsigned char clk_mask = 1;
+  const unsigned char mosi_mask = 2;
+  const unsigned char ss_mask = 4;
 
   opv = 4;    // disable chip select
   spi_out <: opv;
 
-  SPI_EXECUTE_v2(frm,spi_out,opv,1,2,4,spi_in,1,us,t,tp);
-  //SPI_EXECUTE(frm,debug,p_1G,p_irda,us,t,tp);
+  struct mcp2515_cnf_t mcp2515_0;
 
-  for (int i = 0;i< 5;i++)
-  {
-    printf("%02X ",frm.buff[i]);
-  }
+  mcp2515_0.can_ctrl = 0;
+  MCP2515_SET_MODE(mcp2515_0,MODE_LOOPBACK);
+  MCP2515_WRITE(CAN_CTRL,mcp2515_0.can_ctrl,frm);
+  SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_in,1,us,t,tp);
+
+  MCP2515_READ_CAN_STATUS(frm);
+  SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_in,1,us,t,tp);
+  printf("%02X\n",frm.buff[frm.wr_len]);
+
+
+
+  MCP2515_READ_RXB_STATUS(frm);
+  SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_in,1,us,t,tp);
+  printf("%02X\n",frm.buff[frm.wr_len]);
+
+  return 0;
+
+  MCP2515_READ(CAN_STAT,frm);
+  SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_in,1,us,t,tp);
+  printf("%02X\n",frm.buff[frm.wr_len]);
+
+  MCP2515_READ(CAN_INTF,frm);
+  SPI_EXECUTE_v2(frm,spi_out,opv,1,2,4,spi_in,1,us,t,tp);
+  printf("%02X\n",frm.buff[frm.wr_len]);
+
+  //SPI_EXECUTE(frm,debug,p_1G,p_irda,us,t,tp);
   return 0;
 }
 
