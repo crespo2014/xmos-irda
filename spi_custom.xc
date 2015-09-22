@@ -34,7 +34,7 @@
           ret = pos;
           break;
         case cmd_hello:
-          ret = hello[(pos-1) % sizeof(hello)];
+          ret = hello[(pos) % sizeof(hello)];
           break;
         case cmd_echo:
           ret = din;
