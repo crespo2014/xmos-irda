@@ -861,8 +861,7 @@ void spi_test()
    opv = 4;    // disable chip select
    spi_out <: opv;
 
-   //send hello
-   frm.buff[0] = 3;
+   frm.buff[0] = 3;  // hello
    frm.wr_len = 1;
    frm.rd_len = 20;
    frm.rd_pos = 1;
@@ -881,7 +880,7 @@ void spi_test()
   frm.rd_len = 4;
   frm.rd_pos = 1;
   SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,1,us,t,tp);
-  for (int i=0;i<20;i++)
+  for (int i=0;i<4;i++)
   {
     printf("%X ",frm.buff[frm.wr_len + i]);
   }

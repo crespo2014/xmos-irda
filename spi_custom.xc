@@ -78,7 +78,9 @@ void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interfac
   while(1)
   {
     ss when pinseq(0) :> ssv;
+    scl :> sclv;
     pos = 0;    // cmd
+    cmd_len = 0xFF;     // rd pos is less than
     bitmask = 0x80;
     din = 0;
     while(ssv == 0)
@@ -102,10 +104,11 @@ void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interfac
               else
                 dout = spi_if.onData(din,pos);
               bitmask = 0x80;
+              pos++;
             }
           } else        // clock down write data
           {
-            if (pos >= cmd_len )
+            if (pos >= cmd_len)
               miso <: (unsigned char)((dout & bitmask) ? 1 : 0);
           }
           break;

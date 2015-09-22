@@ -287,4 +287,20 @@ void RX_Packer(streaming chanend ch,unsigned timeout,client interface rx_frame_i
  *
  * Rx will read until a zero is inputed.
  * clz function returns distance of pulse
+ *
+ * v9
+ * using a xorg output
+ * a clock two times faster than data is xored with data
+ * then 1 become 01 and 0 become 10
+ * a high pulse is need to start reading the port.
+ * sample point at middle of second bit.
+ * wait port high or timeout  (5x) 50ns
+ * wait T/2
+ * read and shift data.
+ * check for 8th bit and push data to channel (inc,cmp,send) 30ns
+ * timeout as interbyte delay
+ * timeout as interframe delay
+ *
+ * 4ns pulse is read as 0
+ * 12ns pulse is read as 1
  */
