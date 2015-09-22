@@ -886,6 +886,18 @@ void spi_test()
   }
   printf("\n");
 
+  frm.buff[0] = 1;   //
+  frm.wr_len = 1;
+  frm.rd_len = 4;
+  frm.rd_pos = 1;
+  SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,1,us,t,tp);
+  for (int i=0;i<4;i++)
+  {
+    printf("%X ",frm.buff[frm.wr_len + i]);
+  }
+  printf("\n");
+
+  return;
 
   struct mcp2515_cnf_t mcp2515_0;
 

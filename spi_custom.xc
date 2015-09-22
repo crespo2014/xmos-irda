@@ -57,7 +57,7 @@
           ret = 1;
           break;
         case cmd_echo:
-          ret = 1;
+          ret = 2;
           break;
         default:
           ret = 1;
@@ -103,13 +103,16 @@ void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interfac
                 cmd_len = spi_if.onCmd(din);
               else
                 dout = spi_if.onData(din,pos);
+              din = 0;
               bitmask = 0x80;
               pos++;
             }
-          } else        // clock down write data
+          } else if (pos >= cmd_len)      // clock down write data
           {
-            if (pos >= cmd_len)
-              miso <: (unsigned char)((dout & bitmask) ? 1 : 0);
+            if (dout & bitmask)
+              miso <: 1;
+            else
+              miso <: 0;
           }
           break;
       }

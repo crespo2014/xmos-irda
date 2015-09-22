@@ -81,7 +81,6 @@ struct spi_frm
  */
 static inline void SPI_SEND_U8(unsigned char u8,out port scl,out port mosi,unsigned T,timer t, unsigned& tp)
 {
-  t when timerafter(tp) :> void;
   unsigned v = bitrev((unsigned)u8) >> 24;
   for (int i=8;i;i--)
   {
@@ -161,10 +160,11 @@ static inline void SPI_EXECUTE(struct spi_frm &frm,out port scl,out port mosi,in
   t when timerafter(tp) :> void;
 }
 
-
+/*
+ * clock shuold be 0 when this fucntion is called
+ */
 static inline void SPI_SEND_U8_v2(unsigned char u8,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,unsigned T,timer t, unsigned& tp)
 {
-  t when timerafter(tp) :> void;
   unsigned mask =0x80;
   while (mask)
   {
