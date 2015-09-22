@@ -31,6 +31,10 @@
 #ifndef SPI_CUSTOM_H_
 #define SPI_CUSTOM_H_
 
+#include <timer.h>
+#include <xs1.h>
+#include <xclib.h>
+
 enum spi_st
 {
   spi_none,
@@ -260,5 +264,24 @@ static inline void SPI_EXECUTE_v2(struct spi_frm &frm,out port oport,unsigned ch
   opv |= ss_mask;
   oport <: opv;
 }
+
+/*
+ * Spi slave interface
+ * Position is 0 for command id.
+ * Data index is pos - cmd_len
+ * cmd_len includes the cmd id it means it is always >= 1
+ */
+interface spi_slave_if
+{
+  unsigned char onCmd(unsigned char cmd_id);       // return how many bytes are need for the command. after that data will be send
+  /*
+   * cmd id is not a valid position
+   * cmd data start at position 0
+   */
+  unsigned char onData(unsigned char din,unsigned pos);  // data and position ,return data to send, po
+};
+
+[[distributable]] extern void test_spi_slave(server interface spi_slave_if spi_if);
+extern void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if spi_if);
 
 #endif /* SPI_CUSTOM_H_ */

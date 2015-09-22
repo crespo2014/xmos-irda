@@ -753,21 +753,7 @@ void serial_send_loop(out port tx)
   }
 }
 
-in port ip1E = XS1_PORT_1E;
-in port ip1F = XS1_PORT_1F;
-in port ip1C = XS1_PORT_1C;
-in port p_irda = XS1_PORT_1A;
-in port spi_in = XS1_PORT_1H;
 
-
-out port op1G = XS1_PORT_1G;
-out port p_feed = XS1_PORT_1B;
-out port debug = XS1_PORT_1I;
-
-out port spi_out = XS1_PORT_4C;
-
-port sda = XS1_PORT_1O;
-port scl = XS1_PORT_1P;
 
 #if 0
 int main()
@@ -844,10 +830,25 @@ int main()
 }
 #endif
 
-/*
- * SPI with canbus test
- */
-int main()
+in port spi_slv_scl = XS1_PORT_1E;
+in port spi_slv_mosi = XS1_PORT_1F;
+in port spi_slv_ss = XS1_PORT_1A;
+out port spi_slv_miso = XS1_PORT_1B;
+
+
+
+out port spi_out = XS1_PORT_4C;
+in port spi_miso = XS1_PORT_1H;
+
+//out port op1G = XS1_PORT_1G;
+//out port debug = XS1_PORT_1I;
+//
+//in port ip1C = XS1_PORT_1C;
+//
+//port sda = XS1_PORT_1O;
+//port scl = XS1_PORT_1P;
+
+void spi_test()
 {
   struct spi_frm frm;
   unsigned char opv = 0;
@@ -857,37 +858,74 @@ int main()
   const unsigned char mosi_mask = 2;
   const unsigned char ss_mask = 4;
 
-  opv = 4;    // disable chip select
-  spi_out <: opv;
+   opv = 4;    // disable chip select
+   spi_out <: opv;
+
+   //send hello
+   frm.buff[0] = 3;
+   frm.wr_len = 1;
+   frm.rd_len = 20;
+   frm.rd_pos = 1;
+   SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,1,us,t,tp);
+   for (int i=0;i<20;i++)
+   {
+     printf("%c",frm.buff[frm.wr_len + i]);
+   }
+   printf("\n");
+
+  frm.buff[0] = 4;   //echo
+  frm.buff[1] = 1;   //echo
+  frm.buff[2] = 2;   //echo
+  frm.buff[3] = 3;   //echo
+  frm.wr_len = 4;
+  frm.rd_len = 4;
+  frm.rd_pos = 1;
+  SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,1,us,t,tp);
+  for (int i=0;i<20;i++)
+  {
+    printf("%X ",frm.buff[frm.wr_len + i]);
+  }
+  printf("\n");
+
 
   struct mcp2515_cnf_t mcp2515_0;
 
   mcp2515_0.can_ctrl = 0;
   MCP2515_SET_MODE(mcp2515_0,MODE_LOOPBACK);
   MCP2515_WRITE(CAN_CTRL,mcp2515_0.can_ctrl,frm);
-  SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_in,1,us,t,tp);
+  SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,1,us,t,tp);
 
   MCP2515_READ_CAN_STATUS(frm);
-  SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_in,1,us,t,tp);
+  SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,1,us,t,tp);
   printf("%02X\n",frm.buff[frm.wr_len]);
-
-
 
   MCP2515_READ_RXB_STATUS(frm);
-  SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_in,1,us,t,tp);
+  SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,1,us,t,tp);
   printf("%02X\n",frm.buff[frm.wr_len]);
 
-  return 0;
+  return ;
 
   MCP2515_READ(CAN_STAT,frm);
-  SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_in,1,us,t,tp);
+  SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,1,us,t,tp);
   printf("%02X\n",frm.buff[frm.wr_len]);
 
   MCP2515_READ(CAN_INTF,frm);
-  SPI_EXECUTE_v2(frm,spi_out,opv,1,2,4,spi_in,1,us,t,tp);
+  SPI_EXECUTE_v2(frm,spi_out,opv,1,2,4,spi_miso,1,us,t,tp);
   printf("%02X\n",frm.buff[frm.wr_len]);
+}
 
-  //SPI_EXECUTE(frm,debug,p_1G,p_irda,us,t,tp);
+/*
+ * SPI with canbus test
+ */
+int main()
+{
+  interface spi_slave_if spi_if;
+  par
+  {
+    test_spi_slave(spi_if);
+    spi_slave(spi_slv_ss,spi_slv_scl,spi_slv_mosi,spi_slv_miso,spi_if);
+    spi_test();
+  }
   return 0;
 }
 
