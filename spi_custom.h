@@ -273,7 +273,7 @@ static inline void SPI_EXECUTE_v2(struct spi_frm &frm,out port oport,unsigned ch
  */
 interface spi_slave_if
 {
-  unsigned char onCmd(unsigned char cmd_id);       // return how many bytes are need for the command. after that data will be send
+  unsigned char onCmd(unsigned char cmd_id,unsigned char &cmd_len);       // return first data if it is the case, set up command size.
   /*
    * cmd id is not a valid position
    * cmd data start at position 0

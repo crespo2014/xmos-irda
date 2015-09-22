@@ -874,9 +874,9 @@ void spi_test()
    printf("\n");
 
   frm.buff[0] = 4;   //echo
-  frm.buff[1] = 1;   //echo
-  frm.buff[2] = 2;   //echo
-  frm.buff[3] = 3;   //echo
+  frm.buff[1] = 0xAB;   //echo
+  frm.buff[2] = 0xCC;   //echo
+  frm.buff[3] = 0xDE;   //echo
   frm.wr_len = 4;
   frm.rd_len = 4;
   frm.rd_pos = 1;

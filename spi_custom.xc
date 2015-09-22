@@ -23,6 +23,7 @@
   while(1)
   {
     select {
+      // for pos zero initialize command
       case spi_if.onData(unsigned char din,unsigned pos)-> unsigned char ret:
         switch (cmd_id)
         {
@@ -43,24 +44,27 @@
           break;
         }
         break;
-      case spi_if.onCmd(unsigned char dt)->unsigned char ret:
+      case spi_if.onCmd(unsigned char dt,unsigned char &cmd_len)->unsigned char ret:
         cmd_id = dt;
         switch (cmd_id)
         {
         case cmd_one:
-          ret = 1;
+          cmd_len = 1;
+          ret = 0;
           break;
         case cmd_two:
-          ret = 3;
+          cmd_len = 3;
           break;
         case cmd_hello:
-          ret = 1;
+          cmd_len = 1;
+          ret = 'H';
           break;
         case cmd_echo:
-          ret = 2;
+          cmd_len = 2;
           break;
         default:
-          ret = 1;
+          cmd_len = 1;
+          ret = 0xFF;
           break;
         }
         break;
@@ -71,7 +75,7 @@
 void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if spi_if)
 {
   unsigned pos;
-  unsigned cmd_len;
+  unsigned char cmd_len;
   unsigned char din,dout,pv,bitmask;
   unsigned char ssv,sclv;
   ssv = 1;
@@ -100,7 +104,7 @@ void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interfac
             {
               // eight bit send
               if (pos == 0)
-                cmd_len = spi_if.onCmd(din);
+                dout = spi_if.onCmd(din,cmd_len);
               else
                 dout = spi_if.onData(din,pos);
               din = 0;
