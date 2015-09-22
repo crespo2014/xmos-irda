@@ -31,6 +31,10 @@
 #ifndef SPI_CUSTOM_H_
 #define SPI_CUSTOM_H_
 
+#include <timer.h>
+#include <xs1.h>
+#include <xclib.h>
+
 enum spi_st
 {
   spi_none,
@@ -77,7 +81,6 @@ struct spi_frm
  */
 static inline void SPI_SEND_U8(unsigned char u8,out port scl,out port mosi,unsigned T,timer t, unsigned& tp)
 {
-  t when timerafter(tp) :> void;
   unsigned v = bitrev((unsigned)u8) >> 24;
   for (int i=8;i;i--)
   {
@@ -157,10 +160,11 @@ static inline void SPI_EXECUTE(struct spi_frm &frm,out port scl,out port mosi,in
   t when timerafter(tp) :> void;
 }
 
-
+/*
+ * clock shuold be 0 when this fucntion is called
+ */
 static inline void SPI_SEND_U8_v2(unsigned char u8,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,unsigned T,timer t, unsigned& tp)
 {
-  t when timerafter(tp) :> void;
   unsigned mask =0x80;
   while (mask)
   {
@@ -260,5 +264,24 @@ static inline void SPI_EXECUTE_v2(struct spi_frm &frm,out port oport,unsigned ch
   opv |= ss_mask;
   oport <: opv;
 }
+
+/*
+ * Spi slave interface
+ * Position is 0 for command id.
+ * Data index is pos - cmd_len
+ * cmd_len includes the cmd id it means it is always >= 1
+ */
+interface spi_slave_if
+{
+  unsigned char onCmd(unsigned char cmd_id);       // return how many bytes are need for the command. after that data will be send
+  /*
+   * cmd id is not a valid position
+   * cmd data start at position 0
+   */
+  unsigned char onData(unsigned char din,unsigned pos);  // data and position ,return data to send, po
+};
+
+[[distributable]] extern void test_spi_slave(server interface spi_slave_if spi_if);
+extern void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if spi_if);
 
 #endif /* SPI_CUSTOM_H_ */

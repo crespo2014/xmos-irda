@@ -306,6 +306,13 @@ static inline void MCP2515_READ_RXB_STATUS(struct spi_frm &frm)
   frm.rd_len = 1;
   frm.rd_pos = 2;
 }
+static inline void MCP2515_RESET(struct spi_frm &frm)
+{
+  frm.buff[0] = SPI_RESET;
+  frm.wr_len = 1;
+  frm.rd_len = 0;
+  frm.rd_pos = 0;
+}
 static inline void MCP2515_UPDATE_RXB_STATUS(struct mcp2515_cnf_t &mcp,struct spi_frm &frm)
 {
   mcp.rxb_status = frm.buff[frm.wr_len];
