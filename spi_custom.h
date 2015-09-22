@@ -138,7 +138,7 @@ static inline void SPI_EXECUTE(struct spi_frm &frm,out port scl,out port mosi,in
   unsigned rdpos = frm.wr_len;
   unsigned wrpos = 0;
   t :> tp;
-  while (wrpos < frm.rd_pos)
+  while (wrpos < frm.wr_len && (frm.rd_len == 0 || wrpos < frm.rd_pos))
   {
     SPI_SEND_U8(frm.buff[wrpos],scl,mosi,T,t,tp);
     wrpos++;
@@ -240,7 +240,7 @@ static inline void SPI_EXECUTE_v2(struct spi_frm &frm,out port oport,unsigned ch
   oport <: opv;
   t :> tp;
   tp += T/2;
-  while (wrpos < frm.rd_pos)
+  while (wrpos < frm.wr_len && (frm.rd_len == 0 || wrpos < frm.rd_pos))
   {
     SPI_SEND_U8_v2(frm.buff[wrpos],oport,opv,scl_mask,mosi_mask,T,t,tp);
     wrpos++;
