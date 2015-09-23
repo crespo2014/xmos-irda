@@ -877,7 +877,7 @@ void spi_test()
   spi_out <: opv;
 
   frm2.buff[0] = 3;  // hello
-  frm2.len = 10;
+  frm2.len = 16;
   SPI_EXECUTE_v3(frm2,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,miso_mask,T,t);
   print_ascii_buff(frm2.buff+frm2.len+1,frm2.len-1);
 
