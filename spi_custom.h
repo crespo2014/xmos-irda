@@ -23,6 +23,11 @@
  *
  * clock_up(ss_v,mois_v,miso_v)
  *
+ * CPOL 0 - clock always 0
+ *      1 - always 1
+ * CPHA 0 at first edge of clock
+ *      1 at second edge of clock
+ *
  *  Created on: 18 Sep 2015
  *      Author: lester.crespo
  */
@@ -303,8 +308,15 @@ interface spi_slave_if
   unsigned char onData(unsigned char din,unsigned pos);  // data and position ,return data to send, po
 };
 
+interface spi_master_if
+{
+  void execute(struct spi_frm_v2 *frm);
+  //void setMode(unsigned char cpol,unsigned char cpha);
+};
+
 [[distributable]] extern void test_spi_slave_v2(server interface spi_slave_if_v2 spi_if);
 [[distributable]] extern void test_spi_slave(server interface spi_slave_if spi_if);
+[[distributable]] extern void spi_master(out port oport,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port iport,unsigned char miso_mask,unsigned T,server interface spi_master_if spi_if);
 
 extern void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if spi_if);
 extern void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if_v2 spi_if);

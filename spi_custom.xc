@@ -204,8 +204,29 @@ void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interfac
           }
           break;
       }
-
     }
+  }
+}
 
+[[distributable]] void spi_master(out port oport,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port iport,unsigned char miso_mask,unsigned T,server interface spi_master_if spi_if)
+{
+  unsigned char cpol = 0;
+  unsigned char cpha = 0;     // sample when clk is not cpol
+  unsigned char opv;
+  timer t;
+
+  opv = ss_mask;    // disable chip select
+  if (cpol)
+    opv |= scl_mask;
+  oport <: opv;
+
+  while(1)
+  {
+    select
+    {
+      case spi_if.execute(struct spi_frm_v2* frm):
+        SPI_EXECUTE_v3(*frm,oport,opv,scl_mask,mosi_mask,ss_mask,iport,miso_mask,T,t);
+        break;
+    }
   }
 }

@@ -862,23 +862,13 @@ void print_ascii_buff(const char* buff,unsigned len)
   printf("\n");
 }
 
-void spi_test()
+void spi_test(client interface spi_master_if master_spi_if)
 {
   struct spi_frm_v2 frm2;
-  unsigned char opv = 0;
-  timer t;
-  const unsigned char clk_mask = 1;
-  const unsigned char mosi_mask = 2;
-  const unsigned char miso_mask = 1;
-  const unsigned char ss_mask = 4;
-  const unsigned T = 1*us;
-
-  opv = 4;    // disable chip select
-  spi_out <: opv;
 
   frm2.buff[0] = 3;  // hello
   frm2.len = 16;
-  SPI_EXECUTE_v3(frm2,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,miso_mask,T,t);
+  master_spi_if.execute(&frm2);
   print_ascii_buff(frm2.buff+frm2.len+1,frm2.len-1);
 
   frm2.buff[0] = 4;   //echo
@@ -886,36 +876,36 @@ void spi_test()
   frm2.buff[2] = 0xCC;   //echo
   frm2.buff[3] = 0xDE;   //echo
   frm2.len = 5;
-  SPI_EXECUTE_v3(frm2,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,miso_mask,T,t);
+  master_spi_if.execute(&frm2);
   print_buff(frm2.buff+frm2.len+1,frm2.len-1);
 
   frm2.buff[0] = 1;   // pos
   frm2.len = 16;
-  SPI_EXECUTE_v3(frm2,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,miso_mask,T,t);
+  master_spi_if.execute(&frm2);
   print_buff(frm2.buff+frm2.len+1,frm2.len-1);
 
   struct mcp2515_cnf_t mcp2515_0;
   MCP2515_READ(CAN_CTRL,frm2);
-  SPI_EXECUTE_v3(frm2,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,miso_mask,T,t);
+  master_spi_if.execute(&frm2);
   mcp2515_0.can_ctrl = frm2.buff[frm2.len*2-1];   // jump command byte
   printf("%02X\n",mcp2515_0.can_ctrl);
 
   MCP2515_READ_CAN_STATUS(frm2);
-  SPI_EXECUTE_v3(frm2,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,miso_mask,T,t);
+  master_spi_if.execute(&frm2);
   mcp2515_0.can_status = frm2.buff[frm2.len*2-1];
   printf("%02X\n",mcp2515_0.can_status);
 
   MCP2515_READ_RXB_STATUS(frm2);
-  SPI_EXECUTE_v3(frm2,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,miso_mask,T,t);
+  master_spi_if.execute(&frm2);
   mcp2515_0.rxb_status = frm2.buff[frm2.len*2-1];
   printf("%02X\n",mcp2515_0.rxb_status);
 
   MCP2515_READ(CAN_STAT,frm2);
-  SPI_EXECUTE_v3(frm2,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,miso_mask,T,t);
+  master_spi_if.execute(&frm2);
   printf("%02X\n",frm2.buff[frm2.len*2-1]);
 
   MCP2515_READ(CAN_INTF,frm2);
-  SPI_EXECUTE_v3(frm2,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,miso_mask,T,t);
+  master_spi_if.execute(&frm2);
   printf("%02X\n",frm2.buff[frm2.len*2-1]);
 }
 
@@ -924,12 +914,20 @@ void spi_test()
  */
 int main()
 {
+  const unsigned char clk_mask = 1;
+  const unsigned char mosi_mask = 2;
+  const unsigned char miso_mask = 1;
+  const unsigned char ss_mask = 4;
+  const unsigned T = 1*us;
+
   interface spi_slave_if_v2 spi_if;
+  interface spi_master_if master_spi_if;
   par
   {
+    spi_master(spi_out,clk_mask,mosi_mask,ss_mask,spi_miso,miso_mask,T,master_spi_if);
     test_spi_slave_v2(spi_if);
     spi_slave_v2(spi_slv_ss,spi_slv_scl,spi_slv_mosi,spi_slv_miso,spi_if);
-    spi_test();
+    spi_test(master_spi_if);
   }
   return 0;
 }

@@ -288,7 +288,7 @@ static inline void MCP2515_RESET(struct spi_frm_v2 &frm)
 static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
 {
   frm.buff[0] = SPI_RD_RXB | ((index & 0x03) << SPI_RD_RXB_SHIFT);
-  frm.wr_len = 1;
+  frm.wr_len = 2;
 }
 
 
