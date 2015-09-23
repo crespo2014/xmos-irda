@@ -34,39 +34,6 @@
 #include <timer.h>
 #include <xs1.h>
 #include <xclib.h>
-/*
-enum spi_st
-{
-  spi_none,
-  spi_wr1,    //when clock down
-  spi_wr2,
-  spi_wr3,
-  spi_wr4,
-  spi_wr5,
-  spi_wr6,
-  spi_wr7,
-  spi_wr8,
-  spi_wr_end, //store data
-  spi_rdwr1,
-  spi_rdwr2,
-  spi_rdwr3,
-  spi_rdwr4,
-  spi_rdwr5,
-  spi_rdwr6,
-  spi_rdwr7,
-  spi_rdwr8,
-  spi_rdwr_end,
-  spi_rd1,    //when clock up
-  spi_rd2,
-  spi_rd3,
-  spi_rd4,
-  spi_rd5,
-  spi_rd6,
-  spi_rd7,
-  spi_rd8,
-  spi_rd_end,
-};
-*/
 
 struct spi_frm
 {
@@ -82,8 +49,7 @@ struct spi_frm
  */
 struct spi_frm_v2
 {
-    unsigned len;     // how many bytes to wr/rd
-    unsigned wr_len;  // how many bytes to write, start position to store read data
+    unsigned len;             // how many bytes to wr/rd max 16
     unsigned char buff[32];
 };
 /*
@@ -293,6 +259,32 @@ static inline void SPI_EXECUTE_v2(struct spi_frm &frm,out port oport,unsigned ch
   t when timerafter(tp) :> void;
   opv |= ss_mask;
   oport <: opv;
+}
+
+/*
+ * Wr and rd are done simultanealy
+ */
+static inline void SPI_EXECUTE_v3(struct spi_frm_v2 &frm,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port iport,unsigned char miso_mask,unsigned T,timer t)
+{
+  unsigned char *rdpos = frm.buff + frm.len;
+  unsigned char *wrpos = frm.buff;
+  unsigned len = frm.len;
+  unsigned tp = 0;
+  opv &= (~ss_mask);    // enable slave
+  oport <: opv;
+  t :> tp;
+  tp += T/2;
+  while(len--)
+  {
+    SPI_SEND_RECV_U8_v2(*wrpos,*rdpos,oport,opv,scl_mask,mosi_mask,iport,miso_mask,T,t,tp);
+    wrpos++;
+    rdpos++;
+  }
+  t when timerafter(tp) :> void;
+  opv |= ss_mask;
+  oport <: opv;
+  tp += T;
+  t when timerafter(tp) :> void;
 }
 
 /*
