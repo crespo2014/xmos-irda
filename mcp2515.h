@@ -255,30 +255,6 @@ struct mcp2515_cnf_t
    frm.rd_pos = 2;
  }
 
-static inline void MCP2515_SET_MODE(struct mcp2515_cnf_t &mcp,unsigned char mode)
-{
-  mcp.can_ctrl = (mcp.can_ctrl & (~MODE_MASK)) | mode;
-}
-
-static inline void MCP2515_SET_CTRL(struct mcp2515_cnf_t &mcp,unsigned char bit)
-{
-  mcp.can_ctrl = mcp.can_ctrl | bit;
-}
-
-static inline void MCP2515_CLEAR_CTRL(struct mcp2515_cnf_t &mcp,unsigned char bit)
-{
-  mcp.can_ctrl = mcp.can_ctrl & (~bit);
-}
-
-/*
- * Use response from spi interface
- * The first read byte is the value
- */
-static inline void MCP2515_UPDATE_CTRL(struct mcp2515_cnf_t &mcp,struct spi_frm &frm)
-{
-  mcp.can_ctrl = frm.buff[frm.wr_len];
-}
-
 static inline void MCP2515_RTS(unsigned char mask,struct spi_frm &frm)
 {
   frm.buff[0] = SPI_RTS | (mask & 0x03);
@@ -292,11 +268,7 @@ static inline void MCP2515_READ_CAN_STATUS(struct spi_frm &frm)
   frm.buff[0] = SPI_RD_STATUS;
   frm.wr_len = 1;
   frm.rd_len = 1;
-  frm.rd_pos = 2;
-}
-static inline void MCP2515_UPDATE_CAN_STATUS(struct mcp2515_cnf_t &mcp,struct spi_frm &frm)
-{
-  mcp.can_status = frm.buff[frm.wr_len];
+  frm.rd_pos = 1;
 }
 
 static inline void MCP2515_READ_RXB_STATUS(struct spi_frm &frm)
@@ -304,7 +276,7 @@ static inline void MCP2515_READ_RXB_STATUS(struct spi_frm &frm)
   frm.buff[0] = SPI_RXB_STATUS;
   frm.wr_len = 1;
   frm.rd_len = 1;
-  frm.rd_pos = 2;
+  frm.rd_pos = 1;
 }
 static inline void MCP2515_RESET(struct spi_frm &frm)
 {
@@ -312,10 +284,6 @@ static inline void MCP2515_RESET(struct spi_frm &frm)
   frm.wr_len = 1;
   frm.rd_len = 0;
   frm.rd_pos = 0;
-}
-static inline void MCP2515_UPDATE_RXB_STATUS(struct mcp2515_cnf_t &mcp,struct spi_frm &frm)
-{
-  mcp.rxb_status = frm.buff[frm.wr_len];
 }
 
 /*

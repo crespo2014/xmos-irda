@@ -34,7 +34,7 @@
 #include <timer.h>
 #include <xs1.h>
 #include <xclib.h>
-
+/*
 enum spi_st
 {
   spi_none,
@@ -66,6 +66,7 @@ enum spi_st
   spi_rd8,
   spi_rd_end,
 };
+*/
 
 struct spi_frm
 {
@@ -73,6 +74,35 @@ struct spi_frm
     unsigned rd_pos;  // how many bytes before fecth data
     unsigned rd_len;
     unsigned char buff[32];
+};
+
+/*
+ * Full duplex comunication for spi always.
+ * Cons: waste read data when it is not needed
+ */
+struct spi_frm_v2
+{
+    unsigned len;     // how many bytes to wr/rd
+    unsigned wr_len;  // how many bytes to write, start position to store read data
+    unsigned char buff[32];
+};
+/*
+ * spi slave can fill up a buffer when a command is received
+ * do not how to implement no value for miso
+ * SS low required reset
+ * any incomng byte required an outgoing byte
+ *
+ * slave -
+ * buffer, rd_pos, wr_pos
+ * wr_pos == 0; means command id.
+ *    > 1. use command id to store or ignore data.
+ *
+ */
+
+interface spi_slave_if_v2
+{
+  unsigned char onSS();                      // return next byte to send
+  unsigned char onData(unsigned char din);   // return next byte to send
 };
 
 /*
@@ -281,7 +311,10 @@ interface spi_slave_if
   unsigned char onData(unsigned char din,unsigned pos);  // data and position ,return data to send, po
 };
 
+[[distributable]] extern void test_spi_slave_v2(server interface spi_slave_if_v2 spi_if);
 [[distributable]] extern void test_spi_slave(server interface spi_slave_if spi_if);
+
 extern void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if spi_if);
+extern void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if_v2 spi_if);
 
 #endif /* SPI_CUSTOM_H_ */

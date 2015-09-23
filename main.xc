@@ -879,7 +879,7 @@ void spi_test()
   frm.buff[3] = 0xDE;   //echo
   frm.wr_len = 4;
   frm.rd_len = 4;
-  frm.rd_pos = 1;
+  frm.rd_pos = 2;
   SPI_EXECUTE_v2(frm,spi_out,opv,clk_mask,mosi_mask,ss_mask,spi_miso,1,us,t,tp);
   for (int i=0;i<4;i++)
   {
@@ -934,11 +934,11 @@ void spi_test()
  */
 int main()
 {
-  interface spi_slave_if spi_if;
+  interface spi_slave_if_v2 spi_if;
   par
   {
-    test_spi_slave(spi_if);
-    spi_slave(spi_slv_ss,spi_slv_scl,spi_slv_mosi,spi_slv_miso,spi_if);
+    test_spi_slave_v2(spi_if);
+    spi_slave_v2(spi_slv_ss,spi_slv_scl,spi_slv_mosi,spi_slv_miso,spi_if);
     spi_test();
   }
   return 0;

@@ -72,6 +72,90 @@
   }
 }
 
+[[distributable]] void test_spi_slave_v2(server interface spi_slave_if_v2 spi_if)
+{
+  unsigned char cmd_id;
+  unsigned char wr_pos;
+  unsigned char rd_pos;
+  const unsigned char hello[] ={'H','e','l','l','o','\n'};
+  while(1)
+  {
+    select {
+      // for pos zero initialize command
+      case spi_if.onSS()-> unsigned char ret:
+          ret = 0;
+          wr_pos = 0;
+          rd_pos = 0;
+          break;
+      case spi_if.onData(unsigned char din)->unsigned char ret:
+        if (wr_pos == 0)
+        {
+          cmd_id = din;
+        }
+        switch (cmd_id)
+        {
+        case cmd_one:
+        case cmd_two:
+          ret = wr_pos;
+          break;
+        case cmd_hello:
+          if (rd_pos == sizeof(hello)) rd_pos = 0;
+          ret = hello[rd_pos++];
+          break;
+        case cmd_echo:
+          ret = (wr_pos == 0) ? 0 : din;
+          break;
+        default :
+          ret = 0xFF;
+          break;
+        }
+        wr_pos++;
+        break;
+    }
+  }
+}
+
+/*
+ * Simple interface
+ */
+void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if_v2 spi_if)
+{
+  unsigned char din,dout,bitmask;
+  unsigned char ssv,sclv;
+  ssv = 1;
+  while(1)
+  {
+    ss when pinseq(0) :> ssv;
+    scl :> sclv;
+    dout = spi_if.onSS();
+    bitmask = 0x80;
+    while(ssv == 0)
+    {
+      select
+      {
+        case ss when pinsneq(ssv) :> ssv:
+          break;
+        case scl when pinsneq(sclv) :> sclv:
+          if (sclv == 1)  // clock up, read data, if 8 bits then prepare to send data at the next clock down
+          {
+            mosi :> >>din;    //MSB to LSB
+            bitmask >>=1;
+            if (bitmask == 0)
+            {
+              dout = bitrev(spi_if.onData(bitrev(din)>>24)) >> 24;
+              bitmask = 0x80;
+              din = 0;
+            }
+          } else
+          {
+            miso <: >>dout;
+          }
+          break;
+      }
+    }
+  }
+}
+
 void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if spi_if)
 {
   unsigned pos;
