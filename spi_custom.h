@@ -196,7 +196,7 @@ static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out 
     else
       opv &= (~mosi_mask);
     oport <: opv;
-    opv |= scl_mask;  // next
+    opv ^= scl_mask;  // next  invert clock
     t when timerafter(tp) :> void;
     oport <: opv;
     unsigned char v;
@@ -205,7 +205,7 @@ static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out 
     if (v & miso_mask)
       inu8 |= 0x1;
     tp += (T/2);
-    opv &= (~scl_mask);
+    opv ^= scl_mask;
     t when timerafter(tp) :> void;
     oport <: opv;
     tp += (T/2);
