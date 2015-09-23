@@ -830,10 +830,10 @@ int main()
 }
 #endif
 
-in port spi_slv_scl = XS1_PORT_1E;
-in port spi_slv_mosi = XS1_PORT_1F;
-in port spi_slv_ss = XS1_PORT_1A;
-out port spi_slv_miso = XS1_PORT_1B;
+in port spi_slv_scl = XS1_PORT_1P;
+in port spi_slv_mosi = XS1_PORT_1O;
+in port spi_slv_ss = XS1_PORT_1I;
+out port spi_slv_miso = XS1_PORT_1L;
 
 
 
@@ -884,6 +884,9 @@ void spi_test(client interface spi_master_if master_spi_if)
   master_spi_if.execute(&frm2);
   print_buff(frm2.buff+frm2.len+1,frm2.len-1);
 
+  MCP2515_WRITE(CAN_CTRL,1,frm2);
+  master_spi_if.execute(&frm2);
+
   struct mcp2515_cnf_t mcp2515_0;
   MCP2515_READ(CAN_CTRL,frm2);
   master_spi_if.execute(&frm2);
@@ -907,6 +910,8 @@ void spi_test(client interface spi_master_if master_spi_if)
   MCP2515_READ(CAN_INTF,frm2);
   master_spi_if.execute(&frm2);
   printf("%02X\n",frm2.buff[frm2.len*2-1]);
+
+
 }
 
 /*
