@@ -229,23 +229,14 @@ void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interfac
 
 [[distributable]] void spi_master(out port oport,unsigned char scl_mask,unsigned char mosi_mask,in port miso,server interface spi_master_if spi_if)
 {
-  unsigned char opv;
-  //timer t;
   //Set all signals high to deselected any slave, we do not care about clk, mosi or anything else
-  opv = 0xFF;
-  oport <: opv;
+  oport <: 0xFF;
   while(1)
   {
     select
     {
       case spi_if.execute(struct spi_frm_v2* frm,unsigned char ss_mask,unsigned char cpol, unsigned char cpha,unsigned T):
-        // set clock hold status
-        if (cpol)
-          opv = opv | scl_mask;
-        else
-          opv = opv & (~scl_mask);
-        oport <: opv;
-        SPI_EXECUTE_v3(*frm,oport,opv,scl_mask,mosi_mask,ss_mask,miso,T);  // wait before processed
+        SPI_EXECUTE_v3(*frm,oport,scl_mask,mosi_mask,ss_mask,miso,cpol,cpha,T);  // wait before processed
         break;
     }
   }

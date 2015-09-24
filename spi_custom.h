@@ -190,24 +190,74 @@ static inline void SPI_SEND_U8_v2(unsigned char u8,out port oport,unsigned char 
 /*
  * TODO. received wr_len and start writting 0 when wr_len go 0
  */
-static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,in port miso,unsigned T,timer t, unsigned& tp)
+static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out port oport,unsigned &opv,unsigned char scl_mask,unsigned char mosi_mask,in port miso,unsigned char cpha,unsigned T,timer t, unsigned& tp)
 {
   unsigned mask = 0x80;
+  unsigned edge = 0;
   while(mask)
   {
+    if (edge == cpha)   // is it the next edge to read
+    {
+      if (mask & u8)
+        opv |= mosi_mask;
+      else
+        opv &= (~mosi_mask);
+      oport <: opv;
+    }
+    opv ^= scl_mask;
+    t when timerafter(tp) :> void;
+    oport <: opv;
+    if (edge == cpha)   // is it the reading edge
+    {
+      miso :> >>inu8;   //MSB to LSB input
+    }
+    tp += T/2;
+    mask = mask >> edge;    // only decrement mask at the second edge
+    edge = edge ^ 1;
+  }
+  inu8 = bitrev(inu8) >> 24;
+  return;
+
+  if (cpha == 0)
+  {
+    while(mask)
+    {
+      if (mask & u8)
+        opv |= mosi_mask;
+      else
+        opv &= (~mosi_mask);
+      oport <: opv;
+
+      opv ^= scl_mask;  // first edge
+      t when timerafter(tp) :> void;
+      oport <: opv;
+
+      miso :> >>inu8;   //MSB to LSB input
+      tp += (T/2);
+      opv ^= scl_mask;
+      t when timerafter(tp) :> void;
+      oport <: opv;
+      tp += (T/2);
+      mask>>=1;
+    }
+  } else
+  while(mask)
+  {
+    opv ^= scl_mask;  // first edge
+    t when timerafter(tp) :> void;
+    oport <: opv;
+
     if (mask & u8)
       opv |= mosi_mask;
     else
       opv &= (~mosi_mask);
     oport <: opv;
-    opv ^= scl_mask;  // next  invert clock
-    t when timerafter(tp) :> void;
-    oport <: opv;
-    miso :> >>inu8;   //MSB to LSB input
+
     tp += (T/2);
     opv ^= scl_mask;
     t when timerafter(tp) :> void;
     oport <: opv;
+    miso :> >>inu8;   //MSB to LSB input
     tp += (T/2);
     mask>>=1;
   }
@@ -271,20 +321,27 @@ static inline void SPI_EXECUTE_v2(struct spi_frm &frm,out port oport,unsigned ch
 /*
  * Wr and rd are done simultanealy
  */
-static inline void SPI_EXECUTE_v3(struct spi_frm_v2 &frm,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port miso,unsigned T)
+static inline void SPI_EXECUTE_v3(struct spi_frm_v2 &frm,out port oport,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port miso,unsigned char cpol, unsigned char cpha,unsigned T)
 {
   unsigned char wr_pos = 0;
   unsigned char *rdpos = frm.buff + frm.len;
   unsigned len = frm.len;
   unsigned tp = 0;
+  unsigned opv = 0xFF;
   timer t;
-  opv &= (~ss_mask);    // enable slave
+  // set clock hold status to zero if needed
+  if (cpol == 0)
+    opv = opv & (~scl_mask);
   oport <: opv;
   t :> tp;
+  tp += T/2;    // give some time before enabling the slave
+  opv &= (~ss_mask);
+  t when timerafter(tp) :> void;
+  oport <: opv;
   tp += T;
   while(len--)
   {
-    SPI_SEND_RECV_U8_v2(wr_pos < frm.wr_len ? frm.buff[wr_pos] : 0,*rdpos,oport,opv,scl_mask,mosi_mask,miso,T,t,tp);
+    SPI_SEND_RECV_U8_v2(wr_pos < frm.wr_len ? frm.buff[wr_pos] : 0,*rdpos,oport,opv,scl_mask,mosi_mask,miso,cpha,T,t,tp);
     wr_pos++;
     rdpos++;
   }
