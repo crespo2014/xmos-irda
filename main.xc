@@ -830,15 +830,7 @@ int main()
 }
 #endif
 
-in port spi_slv_scl = XS1_PORT_1P;
-in port spi_slv_mosi = XS1_PORT_1O;
-in port spi_slv_ss = XS1_PORT_1I;
-out port spi_slv_miso = XS1_PORT_1L;
 
-
-
-out port spi_out = XS1_PORT_4C;
-in port spi_miso = XS1_PORT_1H;
 
 //out port op1G = XS1_PORT_1G;
 //out port debug = XS1_PORT_1I;
@@ -914,6 +906,13 @@ void spi_test(client interface spi_device_if master_spi_if)
 
 }
 
+in port spi_slv_scl = XS1_PORT_1P;
+in port spi_slv_mosi = XS1_PORT_1O;
+in port spi_slv_ss = XS1_PORT_1I;
+out port spi_slv_miso = XS1_PORT_1L;
+
+out port spi_out = XS1_PORT_4C;
+in port spi_miso = XS1_PORT_1H;
 /*
  * SPI with canbus test
  */
@@ -921,7 +920,6 @@ int main()
 {
   const unsigned char clk_mask = 1;
   const unsigned char mosi_mask = 2;
-  const unsigned char miso_mask = 1;
   const unsigned char ss_mask = 4;
   const unsigned T = 1*us;
 
@@ -930,7 +928,7 @@ int main()
   interface spi_device_if dev_if;
   par
   {
-    spi_master(spi_out,clk_mask,mosi_mask,spi_miso,miso_mask,master_spi_if);
+    spi_master(spi_out,clk_mask,mosi_mask,spi_miso,master_spi_if);
     test_spi_slave_v2(spi_if);
     spi_slave_v2(spi_slv_ss,spi_slv_scl,spi_slv_mosi,spi_slv_miso,spi_if);
     spi_dev(ss_mask,0,0,T,dev_if,master_spi_if);

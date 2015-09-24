@@ -208,7 +208,7 @@ void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interfac
   }
 }
 
-[[distributable]] void spi_master(out port oport,unsigned char scl_mask,unsigned char mosi_mask,in port iport,unsigned char miso_mask,server interface spi_master_if spi_if)
+[[distributable]] void spi_master(out port oport,unsigned char scl_mask,unsigned char mosi_mask,in port miso,server interface spi_master_if spi_if)
 {
   unsigned char opv;
   //timer t;
@@ -228,7 +228,7 @@ void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interfac
         oport <: opv;
 //        // Select the slave device
 //        opv = opv & (~ss_mask);
-        SPI_EXECUTE_v3(*frm,oport,opv,scl_mask,mosi_mask,ss_mask,iport,miso_mask,T);  // wait before processed
+        SPI_EXECUTE_v3(*frm,oport,opv,scl_mask,mosi_mask,ss_mask,miso,T);  // wait before processed
         break;
     }
   }
