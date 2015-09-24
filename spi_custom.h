@@ -269,12 +269,13 @@ static inline void SPI_EXECUTE_v2(struct spi_frm &frm,out port oport,unsigned ch
 /*
  * Wr and rd are done simultanealy
  */
-static inline void SPI_EXECUTE_v3(struct spi_frm_v2 &frm,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port iport,unsigned char miso_mask,unsigned T,timer t)
+static inline void SPI_EXECUTE_v3(struct spi_frm_v2 &frm,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port iport,unsigned char miso_mask,unsigned T)
 {
   unsigned char *rdpos = frm.buff + frm.len;
   unsigned char *wrpos = frm.buff;
   unsigned len = frm.len;
   unsigned tp = 0;
+  timer t;
   opv &= (~ss_mask);    // enable slave
   oport <: opv;
   t :> tp;
@@ -310,13 +311,19 @@ interface spi_slave_if
 
 interface spi_master_if
 {
-  void execute(struct spi_frm_v2 *frm);
+  void execute(struct spi_frm_v2 *frm,unsigned char ss_mask,unsigned char cpol, unsigned char cpha,unsigned T);
   //void setMode(unsigned char cpol,unsigned char cpha);
+};
+
+interface spi_device_if
+{
+  void execute(struct spi_frm_v2 *frm);
 };
 
 [[distributable]] extern void test_spi_slave_v2(server interface spi_slave_if_v2 spi_if);
 [[distributable]] extern void test_spi_slave(server interface spi_slave_if spi_if);
-[[distributable]] extern void spi_master(out port oport,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port iport,unsigned char miso_mask,unsigned T,server interface spi_master_if spi_if);
+[[distributable]] extern void spi_master(out port oport,unsigned char scl_mask,unsigned char mosi_mask,in port iport,unsigned char miso_mask,server interface spi_master_if spi_if);
+[[distributable]] extern void spi_dev(unsigned char ss_mask,unsigned char cpol, unsigned char cpha,unsigned T,server interface spi_device_if spi_dev,client interface spi_master_if spi_if);
 
 extern void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if spi_if);
 extern void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if_v2 spi_if);

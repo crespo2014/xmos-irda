@@ -862,7 +862,7 @@ void print_ascii_buff(const char* buff,unsigned len)
   printf("\n");
 }
 
-void spi_test(client interface spi_master_if master_spi_if)
+void spi_test(client interface spi_device_if master_spi_if)
 {
   struct spi_frm_v2 frm2;
 
@@ -927,12 +927,14 @@ int main()
 
   interface spi_slave_if_v2 spi_if;
   interface spi_master_if master_spi_if;
+  interface spi_device_if dev_if;
   par
   {
-    spi_master(spi_out,clk_mask,mosi_mask,ss_mask,spi_miso,miso_mask,T,master_spi_if);
+    spi_master(spi_out,clk_mask,mosi_mask,spi_miso,miso_mask,master_spi_if);
     test_spi_slave_v2(spi_if);
     spi_slave_v2(spi_slv_ss,spi_slv_scl,spi_slv_mosi,spi_slv_miso,spi_if);
-    spi_test(master_spi_if);
+    spi_dev(ss_mask,0,0,T,dev_if,master_spi_if);
+    spi_test(dev_if);
   }
   return 0;
 }

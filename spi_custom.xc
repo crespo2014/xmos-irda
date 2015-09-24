@@ -208,25 +208,45 @@ void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interfac
   }
 }
 
-[[distributable]] void spi_master(out port oport,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port iport,unsigned char miso_mask,unsigned T,server interface spi_master_if spi_if)
+[[distributable]] void spi_master(out port oport,unsigned char scl_mask,unsigned char mosi_mask,in port iport,unsigned char miso_mask,server interface spi_master_if spi_if)
 {
-  unsigned char cpol = 0;
-  unsigned char cpha = 0;     // sample when clk is not cpol
   unsigned char opv;
-  timer t;
-
-  opv = ss_mask;    // disable chip select
-  if (cpol)
-    opv |= scl_mask;
+  //timer t;
+  //Set all signals high to deselected any slave, we do not care about clk, mosi or anything else
+  opv = 0xFF;
   oport <: opv;
-
   while(1)
   {
     select
     {
-      case spi_if.execute(struct spi_frm_v2* frm):
-        SPI_EXECUTE_v3(*frm,oport,opv,scl_mask,mosi_mask,ss_mask,iport,miso_mask,T,t);
+      case spi_if.execute(struct spi_frm_v2* frm,unsigned char ss_mask,unsigned char cpol, unsigned char cpha,unsigned T):
+        // set clock hold status
+        if (cpol)
+          opv = opv | scl_mask;
+        else
+          opv = opv & (~scl_mask);
+        oport <: opv;
+//        // Select the slave device
+//        opv = opv & (~ss_mask);
+        SPI_EXECUTE_v3(*frm,oport,opv,scl_mask,mosi_mask,ss_mask,iport,miso_mask,T);  // wait before processed
         break;
     }
   }
 }
+/*
+ * This is a spi device.
+ * multiple devices con be link to one spi_master
+ */
+[[distributable]] void spi_dev(unsigned char ss_mask,unsigned char cpol, unsigned char cpha,unsigned T,server interface spi_device_if spi_dev,client interface spi_master_if spi_if)
+{
+  while(1)
+  {
+    select
+    {
+      case spi_dev.execute(struct spi_frm_v2* frm):
+        spi_if.execute(frm,ss_mask,cpol,cpha,T);
+        break;
+    }
+  }
+}
+
