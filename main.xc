@@ -923,6 +923,8 @@ int main()
   const unsigned char mosi_mask = 2;
   const unsigned char ss_mask = 4;
   const unsigned T = 1*us;
+  const unsigned cpol = 1;
+  const unsigned cpha = 0;
 
   interface spi_slave_if_v2 spi_if;
   interface spi_master_if master_spi_if;
@@ -931,8 +933,8 @@ int main()
   {
     spi_master(spi_out,clk_mask,mosi_mask,spi_miso,master_spi_if);
     test_spi_slave_v2(spi_if);
-    spi_slave_v2(spi_slv_ss,spi_slv_scl,spi_slv_mosi,spi_slv_miso,spi_if);
-    spi_dev(ss_mask,0,0,T,dev_if,master_spi_if);
+    spi_slave_v2(spi_slv_ss,spi_slv_scl,spi_slv_mosi,spi_slv_miso,cpol,cpha,spi_if);
+    spi_dev(ss_mask,cpol,cpha,T,dev_if,master_spi_if);
     spi_test(dev_if);
   }
   return 0;

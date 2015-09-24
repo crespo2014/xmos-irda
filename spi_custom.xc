@@ -122,8 +122,10 @@
  * if data change then ignore
  * if clock change then do it. prev ^ next -> return 1 if bit change (prev ^ next) & clk_mask
  * clock edge switch between 0 and 1, to match cpha
+ *
+ * Clock POLarity, Clock PHAse
  */
-void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if_v2 spi_if)
+void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,unsigned char cpol,unsigned char cpha, client interface spi_slave_if_v2 spi_if)
 {
   unsigned din,dout,bitmask;
   unsigned char ssv,sclv;
@@ -132,20 +134,26 @@ void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,client inter
   while(1)
   {
     ss when pinseq(0) :> ssv;
-    edge = 0;
-    scl :> sclv;
     dout = spi_if.onSS();
     dout = bitrev(dout) >> 24;
-    miso <: >>dout;               // prepare first bit for output
+
+    edge = 0;   // next edge
+    scl :> sclv;
     bitmask = 0x80;
     while(ssv == 0)
     {
+      // write before next transition
+      if ((cpol == sclv) && (edge == cpha))
+      {
+        miso <: >>dout;
+      }
       select
       {
         case ss when pinsneq(ssv) :> ssv:
           break;
         case scl when pinsneq(sclv) :> sclv:
-          if (sclv == 1)  // clock up, read data, if 8 bits then prepare to send data at the next clock down
+          // read after transition
+          if (edge == cpha)
           {
             mosi :> >>din;    //MSB to LSB
             bitmask >>=1;
@@ -155,16 +163,16 @@ void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,client inter
               dout = bitrev(dout) >> 24;
               bitmask = 0x80;
             }
-          } else
-          {
-            miso <: >>dout;
           }
           edge = edge ^ 1;
           break;
       }
+
+
     }
   }
 }
+
 #if 0
 void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if spi_if)
 {
@@ -237,8 +245,6 @@ void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interfac
         else
           opv = opv & (~scl_mask);
         oport <: opv;
-//        // Select the slave device
-//        opv = opv & (~ss_mask);
         SPI_EXECUTE_v3(*frm,oport,opv,scl_mask,mosi_mask,ss_mask,miso,T);  // wait before processed
         break;
     }

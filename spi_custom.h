@@ -281,13 +281,15 @@ static inline void SPI_EXECUTE_v3(struct spi_frm_v2 &frm,out port oport,unsigned
   opv &= (~ss_mask);    // enable slave
   oport <: opv;
   t :> tp;
-  tp += T/2;
+  tp += T;
   while(len--)
   {
     SPI_SEND_RECV_U8_v2(wr_pos < frm.wr_len ? frm.buff[wr_pos] : 0,*rdpos,oport,opv,scl_mask,mosi_mask,miso,T,t,tp);
     wr_pos++;
     rdpos++;
   }
+  t when timerafter(tp) :> void;
+  tp += T;
   t when timerafter(tp) :> void;
   opv |= ss_mask;
   oport <: opv;
@@ -328,6 +330,6 @@ interface spi_device_if
 [[distributable]] extern void spi_dev(unsigned char ss_mask,unsigned char cpol, unsigned char cpha,unsigned T,server interface spi_device_if spi_dev,client interface spi_master_if spi_if);
 
 extern void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if spi_if);
-extern void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if_v2 spi_if);
+extern void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,unsigned char cpol,unsigned char cpha,client interface spi_slave_if_v2 spi_if);
 
 #endif /* SPI_CUSTOM_H_ */
