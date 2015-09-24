@@ -127,51 +127,6 @@ static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out 
   }
   inu8 = bitrev(inu8) >> 24;
   return;
-
-  if (cpha == 0)
-  {
-    while(mask)
-    {
-      if (mask & u8)
-        opv |= mosi_mask;
-      else
-        opv &= (~mosi_mask);
-      oport <: opv;
-
-      opv ^= scl_mask;  // first edge
-      t when timerafter(tp) :> void;
-      oport <: opv;
-
-      miso :> >>inu8;   //MSB to LSB input
-      tp += (T/2);
-      opv ^= scl_mask;
-      t when timerafter(tp) :> void;
-      oport <: opv;
-      tp += (T/2);
-      mask>>=1;
-    }
-  } else
-  while(mask)
-  {
-    opv ^= scl_mask;  // first edge
-    t when timerafter(tp) :> void;
-    oport <: opv;
-
-    if (mask & u8)
-      opv |= mosi_mask;
-    else
-      opv &= (~mosi_mask);
-    oport <: opv;
-
-    tp += (T/2);
-    opv ^= scl_mask;
-    t when timerafter(tp) :> void;
-    oport <: opv;
-    miso :> >>inu8;   //MSB to LSB input
-    tp += (T/2);
-    mask>>=1;
-  }
-  inu8 = bitrev(inu8) >> 24;
 }
 /*
  * Wr and rd are done simultanealy
