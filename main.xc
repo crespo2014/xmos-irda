@@ -913,7 +913,7 @@ in port spi_slv_ss = XS1_PORT_1I;
 out port spi_slv_miso = XS1_PORT_1L;
 
 out port spi_out = XS1_PORT_4C;
-in port spi_in = XS1_PORT_4A;
+in port spi_in = XS1_PORT_4D;
 
 in port spi_miso = XS1_PORT_1H;
 /*
@@ -924,7 +924,7 @@ int main()
   const unsigned char clk_mask = 1;
   const unsigned char mosi_mask = 2;
   const unsigned char ss_mask = 4;
-  const unsigned T = 1*us;
+  const unsigned T = 500*ns;
   const unsigned cpol = 0;
   const unsigned cpha = 0;
 
