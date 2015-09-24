@@ -77,26 +77,6 @@ interface spi_slave_if_v2
   unsigned char onData(unsigned char din);   // return next byte to send
 };
 
-static inline void SPI_SEND_RECV_U8(unsigned char u8,unsigned char &inu8,out port scl,out port mosi,in port miso,unsigned T,timer t, unsigned& tp)
-{
-  unsigned v = bitrev((unsigned)u8) >> 24;
-  for (int i=8;i;i--)
-  {
-    mosi <: >> v;
-    t when timerafter(tp) :> void;
-    scl <: 1;
-    miso :> >>inu8;
-    tp += (T/2);
-//    t when timerafter(tp) :> void;
-//
-//    tp += (T/4);
-    t when timerafter(tp) :> void;
-    scl <: 0;
-    tp += (T/2);
-  }
-  //todo rotare inu8
-}
-
 /*
  * TODO. received wr_len and start writting 0 when wr_len go 0
  */
