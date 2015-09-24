@@ -16,63 +16,6 @@
 #define  cmd_hello  0x3
 #define  cmd_echo   0x4
 
-#if 0
-[[distributable]] void test_spi_slave(server interface spi_slave_if spi_if)
-{
-  unsigned char cmd_id;
-  const unsigned char hello[] ={'H','e','l','l','o'};
-  while(1)
-  {
-    select {
-      // for pos zero initialize command
-      case spi_if.onData(unsigned char din,unsigned pos)-> unsigned char ret:
-        switch (cmd_id)
-        {
-        case cmd_one:
-          ret = pos;
-          break;
-        case cmd_two:
-          ret = pos;
-          break;
-        case cmd_hello:
-          ret = hello[(pos) % sizeof(hello)];
-          break;
-        case cmd_echo:
-          ret = din;
-          break;
-        default :
-          ret = 0xFF;
-          break;
-        }
-        break;
-      case spi_if.onCmd(unsigned char dt,unsigned char &cmd_len)->unsigned char ret:
-        cmd_id = dt;
-        switch (cmd_id)
-        {
-        case cmd_one:
-          cmd_len = 1;
-          ret = 0;
-          break;
-        case cmd_two:
-          cmd_len = 3;
-          break;
-        case cmd_hello:
-          cmd_len = 1;
-          ret = 'H';
-          break;
-        case cmd_echo:
-          cmd_len = 2;
-          break;
-        default:
-          cmd_len = 1;
-          ret = 0xFF;
-          break;
-        }
-        break;
-    }
-  }
-}
-#endif
 [[distributable]] void test_spi_slave_v2(server interface spi_slave_if_v2 spi_if)
 {
   unsigned char cmd_id;
