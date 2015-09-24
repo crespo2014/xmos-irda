@@ -134,16 +134,16 @@ void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,unsigned cha
   while(1)
   {
     ss when pinseq(0) :> ssv;
+    scl :> sclv;
     dout = spi_if.onSS();
     dout = bitrev(dout) >> 24;
 
     edge = 0;   // next edge
-    scl :> sclv;
     bitmask = 0x80;
     while(ssv == 0)
     {
       // write before next transition
-      if ((cpol == sclv) && (edge == cpha))
+      if (edge == cpha)
       {
         miso <: >>dout;
       }

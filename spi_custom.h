@@ -77,6 +77,7 @@ interface spi_slave_if_v2
   unsigned char onData(unsigned char din);   // return next byte to send
 };
 
+#if 0
 /*
  * write data, do not read
  * from msb to lsb
@@ -95,6 +96,7 @@ static inline void SPI_SEND_U8(unsigned char u8,out port scl,out port mosi,unsig
     tp += (T/2);
   }
 }
+#endif
 
 static inline void SPI_SEND_RECV_U8(unsigned char u8,unsigned char &inu8,out port scl,out port mosi,in port miso,unsigned T,timer t, unsigned& tp)
 {
@@ -115,7 +117,7 @@ static inline void SPI_SEND_RECV_U8(unsigned char u8,unsigned char &inu8,out por
   }
   //todo rotare inu8
 }
-
+#if 0
 /*
  * clock should be 0
  */
@@ -186,6 +188,7 @@ static inline void SPI_SEND_U8_v2(unsigned char u8,out port oport,unsigned char 
     mask >>= 1;
   }
 }
+#endif
 
 /*
  * TODO. received wr_len and start writting 0 when wr_len go 0
@@ -263,7 +266,7 @@ static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out 
   }
   inu8 = bitrev(inu8) >> 24;
 }
-
+#if 0
 static inline void SPI_RECV_U8_v2(unsigned char &inu8,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,in port miso,unsigned T,timer t, unsigned& tp)
 {
   opv |= mosi_mask;
@@ -287,7 +290,7 @@ static inline void SPI_RECV_U8_v2(unsigned char &inu8,out port oport,unsigned ch
     mask>>=1;
   }
 }
-#if 0
+
 static inline void SPI_EXECUTE_v2(struct spi_frm &frm,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port miso,unsigned T,timer t, unsigned& tp)
 {
   unsigned rdpos = frm.wr_len;
