@@ -16,6 +16,7 @@
 #define  cmd_hello  0x3
 #define  cmd_echo   0x4
 
+#if 0
 [[distributable]] void test_spi_slave(server interface spi_slave_if spi_if)
 {
   unsigned char cmd_id;
@@ -71,7 +72,7 @@
     }
   }
 }
-
+#endif
 [[distributable]] void test_spi_slave_v2(server interface spi_slave_if_v2 spi_if)
 {
   unsigned char cmd_id;
