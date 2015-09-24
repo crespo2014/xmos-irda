@@ -111,8 +111,58 @@ void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,unsigned cha
           edge = edge ^ 1;
           break;
       }
+    }
+  }
+}
 
-
+void spi_slave_v3(in port iport,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,out port miso,unsigned char cpol,unsigned char cpha, client interface spi_slave_if_v2 spi_if)
+{
+  unsigned din,dout,bitmask;
+  unsigned char edge;
+  unsigned ipv;         // input port value previous
+  unsigned ipv_l=0xFF;        //
+  while(1)
+  {
+    ipv = ipv_l;
+    iport when pinsneq(ipv):> ipv_l;
+    while ((ipv_l & ss_mask) == 0)
+    {
+      edge = 0;   // next edge
+      bitmask = 0x80;
+      din = 0;
+      dout = spi_if.onSS();
+      dout = bitrev(dout) >> 24;
+      do
+      {
+        if (edge == cpha)
+        {
+          miso <: >>dout;
+        }
+        do
+        {
+          ipv = ipv_l;
+          iport when pinsneq(ipv):> ipv_l;
+          if ((ipv_l ^ ipv) & scl_mask)   // does the clock change
+          {
+            if (edge == cpha)
+            {
+              if (ipv_l & mosi_mask)
+                din = din | bitmask;
+              bitmask >>=1;
+              if (bitmask == 0)
+              {
+                dout = spi_if.onData(din);
+                dout = bitrev(dout) >> 24;
+                bitmask = 0x80;
+                din = 0;
+              }
+            }
+            edge = edge ^ 1;
+            break;    // got up to send more data
+          }
+        } while ((ipv_l & ss_mask) == 0);
+      } while ((ipv_l & ss_mask) == 0);
+      // on disconnect
     }
   }
 }

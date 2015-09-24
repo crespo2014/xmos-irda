@@ -178,5 +178,6 @@ interface spi_device_if
 
 extern void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if spi_if);
 extern void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,unsigned char cpol,unsigned char cpha,client interface spi_slave_if_v2 spi_if);
+extern void spi_slave_v3(in port iport,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,out port miso,unsigned char cpol,unsigned char cpha, client interface spi_slave_if_v2 spi_if);
 
 #endif /* SPI_CUSTOM_H_ */

@@ -913,6 +913,8 @@ in port spi_slv_ss = XS1_PORT_1I;
 out port spi_slv_miso = XS1_PORT_1L;
 
 out port spi_out = XS1_PORT_4C;
+in port spi_in = XS1_PORT_4A;
+
 in port spi_miso = XS1_PORT_1H;
 /*
  * SPI with canbus test
@@ -933,7 +935,8 @@ int main()
   {
     spi_master(spi_out,clk_mask,mosi_mask,spi_miso,master_spi_if);
     test_spi_slave_v2(spi_if);
-    spi_slave_v2(spi_slv_ss,spi_slv_scl,spi_slv_mosi,spi_slv_miso,cpol,cpha,spi_if);
+    //spi_slave_v2(spi_slv_ss,spi_slv_scl,spi_slv_mosi,spi_slv_miso,cpol,cpha,spi_if);
+    spi_slave_v3(spi_in,clk_mask,mosi_mask,ss_mask,spi_slv_miso,cpol,cpha,spi_if);
     spi_dev(ss_mask,cpol,cpha,T,dev_if,master_spi_if);
     spi_test(dev_if);
   }
