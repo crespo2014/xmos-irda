@@ -173,60 +173,6 @@ void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,unsigned cha
   }
 }
 
-#if 0
-void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if spi_if)
-{
-  unsigned pos;
-  unsigned char cmd_len;
-  unsigned char din,dout,pv,bitmask;
-  unsigned char ssv,sclv;
-  ssv = 1;
-  while(1)
-  {
-    ss when pinseq(0) :> ssv;
-    scl :> sclv;
-    pos = 0;    // cmd
-    cmd_len = 0xFF;     // rd pos is less than
-    bitmask = 0x80;
-    din = 0;
-    while(ssv == 0)
-    {
-      select
-      {
-        case ss when pinsneq(ssv) :> ssv:
-          break;
-        case scl when pinsneq(sclv) :> sclv:
-          if (sclv == 1)  // clock up, read data, if 8 bits then prepare to send data at the next clock down
-          {
-            mosi :> pv;
-            if (pv & 1)
-              din |= bitmask;
-            bitmask >>=1;
-            if (bitmask == 0)
-            {
-              // eight bit send
-              if (pos == 0)
-                dout = spi_if.onCmd(din,cmd_len);
-              else
-                dout = spi_if.onData(din,pos);
-              din = 0;
-              bitmask = 0x80;
-              pos++;
-            }
-          } else if (pos >= cmd_len)      // clock down write data
-          {
-            if (dout & bitmask)
-              miso <: 1;
-            else
-              miso <: 0;
-          }
-          break;
-      }
-    }
-  }
-}
-#endif
-
 [[distributable]] void spi_master(out port oport,unsigned char scl_mask,unsigned char mosi_mask,in port miso,server interface spi_master_if spi_if)
 {
   //Set all signals high to deselected any slave, we do not care about clk, mosi or anything else
