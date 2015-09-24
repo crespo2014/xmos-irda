@@ -860,6 +860,7 @@ void spi_test(client interface spi_device_if master_spi_if)
 
   frm2.buff[0] = 3;  // hello
   frm2.len = 16;
+  frm2.wr_len = 1;
   master_spi_if.execute(&frm2);
   print_ascii_buff(frm2.buff+frm2.len+1,frm2.len-1);
 
@@ -868,11 +869,13 @@ void spi_test(client interface spi_device_if master_spi_if)
   frm2.buff[2] = 0xCC;   //echo
   frm2.buff[3] = 0xDE;   //echo
   frm2.len = 5;
+  frm2.wr_len =  4;
   master_spi_if.execute(&frm2);
   print_buff(frm2.buff+frm2.len+1,frm2.len-1);
 
   frm2.buff[0] = 1;   // pos
   frm2.len = 16;
+  frm2.wr_len = 1;
   master_spi_if.execute(&frm2);
   print_buff(frm2.buff+frm2.len+1,frm2.len-1);
 
@@ -902,8 +905,6 @@ void spi_test(client interface spi_device_if master_spi_if)
   MCP2515_READ(CAN_INTF,frm2);
   master_spi_if.execute(&frm2);
   printf("%02X\n",frm2.buff[frm2.len*2-1]);
-
-
 }
 
 in port spi_slv_scl = XS1_PORT_1P;

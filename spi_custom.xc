@@ -117,17 +117,26 @@
 
 /*
  * Simple interface
+ * todo use a multibit input port.
+ * wait for port change if ss = 1 get out
+ * if data change then ignore
+ * if clock change then do it. prev ^ next -> return 1 if bit change (prev ^ next) & clk_mask
+ * clock edge switch between 0 and 1, to match cpha
  */
 void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if_v2 spi_if)
 {
-  unsigned char din,dout,bitmask;
+  unsigned din,dout,bitmask;
   unsigned char ssv,sclv;
+  unsigned char edge;
   ssv = 1;
   while(1)
   {
     ss when pinseq(0) :> ssv;
+    edge = 0;
     scl :> sclv;
     dout = spi_if.onSS();
+    dout = bitrev(dout) >> 24;
+    miso <: >>dout;               // prepare first bit for output
     bitmask = 0x80;
     while(ssv == 0)
     {
@@ -142,20 +151,21 @@ void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,client inter
             bitmask >>=1;
             if (bitmask == 0)
             {
-              dout = bitrev(spi_if.onData(bitrev(din)>>24)) >> 24;
+              dout = spi_if.onData(bitrev(din) & 0xFF);
+              dout = bitrev(dout) >> 24;
               bitmask = 0x80;
-              din = 0;
             }
           } else
           {
             miso <: >>dout;
           }
+          edge = edge ^ 1;
           break;
       }
     }
   }
 }
-
+#if 0
 void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if spi_if)
 {
   unsigned pos;
@@ -207,6 +217,7 @@ void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interfac
     }
   }
 }
+#endif
 
 [[distributable]] void spi_master(out port oport,unsigned char scl_mask,unsigned char mosi_mask,in port miso,server interface spi_master_if spi_if)
 {

@@ -55,6 +55,7 @@ struct spi_frm
 struct spi_frm_v2
 {
     unsigned len;             // how many bytes to wr/rd max 16
+    unsigned wr_len;          // one reach this only zeroes will be push to mosi
     unsigned char buff[32];
 };
 /*
@@ -186,6 +187,9 @@ static inline void SPI_SEND_U8_v2(unsigned char u8,out port oport,unsigned char 
   }
 }
 
+/*
+ * TODO. received wr_len and start writting 0 when wr_len go 0
+ */
 static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,in port miso,unsigned T,timer t, unsigned& tp)
 {
   unsigned mask = 0x80;
@@ -233,7 +237,7 @@ static inline void SPI_RECV_U8_v2(unsigned char &inu8,out port oport,unsigned ch
     mask>>=1;
   }
 }
-
+#if 0
 static inline void SPI_EXECUTE_v2(struct spi_frm &frm,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port miso,unsigned T,timer t, unsigned& tp)
 {
   unsigned rdpos = frm.wr_len;
@@ -262,14 +266,15 @@ static inline void SPI_EXECUTE_v2(struct spi_frm &frm,out port oport,unsigned ch
   opv |= ss_mask;
   oport <: opv;
 }
+#endif
 
 /*
  * Wr and rd are done simultanealy
  */
 static inline void SPI_EXECUTE_v3(struct spi_frm_v2 &frm,out port oport,unsigned char &opv,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port miso,unsigned T)
 {
+  unsigned char wr_pos = 0;
   unsigned char *rdpos = frm.buff + frm.len;
-  unsigned char *wrpos = frm.buff;
   unsigned len = frm.len;
   unsigned tp = 0;
   timer t;
@@ -279,8 +284,8 @@ static inline void SPI_EXECUTE_v3(struct spi_frm_v2 &frm,out port oport,unsigned
   tp += T/2;
   while(len--)
   {
-    SPI_SEND_RECV_U8_v2(*wrpos,*rdpos,oport,opv,scl_mask,mosi_mask,miso,T,t,tp);
-    wrpos++;
+    SPI_SEND_RECV_U8_v2(wr_pos < frm.wr_len ? frm.buff[wr_pos] : 0,*rdpos,oport,opv,scl_mask,mosi_mask,miso,T,t,tp);
+    wr_pos++;
     rdpos++;
   }
   t when timerafter(tp) :> void;

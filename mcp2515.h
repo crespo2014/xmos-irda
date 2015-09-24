@@ -248,6 +248,7 @@ static inline void MCP2515_WRITE(unsigned char addres,unsigned char value,struct
    frm.buff[1] = addres;
    frm.buff[2] = value;
    frm.len = 3;
+   frm.wr_len = 3;
 }
 /*
 * Request a read for a data
@@ -257,29 +258,34 @@ static inline void MCP2515_READ(unsigned char addres,struct spi_frm_v2 &frm)
  frm.buff[0] = SPI_READ;
  frm.buff[1] = addres;
  frm.len = 3;
+ frm.wr_len = 2;
 }
 
 static inline void MCP2515_RTS(unsigned char mask,struct spi_frm_v2 &frm)
 {
   frm.buff[0] = SPI_RTS | (mask & 0x03);
   frm.len = 1;
+  frm.wr_len = 1;
 }
 
 static inline void MCP2515_READ_CAN_STATUS(struct spi_frm_v2 &frm)
 {
   frm.buff[0] = SPI_RD_STATUS;
   frm.len = 2;
+  frm.wr_len = 1;
 }
 
 static inline void MCP2515_READ_RXB_STATUS(struct spi_frm_v2 &frm)
 {
   frm.buff[0] = SPI_RXB_STATUS;
   frm.len = 2;
+  frm.wr_len = 1;
 }
 static inline void MCP2515_RESET(struct spi_frm_v2 &frm)
 {
   frm.buff[0] = SPI_RESET;
   frm.len = 1;
+  frm.wr_len = 1;
 }
 
 /*
@@ -289,6 +295,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
 {
   frm.buff[0] = SPI_RD_RXB | ((index & 0x03) << SPI_RD_RXB_SHIFT);
   frm.wr_len = 2;
+  frm.wr_len = 1;
 }
 
 
