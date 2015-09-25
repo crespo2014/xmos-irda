@@ -123,47 +123,47 @@ void spi_slave_v3(in port iport,unsigned char scl_mask,unsigned char mosi_mask,u
   unsigned ipv_l=0xFF;        //
   while(1)
   {
-    ipv = ipv_l;
-    iport when pinsneq(ipv):> ipv_l;
-    while ((ipv_l & ss_mask) == 0)
+    // wait for ss
+    do
     {
-      edge = 0;   // next edge
-      bitmask = 0x80;
-      din = 0;
-      dout = spi_if.onSS();
-      dout = bitrev(dout) >> 24;
+      ipv = ipv_l;
+      iport when pinsneq(ipv):> ipv_l;
+    } while ((ipv_l & ss_mask) != 0);
+    edge = 0;   // next edge
+    bitmask = 0x80;
+    din = 0;
+    dout = spi_if.onSS();
+    dout = bitrev(dout) >> 24;
+    for(;;)
+    {
+      if (edge == cpha)
+      {
+        miso <: >>dout;
+      }
+      // wait for clock or ss
       do
       {
-        if (edge == cpha)
+        ipv = ipv_l;
+        iport when pinsneq(ipv):> ipv_l;
+      } while (((ipv_l ^ ipv) & (scl_mask | ss_mask))  == 0);
+      // check ss still low
+      if ((ipv_l & ss_mask) != 0) break;
+      if (edge == cpha)
+      {
+        if (ipv_l & mosi_mask)
+          din = din | bitmask;
+        bitmask >>=1;
+        if (bitmask == 0)
         {
-          miso <: >>dout;
+          dout = spi_if.onData(din);
+          dout = bitrev(dout) >> 24;
+          bitmask = 0x80;
+          din = 0;
         }
-        do
-        {
-          ipv = ipv_l;
-          iport when pinsneq(ipv):> ipv_l;
-          if ((ipv_l ^ ipv) & scl_mask)   // does the clock change
-          {
-            if (edge == cpha)
-            {
-              if (ipv_l & mosi_mask)
-                din = din | bitmask;
-              bitmask >>=1;
-              if (bitmask == 0)
-              {
-                dout = spi_if.onData(din);
-                dout = bitrev(dout) >> 24;
-                bitmask = 0x80;
-                din = 0;
-              }
-            }
-            edge = edge ^ 1;
-            break;    // got up to send more data
-          }
-        } while ((ipv_l & ss_mask) == 0);
-      } while ((ipv_l & ss_mask) == 0);
-      // on disconnect
+      }
+      edge = edge ^ 1;
     }
+    // on disconnect
   }
 }
 

@@ -82,28 +82,24 @@ static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out 
 {
   unsigned dout = 0x100 | (bitrev(u8) >> 24); // stop at 1
   unsigned edge = 0;
-  unsigned char v;    // next value to send masked to bit position
-  while(dout != 1 || edge)  // leave the clock at edge 0
+  unsigned v;    // next value to send masked to bit position
+  while(dout ^ 1 || edge)  // leave the clock at edge 0
   {
     if (edge == cpha)   // is it the next edge to read
     {
-      v = (mosi_mask * (dout & 1));
+      v = (mosi_mask * (dout & (unsigned)(1)));
       dout >>= 1;
-//      if (mask & u8)
-//        opv |= mosi_mask;
-//      else
-//        opv &= (~mosi_mask);
-      oport <: (unsigned char)(opv | v);
+      oport <: (unsigned)(opv | v);
       opv ^= scl_mask;
       t when timerafter(tp) :> void;
-      oport <: (unsigned char)(opv | v);
+      oport <: (unsigned)(opv | v);
       miso :> >>inu8;   //MSB to LSB input
       tp += T/2;
     } else
     {
       opv ^= scl_mask;
       t when timerafter(tp) :> void;
-      oport <: (unsigned char)(opv | v);
+      oport <: (unsigned)(opv | v);
       tp += T/2;
     }
     edge = edge ^ 1;

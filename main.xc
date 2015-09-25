@@ -942,7 +942,7 @@ int main()
   const unsigned char clk_mask = 1;
   const unsigned char mosi_mask = 2;
   const unsigned char ss_mask = 4;
-  const unsigned T = 1*us;
+  const unsigned T = 250*ns;
   const unsigned cpol = 0;
   const unsigned cpha = 0;
 
