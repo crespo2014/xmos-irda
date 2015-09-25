@@ -77,9 +77,7 @@ interface spi_slave_if_v2
   unsigned char onData(unsigned char din);   // return next byte to send
 };
 
-/*
- * TODO. received wr_len and start writting 0 when wr_len go 0
- */
+
 static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out port oport,unsigned &opv,unsigned char scl_mask,unsigned char mosi_mask,in port miso,unsigned char cpha,unsigned T,timer t, unsigned& tp)
 {
   unsigned mask = 0x80;
@@ -108,6 +106,46 @@ static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out 
   inu8 = bitrev(inu8) >> 24;
   return;
 }
+
+/*
+ * TODO.
+ * removed conditional sentences.
+ * start with a value that hold a 0 in output pins
+ * clock ^ mask - invert clock value.
+ * data >>= edge;   data is shifted only on specific edge
+ * dout | (mask * (v &1))  the bit is enable if bit0 is 1
+ * din <<= edge, din | (edge & v) edge zero disable the or
+ *
+ */
+static inline void SPI_SEND_RECV_U8_v3(unsigned char u8,unsigned char &inu8,out port oport,unsigned &opv,unsigned char scl_mask,unsigned char mosi_mask,in port miso,unsigned char cpha,unsigned T,timer t, unsigned& tp)
+{
+  unsigned mask = 0x80;
+  unsigned edge = 0;
+  while(mask)
+  {
+    if (edge == cpha)   // is it the next edge to read
+    {
+      if (mask & u8)
+        opv |= mosi_mask;
+      else
+        opv &= (~mosi_mask);
+      oport <: opv;
+    }
+    opv ^= scl_mask;
+    t when timerafter(tp) :> void;
+    oport <: opv;
+    if (edge == cpha)   // is it the reading edge
+    {
+      miso :> >>inu8;   //MSB to LSB input
+    }
+    tp += T/2;
+    mask = mask >> edge;    // only decrement mask at the second edge
+    edge = edge ^ 1;
+  }
+  inu8 = bitrev(inu8) >> 24;
+  return;
+}
+
 /*
  * Wr and rd are done simultanealy
  */

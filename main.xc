@@ -865,7 +865,7 @@ void print_ascii_buff(const char* buff,unsigned len)
   printf("\n");
 }
 
-#if 1
+#if 0
 void spi_test(client interface spi_device_if master_spi_if)
 {
   struct spi_frm_v2 frm2;
@@ -956,6 +956,51 @@ int main()
 }
 #endif
 
+
+#if 1
+/*
+ * Spi trasnfers with strobe signal, buffered clocked port
+ */
+
+clock    clk      = XS1_CLKBLK_1;
+
+out port mspi_ss = XS1_PORT_1A;
+out port mspi_scl = XS1_PORT_1B;
+out buffered port:8 mspi_mosi  = XS1_PORT_1C;
+in  buffered port:8 mspi_miso  = XS1_PORT_1D;
+
+in port  sspi_ss = XS1_PORT_1E;
+in port  sspi_scl =  XS1_PORT_1F;
+in  buffered port:8 sspi_mosi  = XS1_PORT_1G;    //LSb to MSB
+out  buffered port:8 sspi_miso  = XS1_PORT_1H;    //LSb to MSB
+
+int main()
+{
+  const unsigned char cpl = 1;
+  const unsigned char cpha = 0;
+  unsigned char din,dout;
+  if (cpl)
+      set_port_inv(mspi_scl);
+  configure_clock_xcore(clk,10);     // 4ns X
+  configure_port_clock_output(mspi_scl, clk);
+  configure_out_port(mspi_mosi, clk,1);
+  configure_in_port(mspi_miso, clk);
+  configure_out_port_strobed_master(mspi_mosi, mspi_ss, clk,1);
+  start_clock(clk);
+
+  set_port_inv(mspi_ss);
+
+  dout = 0x81;
+  mspi_mosi <: dout;
+  mspi_miso :> din;
+  mspi_mosi <: dout;
+  mspi_miso :> din;
+  return 0;
+}
+
+
+
+#endif
 /* todo.
  * analog to digital converter plus interface via serial port
  * linux opengl frontend
