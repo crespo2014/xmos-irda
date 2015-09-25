@@ -76,15 +76,12 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
   i = 0;
   while(1)
   {
-//    d1 <: 1;
-//    d1 <: 0;
-    //p when pinseq(0) :> void;
     p when pinseq(1) :> void;
     p :> d;  // get next 8 bits  //
-    if ( d > 64)
+    if ( d > 64)    // start condition
     {
-      if (i != 0 )
-        ch <: (unsigned char)0xFF;
+//      if (i != 0 )    // some data was holding
+//        ch <: (unsigned char)0xFF;
       i = 0;    // if i !=0 then error
       continue;
     }

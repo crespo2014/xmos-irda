@@ -20,8 +20,8 @@
 #include "mcp2515.h"
 /*
 out port p_1G = XS1_PORT_1G;
-out port p_1D = XS1_PORT_1D;
-out port po_1I = XS1_PORT_1I;
+
+
 in port p_1K = XS1_PORT_1K;
 
 
@@ -35,19 +35,17 @@ in port  uart_rx_p = XS1_PORT_1H;
 
 out port gpio_fault = XS1_PORT_32A;
 
-in buffered port:8 fast_rx_p  = XS1_PORT_1A;    //LSb to MSB
-out buffered port:8 fast_tx_p  = XS1_PORT_1O;    //LSb to MSB
+
+
 
 out buffered port:32 irda_32  = XS1_PORT_1B;    //LSb to MSB
 
 out port clockOut  = XS1_PORT_1N;
 
-//out port clk_pin = XS1_PORT_1G;
-clock    clk      = XS1_CLKBLK_1;
-clock    clk_2    = XS1_CLKBLK_2;
+
 */
 
-//out buffered port:8 tx_16  = XS1_PORT_1P;
+//
 /*
 [[combinable]] void serial_test(client interface serial_tx_if tx,
     streaming chanend rx_c,client interface serial_rx_if rx)
@@ -217,19 +215,7 @@ int main_123()
 }
 */
 /*
-void fastTx_test1(client interface fast_tx  ftx)
-{
-  timer t;
-  unsigned int tp;
-  t :> tp;
-  t when timerafter(tp+10*us) :> tp;
-  unsigned char i = 0;
-  while(1)
-  {
-    //t when timerafter(tp+10*us) :> tp;
-    ftx.push(i++);
-  }
-}
+
 */
 
 /*
@@ -565,23 +551,48 @@ int main()
 //  return 0;
 //}
 
+
+#if 0
+void fastTx_test1(client interface tx_if  ftx)
+{
+  timer t;
+  unsigned int tp;
+  t :> tp;
+  t when timerafter(tp+10*us) :> tp;
+  unsigned char i = 0;
+  while(1)
+  {
+    //t when timerafter(tp+10*us) :> tp;
+    ftx.send(&i,1);
+    i++;
+  }
+}
+
 // Test fast rx/tx v5
-/*
+out buffered port:8 tx_16  = XS1_PORT_1P;
+out buffered port:8 fast_tx_p  = XS1_PORT_1O;    //LSb to MSB
+in buffered port:8 fast_rx_p  = XS1_PORT_1A;    //LSb to MSB
+//out port clk_pin = XS1_PORT_1G;
+clock    clk      = XS1_CLKBLK_1;
+clock    clk_2    = XS1_CLKBLK_2;
+out port po_1I = XS1_PORT_1I;
+out port p_1D = XS1_PORT_1D;
+
 int main()
 {
-  interface fast_tx  ftx;
-  streaming chan fast_rx_c;
+  streaming chan c;
+  interface tx_if  ftx;
   par
   {
     fastTX_v7(ftx,clk,fast_tx_p);
     //fastRX_v6(fast_rx_c,p_1K,clk_2);
-    fastRX_v7(fast_rx_c,fast_rx_p,clk_2,po_1I);
-    channel_signal(fast_rx_c,p_1D);
+    fastRX_v7(c,fast_rx_p,clk_2,po_1I);
+    channel_signal(c,p_1D);
     fastTx_test1(ftx);
   }
   return 0;
 }
-*/
+#endif
 /*
 void i2c_do(const char * cmd, client interface i2c_master_if i2c_master)
 {
@@ -683,6 +694,7 @@ unsafe int  main()
 }
 */
 
+#if 0
 // Serial test with router.
 void serial_manager(
     client interface uart_v4 tx,
@@ -700,7 +712,7 @@ void serial_manager(
 
 }
 
-#if 0
+
 [[combinable]] void irda_send_loop(client interface tx_if tx)
 {
   timer t;
@@ -729,6 +741,8 @@ void serial_manager(
 }
 #endif
 
+
+#if 0
 void serial_send_loop(out port tx)
 {
   const char* buff;
@@ -753,9 +767,6 @@ void serial_send_loop(out port tx)
   }
 }
 
-
-
-#if 0
 int main()
 {
   interface packet_tx_if  tx[max_tx]; //tx worker, cmd in ,
@@ -854,6 +865,7 @@ void print_ascii_buff(const char* buff,unsigned len)
   printf("\n");
 }
 
+#if 1
 void spi_test(client interface spi_device_if master_spi_if)
 {
   struct spi_frm_v2 frm2;
@@ -942,6 +954,7 @@ int main()
   }
   return 0;
 }
+#endif
 
 /* todo.
  * analog to digital converter plus interface via serial port
