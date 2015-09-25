@@ -865,7 +865,7 @@ void print_ascii_buff(const char* buff,unsigned len)
   printf("\n");
 }
 
-#if 0
+#if 1
 void spi_test(client interface spi_device_if master_spi_if)
 {
   struct spi_frm_v2 frm2;
@@ -919,15 +919,21 @@ void spi_test(client interface spi_device_if master_spi_if)
   printf("%02X\n",frm2.buff[frm2.len*2-1]);
 }
 
-in port spi_slv_scl = XS1_PORT_1P;
-in port spi_slv_mosi = XS1_PORT_1O;
-in port spi_slv_ss = XS1_PORT_1I;
-out port spi_slv_miso = XS1_PORT_1L;
+//in port spi_slv_scl = XS1_PORT_1P;
+//in port spi_slv_mosi = XS1_PORT_1O;
+//in port spi_slv_ss = XS1_PORT_1I;
+
 
 out port spi_out = XS1_PORT_4C;
-in port spi_in = XS1_PORT_4D;
-
 in port spi_miso = XS1_PORT_1H;
+
+in port spi_in = XS1_PORT_4D;
+out port spi_slv_miso = XS1_PORT_1L;
+
+in port i1 = XS1_PORT_1O;
+in port i2 = XS1_PORT_1P;
+in port i3 = XS1_PORT_1N;
+
 /*
  * SPI with canbus test
  */
@@ -936,7 +942,7 @@ int main()
   const unsigned char clk_mask = 1;
   const unsigned char mosi_mask = 2;
   const unsigned char ss_mask = 4;
-  const unsigned T = 500*ns;
+  const unsigned T = 1*us;
   const unsigned cpol = 0;
   const unsigned cpha = 0;
 
@@ -957,7 +963,7 @@ int main()
 #endif
 
 
-#if 1
+#if 0
 /*
  * Spi trasnfers with strobe signal, buffered clocked port
  */

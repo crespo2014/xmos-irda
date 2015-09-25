@@ -170,7 +170,7 @@ void spi_slave_v3(in port iport,unsigned char scl_mask,unsigned char mosi_mask,u
 [[distributable]] void spi_master(out port oport,unsigned char scl_mask,unsigned char mosi_mask,in port miso,server interface spi_master_if spi_if)
 {
   //Set all signals high to deselected any slave, we do not care about clk, mosi or anything else
-  oport <: 0xFF;
+  oport <: (unsigned char)(~(scl_mask | mosi_mask));
   while(1)
   {
     select

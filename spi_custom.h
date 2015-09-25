@@ -78,33 +78,63 @@ interface spi_slave_if_v2
 };
 
 
-static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out port oport,unsigned &opv,unsigned char scl_mask,unsigned char mosi_mask,in port miso,unsigned char cpha,unsigned T,timer t, unsigned& tp)
+static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out port oport,unsigned char opv,unsigned char scl_mask,unsigned char mosi_mask,in port miso,unsigned char cpha,unsigned T,timer t, unsigned& tp)
 {
-  unsigned mask = 0x80;
+  unsigned dout = 0x100 | (bitrev(u8) >> 24); // stop at 1
   unsigned edge = 0;
-  while(mask)
+  unsigned char v;    // next value to send masked to bit position
+  while(dout != 1 || edge)  // leave the clock at edge 0
   {
     if (edge == cpha)   // is it the next edge to read
     {
-      if (mask & u8)
-        opv |= mosi_mask;
-      else
-        opv &= (~mosi_mask);
-      oport <: opv;
-    }
-    opv ^= scl_mask;
-    t when timerafter(tp) :> void;
-    oport <: opv;
-    if (edge == cpha)   // is it the reading edge
-    {
+      v = (mosi_mask * (dout & 1));
+      dout >>= 1;
+//      if (mask & u8)
+//        opv |= mosi_mask;
+//      else
+//        opv &= (~mosi_mask);
+      oport <: (unsigned char)(opv | v);
+      opv ^= scl_mask;
+      t when timerafter(tp) :> void;
+      oport <: (unsigned char)(opv | v);
       miso :> >>inu8;   //MSB to LSB input
+      tp += T/2;
+    } else
+    {
+      opv ^= scl_mask;
+      t when timerafter(tp) :> void;
+      oport <: (unsigned char)(opv | v);
+      tp += T/2;
     }
-    tp += T/2;
-    mask = mask >> edge;    // only decrement mask at the second edge
     edge = edge ^ 1;
   }
   inu8 = bitrev(inu8) >> 24;
   return;
+//
+//      if (mask & u8)
+//              opv |= mosi_mask;
+//            else
+//              opv &= (~mosi_mask);
+//            oport <: (opv | (mosi_mask * (u8 & 1)));
+//            oport <: opv;
+//
+////      v = mosi_mask * (u8 & 1);
+////      u8 >>= 1;
+////      oport <: (opv | v);
+//    }
+//    opv ^= scl_mask;
+//    t when timerafter(tp) :> void;
+//    oport <: (opv | v);
+//    if (edge == cpha)   // is it the reading edge
+//    {
+//      miso :> >>inu8;   //MSB to LSB input
+//    }
+//    tp += T/2;
+//    mask = mask >> edge;    // only decrement mask at the second edge
+//    edge = edge ^ 1;
+//  }
+//  inu8 = bitrev(inu8) >> 24;
+//  return;
 }
 
 /*
@@ -117,6 +147,9 @@ static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out 
  * din <<= edge, din | (edge & v) edge zero disable the or
  *
  * Impossible
+ * clk value
+ * dt value
+ * base | clk | value
  *
  */
 #if 0
@@ -161,17 +194,15 @@ static inline void SPI_EXECUTE_v3(struct spi_frm_v2 &frm,out port oport,unsigned
   unsigned char *rdpos = frm.buff + frm.len;
   unsigned len = frm.len;
   unsigned tp = 0;
-  unsigned opv = 0xFF;
+  unsigned opv =  ~(scl_mask | mosi_mask);
   timer t;
-  // set clock hold status to zero if needed
-  if (cpol == 0)
-    opv = opv & (~scl_mask);
-  oport <: opv;
+  opv = opv | (cpol * scl_mask);    // set clock to one if needed
+  oport <: opv; //set up clock
   t :> tp;
   tp += T/2;    // give some time before enabling the slave
   opv &= (~ss_mask);
   t when timerafter(tp) :> void;
-  oport <: opv;
+  oport <: opv;   //slave on
   tp += T;
   while(len--)
   {
