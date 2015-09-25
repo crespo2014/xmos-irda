@@ -116,11 +116,15 @@ static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out 
  * dout | (mask * (v &1))  the bit is enable if bit0 is 1
  * din <<= edge, din | (edge & v) edge zero disable the or
  *
+ * Impossible
+ *
  */
+#if 0
 static inline void SPI_SEND_RECV_U8_v3(unsigned char u8,unsigned char &inu8,out port oport,unsigned &opv,unsigned char scl_mask,unsigned char mosi_mask,in port miso,unsigned char cpha,unsigned T,timer t, unsigned& tp)
 {
   unsigned mask = 0x80;
   unsigned edge = 0;
+
   while(mask)
   {
     if (edge == cpha)   // is it the next edge to read
@@ -129,6 +133,7 @@ static inline void SPI_SEND_RECV_U8_v3(unsigned char u8,unsigned char &inu8,out 
         opv |= mosi_mask;
       else
         opv &= (~mosi_mask);
+      oport <: (opv | (mosi_mask * (u8 & 1)));
       oport <: opv;
     }
     opv ^= scl_mask;
@@ -145,6 +150,7 @@ static inline void SPI_SEND_RECV_U8_v3(unsigned char u8,unsigned char &inu8,out 
   inu8 = bitrev(inu8) >> 24;
   return;
 }
+#endif
 
 /*
  * Wr and rd are done simultanealy
