@@ -241,6 +241,10 @@ struct mcp2515_cnf_t
   unsigned char cnf1,cnf2,cnf3,tec,rec,eflg;
 };
 
+static inline void MCP2515_INIT(struct mcp2515_cnf_t mcp2515)
+{
+  mcp2515.can_ctrl =  MODE_CONFIGURE | 0x7;
+}
 
 static inline void MCP2515_WRITE(unsigned char addres,unsigned char value,struct spi_frm_v2 &frm)
 {
@@ -259,6 +263,12 @@ static inline void MCP2515_READ(unsigned char addres,struct spi_frm_v2 &frm)
  frm.buff[1] = addres;
  frm.len = 3;
  frm.wr_len = 2;
+}
+
+static inline void MCP2515_SETMODE(unsigned mode,struct spi_frm_v2 &frm,struct mcp2515_cnf_t mcp2515)
+{
+  mcp2515.can_ctrl = (mcp2515.can_ctrl & (~MODE_MASK)) | mode;
+  MCP2515_WRITE(CAN_CTRL,mcp2515.can_ctrl,frm);
 }
 
 static inline void MCP2515_RTS(unsigned char mask,struct spi_frm_v2 &frm)

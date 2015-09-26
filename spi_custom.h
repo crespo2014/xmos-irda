@@ -87,50 +87,25 @@ static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out 
   {
     if (edge == cpha)   // is it the next edge to read
     {
-      v = (mosi_mask * (dout & (unsigned)(1)));
+      opv = (opv & (~mosi_mask)) | (mosi_mask * (dout & 1));
       dout >>= 1;
       oport <: (unsigned)(opv | v);
       opv ^= scl_mask;
       t when timerafter(tp) :> void;
-      oport <: (unsigned)(opv | v);
+      oport <: opv;
       miso :> >>inu8;   //MSB to LSB input
       tp += T/2;
     } else
     {
       opv ^= scl_mask;
       t when timerafter(tp) :> void;
-      oport <: (unsigned)(opv | v);
+      oport <:opv;
       tp += T/2;
     }
     edge = edge ^ 1;
   }
   inu8 = bitrev(inu8) >> 24;
   return;
-//
-//      if (mask & u8)
-//              opv |= mosi_mask;
-//            else
-//              opv &= (~mosi_mask);
-//            oport <: (opv | (mosi_mask * (u8 & 1)));
-//            oport <: opv;
-//
-////      v = mosi_mask * (u8 & 1);
-////      u8 >>= 1;
-////      oport <: (opv | v);
-//    }
-//    opv ^= scl_mask;
-//    t when timerafter(tp) :> void;
-//    oport <: (opv | v);
-//    if (edge == cpha)   // is it the reading edge
-//    {
-//      miso :> >>inu8;   //MSB to LSB input
-//    }
-//    tp += T/2;
-//    mask = mask >> edge;    // only decrement mask at the second edge
-//    edge = edge ^ 1;
-//  }
-//  inu8 = bitrev(inu8) >> 24;
-//  return;
 }
 
 /*
@@ -187,12 +162,12 @@ static inline void SPI_SEND_RECV_U8_v3(unsigned char u8,unsigned char &inu8,out 
 static inline void SPI_EXECUTE_v3(struct spi_frm_v2 &frm,out port oport,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port miso,unsigned char cpol, unsigned char cpha,unsigned T)
 {
   unsigned char wr_pos = 0;
-  unsigned char *rdpos = frm.buff + frm.len;
+  unsigned char *rdpos = frm.buff + frm.wr_len;
   unsigned len = frm.len;
   unsigned tp = 0;
   unsigned opv =  ~(scl_mask | mosi_mask);
   timer t;
-  opv = opv | (cpol * scl_mask);    // set clock to one if needed
+  opv = opv | (cpol * scl_mask);    // set clock initial value
   oport <: opv; //set up clock
   t :> tp;
   tp += T/2;    // give some time before enabling the slave
