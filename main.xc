@@ -870,12 +870,6 @@ void spi_test(client interface spi_device_if master_spi_if)
 {
   struct spi_frm_v2 frm2;
 
-  frm2.buff[0] = 3;  // hello
-  frm2.len = 16;
-  frm2.wr_len = 1;
-  master_spi_if.execute(&frm2);
-  print_ascii_buff(frm2.buff+frm2.len+1,frm2.len-1);
-
   frm2.buff[0] = 4;   //echo
   frm2.buff[1] = 0xAB;   //echo
   frm2.buff[2] = 0xCC;   //echo
@@ -883,13 +877,20 @@ void spi_test(client interface spi_device_if master_spi_if)
   frm2.len = 5;
   frm2.wr_len =  4;
   master_spi_if.execute(&frm2);
+  print_buff(frm2.buff+frm2.wr_len+1,frm2.len-1);
+
+  frm2.buff[0] = 3;  // hello
+  frm2.len = 16;
+  frm2.wr_len = 1;
+  master_spi_if.execute(&frm2);
+  print_ascii_buff(frm2.buff+frm2.wr_len,frm2.len-1);
   print_buff(frm2.buff+frm2.len+1,frm2.len-1);
 
   frm2.buff[0] = 1;   // pos
   frm2.len = 16;
   frm2.wr_len = 1;
   master_spi_if.execute(&frm2);
-  print_buff(frm2.buff+frm2.len+1,frm2.len-1);
+  print_buff(frm2.buff+frm2.wr_len+1,frm2.len-1);
 }
 
 void mcp2515_test(client interface spi_device_if master_spi_if)
@@ -956,10 +957,7 @@ in port i3 = XS1_PORT_1N;
  */
 int main()
 {
-  const unsigned char clk_mask = 1;
-  const unsigned char mosi_mask = 4;
-  const unsigned char ss_mask = 2;
-  const unsigned T = us;
+  const unsigned T = 2*us;
   const unsigned cpol = 0;
   const unsigned cpha = 0;
 
@@ -968,12 +966,13 @@ int main()
   interface spi_device_if dev_if;
   par
   {
-    spi_master(spi_out,clk_mask,mosi_mask,spi_miso,master_spi_if);
+    spi_master(spi_out,spi_miso,master_spi_if);
     test_spi_slave_v2(spi_if);
     //spi_slave_v2(spi_slv_ss,spi_slv_scl,spi_slv_mosi,spi_slv_miso,cpol,cpha,spi_if);
-    spi_slave_v3(spi_in,clk_mask,mosi_mask,ss_mask,spi_slv_miso,cpol,cpha,spi_if);
-    spi_dev(ss_mask,cpol,cpha,T,dev_if,master_spi_if);
-    mcp2515_test(dev_if);
+    spi_slave_v3(spi_in,SPI1_SCK_MASK,SPI1_MOSI_MASK,SPI1_MCP2515_SS_MASK,spi_slv_miso,cpol,cpha,spi_if);
+    spi_dev(SPI1_MCP2515_SS_MASK,cpol,cpha,T,dev_if,master_spi_if);
+    //mcp2515_test(dev_if);
+    spi_test(dev_if);
   }
   return 0;
 }

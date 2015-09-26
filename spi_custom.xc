@@ -170,16 +170,34 @@ void spi_slave_v3(in port iport,unsigned char scl_mask,unsigned char mosi_mask,u
  * TODO.
  * scl and mosi mask to be a define number
  */
-[[distributable]] void spi_master(out port oport,unsigned char scl_mask,unsigned char mosi_mask,in port miso,server interface spi_master_if spi_if)
+[[distributable]] void spi_master(out port oport,in port miso,server interface spi_master_if spi_if)
 {
-  //Set all signals high to deselected any slave, we do not care about clk, mosi or anything else
-  oport <: (unsigned char)(~(scl_mask | mosi_mask));
+  //Set all signals high to deselected any slave, we do not set clk
+  oport <: (unsigned char)(~(SPI1_SCK_MASK | SPI1_MOSI_MASK));
   while(1)
   {
     select
     {
       case spi_if.execute(struct spi_frm_v2* frm,unsigned char ss_mask,unsigned char cpol, unsigned char cpha,unsigned T):
-        SPI_EXECUTE_v3(*frm,oport,scl_mask,mosi_mask,ss_mask,miso,cpol,cpha,T);  // wait before processed
+        unsigned len = 0;
+        unsigned tp;
+        unsigned opv = (~SPI1_SCK_MASK) | (cpol * SPI1_SCK_MASK); // set to 0xFF except for sclk
+        timer t;
+        oport <: opv;
+        opv &= (~ss_mask);  // enable slave
+        oport <: opv;
+        t :> tp;
+        tp += T/2;
+        while(len != frm->len)
+        {
+          SPI1_SEND_RECV(len < frm->wr_len ? frm->buff[len] : 0,*(frm->buff+frm->wr_len+len),oport,opv,miso,cpha,T,t,tp);
+          len++;
+        }
+        t when timerafter(tp) :> void;
+        opv |= ss_mask;
+        oport <: opv;   // disable slave at the next clock
+        tp += T/2;
+        t when timerafter(tp) :> void;
         break;
     }
   }

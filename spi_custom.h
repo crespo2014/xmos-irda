@@ -40,6 +40,10 @@
 #include <xs1.h>
 #include <xclib.h>
 
+#define SPI1_SCK_MASK        1
+#define SPI1_MOSI_MASK       4
+#define SPI1_MCP2515_SS_MASK 2
+
 struct spi_frm
 {
     unsigned wr_len;  // how many data to write, and start position to store incoming data
@@ -78,26 +82,25 @@ interface spi_slave_if_v2
 };
 
 
-static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out port oport,unsigned char opv,unsigned char scl_mask,unsigned char mosi_mask,in port miso,unsigned char cpha,unsigned T,timer t, unsigned& tp)
+static inline void SPI1_SEND_RECV(unsigned char u8,unsigned char &inu8,out port oport,unsigned char opv,in port miso,unsigned char cpha,unsigned T,timer t, unsigned& tp)
 {
   unsigned dout = 0x100 | (bitrev(u8) >> 24); // stop at 1
   unsigned edge = 0;
-  unsigned v;    // next value to send masked to bit position
   while(dout ^ 1 || edge)  // leave the clock at edge 0
   {
     if (edge == cpha)   // is it the next edge to read
     {
-      opv = (opv & (~mosi_mask)) | (mosi_mask * (dout & 1));
+      opv = (opv & (~SPI1_MOSI_MASK)) | (SPI1_MOSI_MASK * (dout & 1));
+      oport <: opv;
       dout >>= 1;
-      oport <: (unsigned)(opv | v);
-      opv ^= scl_mask;
+      opv ^= SPI1_SCK_MASK;
       t when timerafter(tp) :> void;
       oport <: opv;
       miso :> >>inu8;   //MSB to LSB input
       tp += T/2;
     } else
     {
-      opv ^= scl_mask;
+      opv ^= SPI1_SCK_MASK;
       t when timerafter(tp) :> void;
       oport <:opv;
       tp += T/2;
@@ -123,51 +126,19 @@ static inline void SPI_SEND_RECV_U8_v2(unsigned char u8,unsigned char &inu8,out 
  * base | clk | value
  *
  */
-#if 0
-static inline void SPI_SEND_RECV_U8_v3(unsigned char u8,unsigned char &inu8,out port oport,unsigned &opv,unsigned char scl_mask,unsigned char mosi_mask,in port miso,unsigned char cpha,unsigned T,timer t, unsigned& tp)
-{
-  unsigned mask = 0x80;
-  unsigned edge = 0;
-
-  while(mask)
-  {
-    if (edge == cpha)   // is it the next edge to read
-    {
-      if (mask & u8)
-        opv |= mosi_mask;
-      else
-        opv &= (~mosi_mask);
-      oport <: (opv | (mosi_mask * (u8 & 1)));
-      oport <: opv;
-    }
-    opv ^= scl_mask;
-    t when timerafter(tp) :> void;
-    oport <: opv;
-    if (edge == cpha)   // is it the reading edge
-    {
-      miso :> >>inu8;   //MSB to LSB input
-    }
-    tp += T/2;
-    mask = mask >> edge;    // only decrement mask at the second edge
-    edge = edge ^ 1;
-  }
-  inu8 = bitrev(inu8) >> 24;
-  return;
-}
-#endif
 
 /*
  * Wr and rd are done simultanealy
  */
-static inline void SPI_EXECUTE_v3(struct spi_frm_v2 &frm,out port oport,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,in port miso,unsigned char cpol, unsigned char cpha,unsigned T)
+static inline void SPI1_EXECUTE(struct spi_frm_v2 &frm,out port oport,unsigned char ss_mask,in port miso,unsigned char cpol, unsigned char cpha,unsigned T)
 {
   unsigned char wr_pos = 0;
   unsigned char *rdpos = frm.buff + frm.wr_len;
   unsigned len = frm.len;
   unsigned tp = 0;
-  unsigned opv =  ~(scl_mask | mosi_mask);
+  unsigned opv =  ~(SPI1_SCK_MASK | SPI1_MOSI_MASK);
   timer t;
-  opv = opv | (cpol * scl_mask);    // set clock initial value
+  opv = opv | (cpol * SPI1_SCK_MASK);    // set clock initial value
   oport <: opv; //set up clock
   t :> tp;
   tp += T/2;    // give some time before enabling the slave
@@ -177,7 +148,7 @@ static inline void SPI_EXECUTE_v3(struct spi_frm_v2 &frm,out port oport,unsigned
   tp += T;
   while(len--)
   {
-    SPI_SEND_RECV_U8_v2(wr_pos < frm.wr_len ? frm.buff[wr_pos] : 0,*rdpos,oport,opv,scl_mask,mosi_mask,miso,cpha,T,t,tp);
+    SPI1_SEND_RECV(wr_pos < frm.wr_len ? frm.buff[wr_pos] : 0,*rdpos,oport,opv,miso,cpha,T,t,tp);
     wr_pos++;
     rdpos++;
   }
@@ -219,7 +190,7 @@ interface spi_device_if
 
 [[distributable]] extern void test_spi_slave_v2(server interface spi_slave_if_v2 spi_if);
 [[distributable]] extern void test_spi_slave(server interface spi_slave_if spi_if);
-[[distributable]] extern void spi_master(out port oport,unsigned char scl_mask,unsigned char mosi_mask,in port miso,server interface spi_master_if spi_if);
+[[distributable]] extern void spi_master(out port oport,in port miso,server interface spi_master_if spi_if);
 [[distributable]] extern void spi_dev(unsigned char ss_mask,unsigned char cpol, unsigned char cpha,unsigned T,server interface spi_device_if spi_dev,client interface spi_master_if spi_if);
 
 extern void spi_slave(in port ss,in port scl,in port mosi,out port miso,client interface spi_slave_if spi_if);
