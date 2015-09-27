@@ -90,14 +90,13 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
   struct mcp2515_cnf_t obj;
   //initialize.
   struct spi_frm_v2 frm;
-  RESET(frm,spi);
+  //RESET(frm,spi);
   obj.can_ctrl =  READ(CAN_CTRL,frm,spi);
   //check for operation mode
   if ((obj.can_ctrl & MODE_MASK) != MODE_CONFIGURE)
     printf("x%02X mcp2515 missing\n",obj.can_ctrl);
 
   obj.can_status = READ_CAN_STATUS(frm,spi);
-  printf("x%02X x%02X\n",obj.can_status,obj.can_ctrl);
 
   //set loopback and check
   WRITE(CAN_CTRL,(obj.can_ctrl &(~MODE_MASK)) | MODE_LOOPBACK ,frm,spi);
