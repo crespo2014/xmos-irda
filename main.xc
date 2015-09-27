@@ -893,50 +893,14 @@ void spi_test(client interface spi_device_if master_spi_if)
   print_buff(frm2.buff+frm2.wr_len+1,frm2.len-1);
 }
 
-void mcp2515_test(client interface spi_device_if master_spi_if)
+void  mcp2515_test(client interface mcp2515_if mcp2515)
 {
-  struct spi_frm_v2 frm2;
-  struct mcp2515_cnf_t mcp2515_0;
+  unsigned char d;
+  d = mcp2515.getStatus();
+  printf("%02X ",d);
 
-  MCP2515_INIT(mcp2515_0);
-
-  MCP2515_READ(CAN_CTRL,frm2);
-  master_spi_if.execute(&frm2);
-  mcp2515_0.can_ctrl = frm2.buff[frm2.wr_len+1];   // jump command byte
-  printf("%02X\n",mcp2515_0.can_ctrl);
-
-  MCP2515_READ_CAN_STATUS(frm2);
-  master_spi_if.execute(&frm2);
-  mcp2515_0.can_status = frm2.buff[frm2.wr_len+1];
-  printf("%02X\n",mcp2515_0.can_status);
-
-
-  MCP2515_SETMODE(MODE_CONFIGURE,frm2,mcp2515_0);
-  master_spi_if.execute(&frm2);
-
-  MCP2515_READ(CAN_CTRL,frm2);
-  master_spi_if.execute(&frm2);
-  mcp2515_0.can_ctrl = frm2.buff[frm2.wr_len+1];   // jump command byte
-  printf("%02X\n",mcp2515_0.can_ctrl);
-
-  MCP2515_READ_CAN_STATUS(frm2);
-  master_spi_if.execute(&frm2);
-  mcp2515_0.can_status = frm2.buff[frm2.wr_len+1];
-  printf("%02X\n",mcp2515_0.can_status);
-
-  MCP2515_READ_RXB_STATUS(frm2);
-  master_spi_if.execute(&frm2);
-  mcp2515_0.rxb_status = frm2.buff[frm2.wr_len+1];
-  printf("%02X\n",mcp2515_0.rxb_status);
-
-  MCP2515_READ(CAN_STAT,frm2);
-  master_spi_if.execute(&frm2);
-  printf("%02X\n",frm2.buff[frm2.wr_len+1]);
-
-  MCP2515_READ(CAN_INTF,frm2);
-  master_spi_if.execute(&frm2);
-  printf("%02X\n",frm2.buff[frm2.wr_len+1]);
 }
+
 //in port spi_slv_scl = XS1_PORT_1P;
 //in port spi_slv_mosi = XS1_PORT_1O;
 //in port spi_slv_ss = XS1_PORT_1I;
@@ -964,6 +928,7 @@ int main()
   interface spi_slave_if_v2 spi_if;
   interface spi_master_if master_spi_if;
   interface spi_device_if dev_if;
+  interface mcp2515_if mcp2515;
   par
   {
     spi_master(spi_out,spi_miso,master_spi_if);
@@ -971,8 +936,9 @@ int main()
     //spi_slave_v2(spi_slv_ss,spi_slv_scl,spi_slv_mosi,spi_slv_miso,cpol,cpha,spi_if);
     spi_slave_v3(spi_in,SPI1_SCK_MASK,SPI1_MOSI_MASK,SPI1_MCP2515_SS_MASK,spi_slv_miso,cpol,cpha,spi_if);
     spi_dev(SPI1_MCP2515_SS_MASK,cpol,cpha,T,dev_if,master_spi_if);
-    //mcp2515_test(dev_if);
-    spi_test(dev_if);
+    mcp2515_test(mcp2515);
+    //spi_test(dev_if);
+    mcp2515_master(mcp2515,dev_if);
   }
   return 0;
 }
