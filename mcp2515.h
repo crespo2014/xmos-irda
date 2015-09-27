@@ -216,7 +216,7 @@
 #define SPI_WRITE         0x02
 #define SPI_LOAD_TXB      0x40    // bits 0-3 is the index
 #define SPI_RTS           0x80
-#define SPI_RD_STATUS     0x90
+#define SPI_RD_STATUS     0xA0
 #define SPI_RXB_STATUS    0xB0
 #define SPI_BIT_UPDATE    0x05
 
