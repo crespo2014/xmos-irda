@@ -93,7 +93,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
   RESET(frm,spi);
   obj.can_ctrl =  READ(CAN_CTRL,frm,spi);
   //check for operation mode
-  if (obj.can_ctrl & MODE_MASK != MODE_CONFIGURE)
+  if ((obj.can_ctrl & MODE_MASK) != MODE_CONFIGURE)
     printf("x%02X mcp2515 missing\n",obj.can_ctrl);
 
   obj.can_status = READ_CAN_STATUS(frm,spi);
@@ -102,10 +102,9 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
   //set loopback and check
   WRITE(CAN_CTRL,(obj.can_ctrl &(~MODE_MASK)) | MODE_LOOPBACK ,frm,spi);
   obj.can_ctrl =  READ(CAN_CTRL,frm,spi);
-  if (obj.can_ctrl & MODE_MASK != MODE_LOOPBACK)
+  if ((obj.can_ctrl & MODE_MASK) != MODE_LOOPBACK)
      printf("mcp2515 set mode failed\n");
   //
-
   while(1)
   {
     select
