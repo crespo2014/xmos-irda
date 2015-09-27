@@ -902,12 +902,12 @@ void mcp2515_test(client interface spi_device_if master_spi_if)
 
   MCP2515_READ(CAN_CTRL,frm2);
   master_spi_if.execute(&frm2);
-  mcp2515_0.can_ctrl = frm2.buff[frm2.len*2-1];   // jump command byte
+  mcp2515_0.can_ctrl = frm2.buff[frm2.wr_len+1];   // jump command byte
   printf("%02X\n",mcp2515_0.can_ctrl);
 
   MCP2515_READ_CAN_STATUS(frm2);
   master_spi_if.execute(&frm2);
-  mcp2515_0.can_status = frm2.buff[frm2.len*2-1];
+  mcp2515_0.can_status = frm2.buff[frm2.wr_len+1];
   printf("%02X\n",mcp2515_0.can_status);
 
 
@@ -916,26 +916,26 @@ void mcp2515_test(client interface spi_device_if master_spi_if)
 
   MCP2515_READ(CAN_CTRL,frm2);
   master_spi_if.execute(&frm2);
-  mcp2515_0.can_ctrl = frm2.buff[frm2.len*2-1];   // jump command byte
+  mcp2515_0.can_ctrl = frm2.buff[frm2.wr_len+1];   // jump command byte
   printf("%02X\n",mcp2515_0.can_ctrl);
 
   MCP2515_READ_CAN_STATUS(frm2);
   master_spi_if.execute(&frm2);
-  mcp2515_0.can_status = frm2.buff[frm2.len*2-1];
+  mcp2515_0.can_status = frm2.buff[frm2.wr_len+1];
   printf("%02X\n",mcp2515_0.can_status);
 
   MCP2515_READ_RXB_STATUS(frm2);
   master_spi_if.execute(&frm2);
-  mcp2515_0.rxb_status = frm2.buff[frm2.len*2-1];
+  mcp2515_0.rxb_status = frm2.buff[frm2.wr_len+1];
   printf("%02X\n",mcp2515_0.rxb_status);
 
   MCP2515_READ(CAN_STAT,frm2);
   master_spi_if.execute(&frm2);
-  printf("%02X\n",frm2.buff[frm2.len*2-1]);
+  printf("%02X\n",frm2.buff[frm2.wr_len+1]);
 
   MCP2515_READ(CAN_INTF,frm2);
   master_spi_if.execute(&frm2);
-  printf("%02X\n",frm2.buff[frm2.len*2-1]);
+  printf("%02X\n",frm2.buff[frm2.wr_len+1]);
 }
 //in port spi_slv_scl = XS1_PORT_1P;
 //in port spi_slv_mosi = XS1_PORT_1O;

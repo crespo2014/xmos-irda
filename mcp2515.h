@@ -230,6 +230,17 @@
 #define SPI_RD_RXB_RXB1SIDH    0x2
 #define SPI_RD_RXB_RXB1D0      0x3
 
+/*
+ * Interrupt flags
+ */
+#define MCP2515_INT_MERR  (1<<7)
+#define MCP2515_INT_WAKI  (1<<6)
+#define MCP2515_INT_ERRI  (1<<5)
+#define MCP2515_INT_TX2I  (1<<4)
+#define MCP2515_INT_TX1I  (1<<3)
+#define MCP2515_INT_TX0I  (1<<2)
+#define MCP2515_INT_RX1I  (1<<1)
+#define MCP2515_INT_RX0I  (1<<0)
 
 struct mcp2515_cnf_t
 {
@@ -308,5 +319,18 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
   frm.wr_len = 1;
 }
 
+interface mcp2515_if
+{
+  void setMode(unsigned char mode);
+  void Reset();
+  unsigned char getStatus();
+  unsigned char getRXStatus();
+  unsigned char getControl();
+  unsigned char getInterruptEnable();
+  void setInterruptEnable(unsigned char flag);
+  unsigned char getInterruptFlag();
+  void rts();
+  void onInt();
+};
 
 #endif /* MCP2515_H_ */
