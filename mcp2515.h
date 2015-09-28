@@ -11,6 +11,7 @@
 #define MCP2515_H_
 
 #include "spi_custom.h"
+#include "rxtx.h"
 
 #define BFP_CTRL    0x0C
 
@@ -274,6 +275,6 @@ interface mcp2515_if
 //  void rts();
 };
 
-[[distributable]] extern void mcp2515_master(unsigned char ss_mask,server interface mcp2515_if mcp2515,client interface spi_master_if spi);
-
+[[distributable]] extern void mcp2515_master(unsigned char ss_mask,server interface mcp2515_if mcp2515,client interface spi_master_if spi,server interface mcp2515_int_if mcp2515_int);
+[[distributable]] extern void mcp2515_interrupt_manager(client interface mcp2515_int_if mcp2515,server interface interrupt_if int_src);
 #endif /* MCP2515_H_ */

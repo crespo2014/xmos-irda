@@ -911,10 +911,12 @@ out port spi_slv_miso = XS1_PORT_1J;
 in port i1 = XS1_PORT_1O;
 in port i2 = XS1_PORT_1P;
 in port i3 = XS1_PORT_1N;
+in port intport = XS1_PORT_4A;
 
 /*
  * SPI with canbus test
  */
+
 int main()
 {
 //  const unsigned T = 2*us;
@@ -925,6 +927,9 @@ int main()
   interface spi_master_if master_spi_if;
   //interface spi_device_if dev_if;
   interface mcp2515_if mcp2515;
+  interface mcp2515_int_if mcp2515_int;
+  interface interrupt_if int_if[1];
+  struct interrupt_mask_t int_mask[] = { {1,1}};
   par
   {
     spi_master(spi_out,spi_miso,master_spi_if);
@@ -934,7 +939,9 @@ int main()
     //spi_dev(SPI1_MCP2515_SS_MASK,cpol,cpha,T,dev_if,master_spi_if);
     mcp2515_test(mcp2515);
     //spi_test(dev_if);
-    mcp2515_master(SPI1_MCP2515_SS_MASK,mcp2515,master_spi_if);
+    mcp2515_master(SPI1_MCP2515_SS_MASK,mcp2515,master_spi_if,mcp2515_int);
+    interrupt_manager(intport,1,int_mask,int_if);
+    mcp2515_interrupt_manager(mcp2515_int,int_if[0]);
   }
   return 0;
 }

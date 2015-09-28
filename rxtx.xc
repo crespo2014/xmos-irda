@@ -287,9 +287,8 @@ void RX_Packer(streaming chanend ch,unsigned timeout,client interface rx_frame_i
 /*
  * Task for implement ondemand tx
  */
-[[combinable]] void onDemandTX(client interface tx_ondemand tx,client interface packet_tx_if src)
+[[combinable]] void onDemandTX(client interface tx_ondemand tx,client interface packet_tx_if src,unsigned id)
 {
-  const unsigned id = 6;
 #define RTS_BIT 1   // ready to send data
 #define WTS_BIT 2   // waiting to send data
   unsigned char flags = 0;
@@ -334,7 +333,7 @@ void RX_Packer(streaming chanend ch,unsigned timeout,client interface rx_frame_i
 /*
  * Task to use pins aas interrupt source
  */
-void interrupt_manager(in port iport,unsigned count,unsigned char mask[count],unsigned char value[count],client interface interrupt_if int_if[count])
+[[combinable]]  void interrupt_manager(in port iport,unsigned count,struct interrupt_mask_t masks[count],client interface interrupt_if int_if[count])
 {
   unsigned pv,pv_l;
   iport :> pv;
@@ -346,7 +345,7 @@ void interrupt_manager(in port iport,unsigned count,unsigned char mask[count],un
       case iport when pinsneq(pv_l) :> pv:
         for (int i =0 ;i < count;i++)
         {
-          if ((pv & mask[i]) == value[i])
+          if ((pv & masks[i].mask) == masks[i].val)
             int_if[i].onInterrupt();
         }
         pv_l = pv;

@@ -73,7 +73,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
  * Add ss mask as input parameter
  * Talk to spi master,
  */
-[[distributable]] void mcp2515_master(unsigned char ss_mask,server interface mcp2515_if mcp2515,client interface spi_master_if spi)
+[[distributable]] void mcp2515_master(unsigned char ss_mask,server interface mcp2515_if mcp2515,client interface spi_master_if spi,server interface mcp2515_int_if mcp2515_int)
 {
   const unsigned T = 1*us;
   struct mcp2515_cnf_t obj;
