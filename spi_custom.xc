@@ -168,7 +168,7 @@ void spi_slave_v3(in port iport,unsigned char scl_mask,unsigned char mosi_mask,u
 }
 /*
  * TODO.
- * scl and mosi mask to be a define number
+ * put ss_mask , cpol and so into an struture and send as const reference
  */
 [[distributable]] void spi_master(out port oport,in port miso,server interface spi_master_if spi_if)
 {

@@ -253,7 +253,13 @@ struct mcp2515_cnf_t
   unsigned char cnf1,cnf2,cnf3,tec,rec,eflg;
 };
 
-
+/*
+ * Interface between mcp2515 main task and mcp2515 interrupt task.
+ */
+interface mcp2515_int_if
+{
+    unsigned char ClearInt();
+};
 
 interface mcp2515_if
 {
@@ -266,7 +272,6 @@ interface mcp2515_if
 //  void setInterruptEnable(unsigned char flag);
 //  unsigned char getInterruptFlag();
 //  void rts();
-//  void onInt();
 };
 
 [[distributable]] extern void mcp2515_master(unsigned char ss_mask,server interface mcp2515_if mcp2515,client interface spi_master_if spi);

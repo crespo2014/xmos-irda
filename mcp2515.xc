@@ -10,6 +10,7 @@
 #include "mcp2515.h"
 #include "spi_custom.h"
 #include "utils.h"
+#include "rxtx.h"
 
 #define WRITE(__addres,__value,__spi,__ss_mask,__cpol,__cpha,__T) \
   do { \
@@ -113,4 +114,20 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
         break;
     }
   }
+}
+
+/*
+ * This task link the interrupt service with the mcp2515
+ */
+[[distributable]] void mcp2515_interrupt_manager(client interface mcp2515_int_if mcp2515,server interface interrupt_if int_src)
+{
+  while(1)
+  {
+    select
+    {
+      case int_src.onInterrupt():
+        break;
+    }
+  }
+
 }

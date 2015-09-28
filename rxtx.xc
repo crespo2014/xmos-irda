@@ -332,6 +332,30 @@ void RX_Packer(streaming chanend ch,unsigned timeout,client interface rx_frame_i
 }
 
 /*
+ * Task to use pins aas interrupt source
+ */
+void interrupt_manager(in port iport,unsigned count,unsigned char mask[count],unsigned char value[count],client interface interrupt_if int_if[count])
+{
+  unsigned pv,pv_l;
+  iport :> pv;
+  pv_l = ~pv;     // trigger all interupts
+  while(1)
+  {
+    select
+    {
+      case iport when pinsneq(pv_l) :> pv:
+        for (int i =0 ;i < count;i++)
+        {
+          if ((pv & mask[i]) == value[i])
+            int_if[i].onInterrupt();
+        }
+        pv_l = pv;
+        break;
+    }
+  }
+}
+
+/*
  * Fast rx tx v8.
  * Starting at t0. as high pulse. using T as period.
  * The distance between Tstart and the pulse is the data.

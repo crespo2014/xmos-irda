@@ -67,6 +67,18 @@ struct spi_frm_v2
     unsigned wr_len;          // one reach this only zeroes will be push to mosi
     unsigned char buff[32];
 };
+
+/*
+ * Spi device info.
+ */
+struct spi_dev_info
+{
+    unsigned char ss_mask;
+    unsigned char cpol;
+    unsigned char cpha;
+    unsigned T;
+};
+
 /*
  * spi slave can fill up a buffer when a command is received
  * do not how to implement no value for miso
@@ -79,7 +91,6 @@ struct spi_frm_v2
  *    > 1. use command id to store or ignore data.
  *
  */
-
 interface spi_slave_if_v2
 {
   unsigned char onSS();                      // return next byte to send

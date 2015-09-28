@@ -43,6 +43,15 @@ interface tx_ondemand
 };
 
 /*
+ * Interrupt notification interface
+ * For long interupt attend send a notifycation to other task
+ */
+interface interrupt_if
+{
+  void onInterrupt();
+};
+
+/*
  * Fault reporting interface
  */
 interface fault_if {
