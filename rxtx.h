@@ -12,7 +12,21 @@
 #include <timer.h>
 #include <xs1.h>
 
+/*
+ * Interfaces for networking.
+ * Support src and dest id as 32Bits
+ * - Ondemand TX
+ */
 
+interface net
+{
+  // sen data
+  [[clears_notification]] unsigned char send(unsigned dest,unsigned src,const unsigned char* buff,unsigned char len);
+  // ready to send
+  [[notification]] void ready();
+  // acknowledge
+  [[clears_notification]] void ack();
+};
 
 /*
  * Some Rx task can hold a buffer until it is peek from other task
