@@ -45,32 +45,33 @@
 /*
  * Read a register and save to __out
  */
-#define READ(__addres,__frm,__spi,__ss_mask,__cpol,__cpha,__T,__out) \
+#define READ(__addres,__spi,__ss_mask,__cpol,__cpha,__T,__out) \
   do { \
+    struct spi_frm_v2 __frm; \
    __frm.buff[0] = SPI_READ; __frm.buff[1] = __addres; __frm.len = 3; __frm.wr_len = 2; \
    __spi.execute(&__frm,__ss_mask,__cpol,__cpha,__T); \
-   __out = frm.buff[frm.wr_len*2]; \
+   __out = __frm.buff[__frm.wr_len*2]; \
   } while(0) ;
 
 #define READ_CAN_STATUS(__frm,__spi,__ss_mask,__cpol,__cpha,__T,__out) \
   do { \
     __frm.buff[0] = SPI_RD_STATUS; __frm.len = 2; __frm.wr_len = 1; \
     __spi.execute(&__frm,__ss_mask,__cpol,__cpha,__T); \
-    __out = frm.buff[frm.wr_len*2]; \
+    __out = __frm.buff[__frm.wr_len*2]; \
   } while(0) ;
 
 #define RESET(__spi,__ss_mask,__cpol,__cpha,__T) \
   do { \
-    struct spi_frm_v2 frm; \
-    frm.buff[0] = SPI_RESET; frm.len = 1; frm.wr_len = 1; \
-    __spi.execute(&frm,__ss_mask,__cpol,__cpha,__T); \
+    struct spi_frm_v2 __frm; \
+    __frm.buff[0] = SPI_RESET; __frm.len = 1; __frm.wr_len = 1; \
+    __spi.execute(&__frm,__ss_mask,__cpol,__cpha,__T); \
   } while(0) ;
 
 #define RTS(__mask,__spi,__ss_mask,__cpol,__cpha,__T) \
   do { \
-    struct spi_frm_v2 frm; \
-    frm.buff[0] = SPI_RTS | (mask & 0x03); frm.len = 1; frm.wr_len = 1; \
-    __spi.execute(&frm,__ss_mask,__cpol,__cpha,__T); \
+    struct spi_frm_v2 __frm; \
+    __frm.buff[0] = SPI_RTS | (mask & 0x03); __frm.len = 1; __frm.wr_len = 1; \
+    __spi.execute(&__frm,__ss_mask,__cpol,__cpha,__T); \
   } while(0) ;
 
 //static inline void SETMODE(unsigned mode,struct spi_frm_v2 &frm,struct mcp2515_cnf_t mcp2515)
@@ -134,18 +135,18 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
   //RESET(frm,spi);
   obj.cpha = 0;
   obj.cpol = 0;
-  READ(CAN_CTRL,frm,spi,ss_mask,obj.cpol,obj.cpha,T,obj.can_ctrl);
+  READ(CAN_CTRL,spi,ss_mask,obj.cpol,obj.cpha,T,obj.can_ctrl);
   //check for operation mode
   if ((obj.can_ctrl & MODE_MASK) != MODE_CONFIGURE)
     printf("x%02X mcp2515 missing\n",obj.can_ctrl);
 
-  READ(CAN_CTRL,frm,spi,ss_mask,obj.cpol,obj.cpha,T,obj.can_ctrl);
+  READ(CAN_CTRL,spi,ss_mask,obj.cpol,obj.cpha,T,obj.can_ctrl);
   READ_CAN_STATUS(frm,spi,ss_mask,obj.cpol,obj.cpha,T,obj.can_status);
 
   //set loopback and check
   obj.can_ctrl = (obj.can_ctrl & (~MODE_MASK)) | MODE_LOOPBACK;
   WRITE(CAN_CTRL,obj.can_ctrl,frm,spi,ss_mask,obj.cpol,obj.cpha,T);
-  READ(CAN_CTRL,frm,spi,ss_mask,obj.cpol,obj.cpha,T,obj.can_ctrl);
+  READ(CAN_CTRL,spi,ss_mask,obj.cpol,obj.cpha,T,obj.can_ctrl);
   if ((obj.can_ctrl & MODE_MASK) != MODE_LOOPBACK)
      printf("mcp2515 set mode failed\n");
   //
