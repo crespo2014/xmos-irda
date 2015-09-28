@@ -244,6 +244,7 @@
 
 struct mcp2515_cnf_t
 {
+  unsigned char cpha,cpol;
   unsigned char can_ctrl,can_status,rxb_status;
   unsigned char rxb_ctrl[RXB_COUNT];
   unsigned char txb_ctrl[TXB_COUNT];
@@ -268,6 +269,6 @@ interface mcp2515_if
 //  void onInt();
 };
 
-[[distributable]] extern void mcp2515_master(server interface mcp2515_if mcp2515,client interface spi_device_if spi);
+[[distributable]] extern void mcp2515_master(unsigned char ss_mask,server interface mcp2515_if mcp2515,client interface spi_master_if spi);
 
 #endif /* MCP2515_H_ */

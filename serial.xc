@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <xscope.h>
 #include <platform.h>
+#include "utils.h"
 
 //TODO give a gap between bytes to allow recovery from wrong synchronization
 // not good for speed.

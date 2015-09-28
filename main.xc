@@ -18,6 +18,7 @@
 #include "i2c_custom.h"
 #include "spi_custom.h"
 #include "mcp2515.h"
+#include "utils.h"
 /*
 out port p_1G = XS1_PORT_1G;
 
@@ -901,11 +902,6 @@ void  mcp2515_test(client interface mcp2515_if mcp2515)
 
 }
 
-//in port spi_slv_scl = XS1_PORT_1P;
-//in port spi_slv_mosi = XS1_PORT_1O;
-//in port spi_slv_ss = XS1_PORT_1I;
-
-
 out port spi_out = XS1_PORT_4C;
 in port spi_miso = XS1_PORT_1H;
 
@@ -921,13 +917,13 @@ in port i3 = XS1_PORT_1N;
  */
 int main()
 {
-  const unsigned T = 2*us;
+//  const unsigned T = 2*us;
   const unsigned cpol = 0;
   const unsigned cpha = 0;
 
   interface spi_slave_if_v2 spi_if;
   interface spi_master_if master_spi_if;
-  interface spi_device_if dev_if;
+  //interface spi_device_if dev_if;
   interface mcp2515_if mcp2515;
   par
   {
@@ -935,10 +931,10 @@ int main()
     test_spi_slave_v2(spi_if);
     //spi_slave_v2(spi_slv_ss,spi_slv_scl,spi_slv_mosi,spi_slv_miso,cpol,cpha,spi_if);
     spi_slave_v3(spi_in,SPI1_SCK_MASK,SPI1_MOSI_MASK,SPI1_MCP2515_SS_MASK,spi_slv_miso,cpol,cpha,spi_if);
-    spi_dev(SPI1_MCP2515_SS_MASK,cpol,cpha,T,dev_if,master_spi_if);
+    //spi_dev(SPI1_MCP2515_SS_MASK,cpol,cpha,T,dev_if,master_spi_if);
     mcp2515_test(mcp2515);
     //spi_test(dev_if);
-    mcp2515_master(mcp2515,dev_if);
+    mcp2515_master(SPI1_MCP2515_SS_MASK,mcp2515,master_spi_if);
   }
   return 0;
 }

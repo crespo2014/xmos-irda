@@ -5,6 +5,7 @@
 #include <platform.h>
 #include "rxtx.h"
 #include "irda.h"
+#include "utils.h"
 
 /*
 extern void irda_rd(in port p, chanend c);

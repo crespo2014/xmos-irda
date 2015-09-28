@@ -5,9 +5,15 @@
  *      Author: lester
  */
 
-
 #ifndef UTILS_H_
 #define UTILS_H_
+
+#define SYS_TIMER_T_ns  10   //set to 100 for testing
+
+#define sec 100000000
+#define ms  100000
+#define us  100        // 1 usecond
+#define ns  (1/SYS_TIMER_T_ns)
 
 /*
  * Read a hex number.
