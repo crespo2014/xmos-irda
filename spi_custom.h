@@ -132,9 +132,6 @@ static inline void SPI1_SEND_RECV(unsigned char u8,unsigned char &inu8,out port 
  */
 static inline void SPI1_EXECUTE(struct spi_frm_v2 &frm,out port oport,unsigned char ss_mask,in port miso,unsigned char cpol, unsigned char cpha,unsigned T)
 {
-  unsigned char wr_pos = 0;
-  unsigned char *rdpos = frm.buff + frm.wr_len;
-  unsigned len = frm.len;
   unsigned tp = 0;
   unsigned opv =  ~(SPI1_SCK_MASK | SPI1_MOSI_MASK);
   timer t;
@@ -146,11 +143,38 @@ static inline void SPI1_EXECUTE(struct spi_frm_v2 &frm,out port oport,unsigned c
   t when timerafter(tp) :> void;
   oport <: opv;   //slave on
   tp += T;
-  while(len--)
+  unsigned pos = 0;
+  while(pos < frm.len)
   {
-    SPI1_SEND_RECV(wr_pos < frm.wr_len ? frm.buff[wr_pos] : 0,*rdpos,oport,opv,miso,cpha,T,t,tp);
-    wr_pos++;
-    rdpos++;
+    unsigned dout,din;
+    if ( pos < frm.wr_len)
+      dout = 0x100 | (bitrev(frm.buff[pos]) >> 24);
+    else
+      dout = 0;
+    unsigned edge = 0;
+    while(dout ^ 1 || edge)  // leave the clock at edge 0
+    {
+      if (edge == cpha)   // is it the next edge to read
+      {
+        opv = (opv & (~SPI1_MOSI_MASK)) | (SPI1_MOSI_MASK * (dout & 1));
+        oport <: opv;
+        dout >>= 1;
+        opv ^= SPI1_SCK_MASK;
+        t when timerafter(tp) :> void;
+        oport <: opv;
+        miso :> >>din;   //MSB to LSB input
+        tp += T/2;
+      } else
+      {
+        opv ^= SPI1_SCK_MASK;
+        t when timerafter(tp) :> void;
+        oport <:opv;
+        tp += T/2;
+      }
+      edge = edge ^ 1;
+    }
+    frm.buff[frm.wr_len + pos] = bitrev(din);
+    pos++;
   }
   t when timerafter(tp) :> void;
   tp += T;

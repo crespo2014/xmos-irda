@@ -23,7 +23,7 @@ interface net
   // sen data
   [[clears_notification]] unsigned char send(unsigned dest,unsigned src,const unsigned char* buff,unsigned char len);
   // ready to send
-  [[notification]] void ready();
+  [[notification]] slave void ready();
   // acknowledge
   [[clears_notification]] void ack();
 };
