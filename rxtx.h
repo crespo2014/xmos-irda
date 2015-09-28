@@ -43,20 +43,6 @@ interface tx_ondemand
 };
 
 /*
- * Source of data for net interface
- */
-//interface net_src
-//{
-//  // sen data
-//  [[clears_notification]] unsigned char get(const struct net_pck *pckn);
-//  // request to send
-//  [[notification]] slave void req_ts();
-//  // acknowledge
-//  [[clears_notification]] void ack();
-//};
-
-
-/*
  * Fault reporting interface
  */
 interface fault_if {

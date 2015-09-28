@@ -119,36 +119,3 @@ void gen_clock(out port txd) {
         }
     }
 }
-
-
-
-
-/*
-on stdcore[0] : out port tx      = XS1_PORT_1A;
-on stdcore[0] : in  port rx      = XS1_PORT_1B;
-*/
-/*
-int main1() {
-
-    interface tx_rx_if ch0tx,ch1tx,ch0rx,ch1rx,irda_tx,irda_rx;
-    interface cmd_push_if cmd;
-    interface fault_if ch0rx_f,ch1rx_f,cmd_f,route_f,irdarx_f;
-    par
-    {
-      TX(ch0tx,gpio_ch0_tx,60*us);
-      RX(ch0rx,gpio_ch0_rx,60*us,ch0rx_f);
-      TX(ch1tx,gpio_ch1_tx,60*us);
-      RX(ch1rx,gpio_ch1_rx,60*us,ch1rx_f);
-      Router(ch0tx,ch1tx,ch0rx,ch1rx,cmd,route_f);
-      irda_TX(irda_tx,gpio_irda_tx,IRDA_BIT_LEN,0,1);
-      irda_RX(irda_rx,gpio_irda_rx,IRDA_BIT_LEN,0,irdarx_f);
-      [[combine]]
-      par
-      {
-        CMD(cmd,irda_tx,irda_rx,cmd_f);
-        ui(gpio_fault,ch0rx_f,ch1rx_f,route_f,cmd_f,irdarx_f);
-      }
-    }
-    return 0;
-}
-*/
