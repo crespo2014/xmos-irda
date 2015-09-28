@@ -328,11 +328,6 @@ void RX_Packer(streaming chanend ch,unsigned timeout,client interface rx_frame_i
         }
         break;
     }
-    // try to send
-    if ((flags ^ ((1 << RTS_BIT) |   (1 << WTS_BIT))) == 0)
-    {
-
-    }
   }
 }
 
