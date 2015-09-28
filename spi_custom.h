@@ -40,9 +40,14 @@
 #include <xs1.h>
 #include <xclib.h>
 
-#define SPI1_SCK_MASK        1
-#define SPI1_MOSI_MASK       4
-#define SPI1_MCP2515_SS_MASK 2
+#define SPI1_SCK_BIT          0
+#define SPI1_MCP2515_SS_BIT   1
+#define SPI1_MOSI_BIT         2
+
+#define SPI1_SCK_MASK        (1 << SPI1_SCK_BIT)
+#define SPI1_MOSI_MASK       (1 << SPI1_MOSI_BIT)
+#define SPI1_MCP2515_SS_MASK (1 << SPI1_MCP2515_SS_BIT)
+
 
 struct spi_frm
 {

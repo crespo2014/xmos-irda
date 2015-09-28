@@ -36,8 +36,9 @@
 
 // TODO try using local frm variable.
 
-#define WRITE(__addres,__value,__frm,__spi,__ss_mask,__cpol,__cpha,__T) \
+#define WRITE(__addres,__value,__spi,__ss_mask,__cpol,__cpha,__T) \
   do { \
+    struct spi_frm_v2 __frm; \
     __frm.buff[0] = SPI_WRITE; __frm.buff[1] = __addres; __frm.buff[2] = __value; __frm.len = 3; __frm.wr_len = 3;  \
     __spi.execute(&__frm,__ss_mask,__cpol,__cpha,__T); \
   } while(0) ;
@@ -55,6 +56,7 @@
 
 #define READ_CAN_STATUS(__frm,__spi,__ss_mask,__cpol,__cpha,__T,__out) \
   do { \
+     struct spi_frm_v2 __frm; \
     __frm.buff[0] = SPI_RD_STATUS; __frm.len = 2; __frm.wr_len = 1; \
     __spi.execute(&__frm,__ss_mask,__cpol,__cpha,__T); \
     __out = __frm.buff[__frm.wr_len*2]; \
@@ -131,7 +133,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
   const unsigned T = 1*us;
   struct mcp2515_cnf_t obj;
   //initialize.
-  struct spi_frm_v2 frm;
+  //struct spi_frm_v2 frm;
   //RESET(frm,spi);
   obj.cpha = 0;
   obj.cpol = 0;
@@ -145,7 +147,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
 
   //set loopback and check
   obj.can_ctrl = (obj.can_ctrl & (~MODE_MASK)) | MODE_LOOPBACK;
-  WRITE(CAN_CTRL,obj.can_ctrl,frm,spi,ss_mask,obj.cpol,obj.cpha,T);
+  WRITE(CAN_CTRL,obj.can_ctrl,spi,ss_mask,obj.cpol,obj.cpha,T);
   READ(CAN_CTRL,spi,ss_mask,obj.cpol,obj.cpha,T,obj.can_ctrl);
   if ((obj.can_ctrl & MODE_MASK) != MODE_LOOPBACK)
      printf("mcp2515 set mode failed\n");
@@ -156,7 +158,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
     {
       case mcp2515.setMode(unsigned char mode):
         obj.can_ctrl = (obj.can_ctrl &(~MODE_MASK)) | (mode & MODE_MASK);
-        WRITE(CAN_CTRL,obj.can_ctrl,frm,spi,ss_mask,obj.cpol,obj.cpha,T);
+        WRITE(CAN_CTRL,obj.can_ctrl,spi,ss_mask,obj.cpol,obj.cpha,T);
         break;
       case mcp2515.Reset():
         RESET(spi,ss_mask,obj.cpol,obj.cpha,T);

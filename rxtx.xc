@@ -210,6 +210,9 @@ struct frames_buffer
     case tx_if[int _].push(struct rx_u8_buff  * movable &old_p):
       free_list[free_count++] = move(old_p);
       break;
+      // clears ondata event, usefull for on demand tx
+    case tx_if[int _].ack():
+        break;
         // an input task push data, it need back a free buffer.
     case rx_if[int _].push(struct rx_u8_buff  * movable &old_p,enum tx_task j):
       if (frames[j].count != frame_buffer_list_max && free_count)
@@ -276,6 +279,58 @@ void RX_Packer(streaming chanend ch,unsigned timeout,client interface rx_frame_i
         pframe->len = 0;
         pframe->overflow = 0;
         break;
+
+    }
+  }
+}
+
+/*
+ * Task for implement ondemand tx
+ */
+[[combinable]] void onDemandTX(client interface tx_ondemand tx,client interface packet_tx_if src)
+{
+  const unsigned id = 6;
+#define RTS_BIT 1   // ready to send data
+#define WTS_BIT 2   // waiting to send data
+  unsigned char flags = 0;
+  while(1)
+  {
+    select
+    {
+      case tx.ready_ts():
+        if (flags & (1 << WTS_BIT) )
+        {
+          struct rx_u8_buff  * movable pfrm;
+          src.get(pfrm,id);
+          tx.send(pfrm);
+          src.push(pfrm);
+          flags = 0;
+        }
+        else
+        {
+          flags |= (1 << RTS_BIT);
+          tx.ack();
+        }
+        break;
+      case src.ondata():
+        if (flags & (1 << RTS_BIT) )
+        {
+          struct rx_u8_buff  * movable pfrm;
+          src.get(pfrm,id);
+          tx.send(pfrm);
+          src.push(pfrm);
+          flags = 0;
+        }
+        else
+        {
+          flags |= (1 << WTS_BIT);
+          src.ack();
+        }
+        break;
+    }
+    // try to send
+    if ((flags ^ ((1 << RTS_BIT) |   (1 << WTS_BIT))) == 0)
+    {
 
     }
   }

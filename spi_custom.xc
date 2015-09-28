@@ -179,19 +179,48 @@ void spi_slave_v3(in port iport,unsigned char scl_mask,unsigned char mosi_mask,u
     select
     {
       case spi_if.execute(struct spi_frm_v2* frm,unsigned char ss_mask,unsigned char cpol, unsigned char cpha,unsigned T):
-        unsigned len = 0;
+        unsigned dout,din,edge;
+        unsigned pos = 0;
         unsigned tp;
-        unsigned opv = (~SPI1_SCK_MASK) | (cpol * SPI1_SCK_MASK); // set to 0xFF except for sclk
+        unsigned opv = (~SPI1_SCK_MASK) | (cpol << SPI1_SCK_BIT); // set to 0xFF except for sclk
         timer t;
         oport <: opv;
         opv &= (~ss_mask);  // enable slave
         oport <: opv;
         t :> tp;
         tp += T/2;
-        while(len != frm->len)
+        while(pos < frm->len)
         {
-          SPI1_SEND_RECV(len < frm->wr_len ? frm->buff[len] : 0,*(frm->buff+frm->wr_len+len),oport,opv,miso,cpha,T,t,tp);
-          len++;
+          dout = 0x100;   // repeat 8 times
+          if (pos < frm->wr_len)
+            dout |= (bitrev(frm->buff[pos]) >> 24);
+          edge = 0;
+          while(dout ^ 1 || edge)  // leave the clock at edge 0
+          {
+            if (edge == cpha)   // is it the next edge to read
+            {
+              opv = (opv & (~SPI1_MOSI_MASK)) | ( (dout & 1) << SPI1_MOSI_BIT);
+              oport <: opv;
+              dout >>= 1;
+              opv ^= SPI1_SCK_MASK;
+              t when timerafter(tp) :> void;
+              oport <: opv;
+              miso :> >>din;   //MSB to LSB input
+              tp += T/2;
+            } else
+            {
+              opv ^= SPI1_SCK_MASK;
+              t when timerafter(tp) :> void;
+              oport <:opv;
+              tp += T/2;
+            }
+            edge = edge ^ 1;
+          }
+          frm->buff[frm->wr_len + pos] = bitrev(din);
+          pos++;
+
+//          SPI1_SEND_RECV(len < frm->wr_len ? frm->buff[len] : 0,*(frm->buff+frm->wr_len+len),oport,opv,miso,cpha,T,t,tp);
+//          len++;
         }
         t when timerafter(tp) :> void;
         opv |= ss_mask;

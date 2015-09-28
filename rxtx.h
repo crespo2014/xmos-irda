@@ -13,24 +13,8 @@
 #include <xs1.h>
 
 /*
- * Interfaces for networking.
- * Support src and dest id as 32Bits
- * - Ondemand TX
- */
-
-interface net
-{
-  // sen data
-  [[clears_notification]] unsigned char send(unsigned dest,unsigned src,const unsigned char* buff,unsigned char len);
-  // ready to send
-  [[notification]] slave void ready();
-  // acknowledge
-  [[clears_notification]] void ack();
-};
-
-/*
  * Some Rx task can hold a buffer until it is peek from other task
- * a serail rx can hold this buffer.
+ * a serial rx can hold this buffer.
  * then a Buffer interface can peek data until \n
  * and parse without blocking rx by channel or something else
  */
@@ -41,6 +25,37 @@ struct rx_u8_buff
     unsigned char len;      // actual len of buffer
     unsigned char overflow; // how many bytes lost
 };
+
+/*
+ * Interfaces for networking.
+ * Support src and dest id as 32Bits
+ * - Ondemand TX
+ */
+
+interface tx_ondemand
+{
+  // sen data
+  [[clears_notification]] unsigned char send(struct rx_u8_buff  * movable &old_p);
+  // ready to send
+  [[notification]] slave void ready_ts();
+  // acknowledge
+  [[clears_notification]] void ack();
+};
+
+/*
+ * Source of data for net interface
+ */
+//interface net_src
+//{
+//  // sen data
+//  [[clears_notification]] unsigned char get(const struct net_pck *pckn);
+//  // request to send
+//  [[notification]] slave void req_ts();
+//  // acknowledge
+//  [[clears_notification]] void ack();
+//};
+
+
 /*
  * Fault reporting interface
  */
@@ -111,6 +126,8 @@ interface packet_tx_if
 {
   [[notification]] slave void ondata();       // means data is waiting to be read
   [[clears_notification]] void get(struct rx_u8_buff  * movable &old_p,enum tx_task dest);
+  // For on demand tx interface this function clears the event
+  [[clears_notification]] void ack();
   void push(struct rx_u8_buff  * movable &old_p);   // return back the frame
 };
 
