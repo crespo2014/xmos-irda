@@ -36,27 +36,6 @@ struct interrupt_mask_t
 };
 
 /*
- * Interfaces for networking.
- * Support src and dest id as 32Bits
- * - Ondemand TX
- */
-
-//struct ondemand_t
-//{
-//
-//};
-
-interface tx_ondemand
-{
-  // sen data
-  [[clears_notification]] unsigned char send(struct rx_u8_buff  * movable &old_p);
-  // ready to send
-  [[notification]] slave void ready_ts();
-  // acknowledge
-  [[clears_notification]] void ack();
-};
-
-/*
  * Interrupt notification interface
  * For long interupt attend send a notifycation to other task
  */
@@ -113,7 +92,10 @@ interface out_port_if {
 // len is the number of bits
 interface tx_if
 {
-  void send(const char* data,unsigned char len);
+  [[clears_notification]] void send(const char* data,unsigned char len);
+  // clear to send
+  [[notification]] slave void cts();
+  [[clears_notification]] void ack();
 };
 enum tx_task
 {

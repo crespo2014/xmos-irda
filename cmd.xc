@@ -157,6 +157,8 @@ void ProcessCommand(const char* data,unsigned char len,struct rx_u8_buff &pframe
         printf("\n");
         */
         break;
+      case tx.ack():
+        break;
     }
   }
 }

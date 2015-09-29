@@ -154,6 +154,8 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
           p <: (unsigned char)0x0;  //24 * 8 = 192ns
         }
         break;
+      case tx.ack():
+        break;
     }
   }
 }
@@ -234,20 +236,44 @@ struct frames_buffer
 /*
  * Task for tx interface.
  */
-[[combinable]] void TX_Worker(client interface packet_tx_if tx_input[max_tx],client interface tx_if tx_out[max_tx])
+[[combinable]] void TX_Worker(client interface packet_tx_if rx[max_tx],client interface tx_if tx[max_tx])
 {
+#define CTS_BIT 1   // clear to send data
+#define RTS_BIT 2   // request to send data
+  unsigned char flags[max_tx];
   while(1)
   {
     select
     {
-      case tx_input[int j].ondata():
-        struct rx_u8_buff  * movable pfrm;
-        tx_input[j].get(pfrm,j);
-        if (pfrm != 0)
+      case tx[int j].cts():
+        if (flags[j] & (1 << RTS_BIT))
         {
-          tx_out[j].send(pfrm->dt,pfrm->len);
-          tx_input[j].push(pfrm);
+          struct rx_u8_buff  * movable pfrm;
+          rx[j].get(pfrm,j);
+          if (pfrm != 0)
+          {
+            tx[j].send(pfrm->dt,pfrm->len);
+            rx[j].push(pfrm);
+            break;
+          }
         }
+        flags[j] |= (1 << CTS_BIT);
+        tx[j].ack();
+        break;
+      case rx[int j].ondata():
+        if (flags[j] & (1 << CTS_BIT))
+        {
+          struct rx_u8_buff  * movable pfrm;
+          rx[j].get(pfrm,j);
+          if (pfrm != 0)
+          {
+            tx[j].send(pfrm->dt,pfrm->len);
+            rx[j].push(pfrm);
+            break;
+          }
+        }
+        flags[j] |= (1 << RTS_BIT);
+        rx[j].ack();
         break;
     }
   }
@@ -280,52 +306,6 @@ void RX_Packer(streaming chanend ch,unsigned timeout,client interface rx_frame_i
         pframe->overflow = 0;
         break;
 
-    }
-  }
-}
-
-/*
- * Task for implement ondemand tx
- */
-[[combinable]] void onDemandTX(client interface tx_ondemand tx,client interface packet_tx_if src,unsigned id)
-{
-#define RTS_BIT 1   // ready to send data
-#define WTS_BIT 2   // waiting to send data
-  unsigned char flags = 0;
-  while(1)
-  {
-    select
-    {
-      case tx.ready_ts():
-        if (flags & (1 << WTS_BIT) )
-        {
-          struct rx_u8_buff  * movable pfrm;
-          src.get(pfrm,id);
-          tx.send(pfrm);
-          src.push(pfrm);
-          flags = 0;
-        }
-        else
-        {
-          flags |= (1 << RTS_BIT);
-          tx.ack();
-        }
-        break;
-      case src.ondata():
-        if (flags & (1 << RTS_BIT) )
-        {
-          struct rx_u8_buff  * movable pfrm;
-          src.get(pfrm,id);
-          tx.send(pfrm);
-          src.push(pfrm);
-          flags = 0;
-        }
-        else
-        {
-          flags |= (1 << WTS_BIT);
-          src.ack();
-        }
-        break;
     }
   }
 }

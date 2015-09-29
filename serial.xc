@@ -206,6 +206,7 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
   //set_port_drive_low(tx);
   //set_port_pull_up(tx);
   p <: 1;   // the rx will mistake as 0xFF data
+  tx.cts();
   while(1)
   {
     select
@@ -232,6 +233,9 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
         tp += (UART_BASE_BIT_LEN_ticks*baudrate*10);  // 1 byte gap
         t when timerafter(tp) :> void;
 #endif
+        tx.cts();
+        break;
+      case tx.ack():
         break;
     }
   }

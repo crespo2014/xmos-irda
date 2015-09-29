@@ -387,6 +387,8 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
         t when timerafter (tp) :> void;
       }
       break;
+    case tx.ack():
+      break;
     }
   }
 }
@@ -417,6 +419,8 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
           SONY_IRDA_32b_SEND(v,bitcount,p32);
           sync(p32);
         }
+        break;
+      case tx.ack():
         break;
     }
   }

@@ -695,7 +695,7 @@ unsafe int  main()
 }
 */
 
-#if 0
+#if 1
 // Serial test with router.
 void serial_manager(
     client interface uart_v4 tx,
@@ -740,10 +740,7 @@ void serial_manager(
     }
   }
 }
-#endif
 
-
-#if 0
 void serial_send_loop(out port tx)
 {
   const char* buff;
@@ -768,6 +765,14 @@ void serial_send_loop(out port tx)
   }
 }
 
+out port uart_tx_p = XS1_PORT_1H;
+in port uart_rx_p = XS1_PORT_1J;
+out port p_feed = XS1_PORT_1N;
+in port p_irda = XS1_PORT_1A;
+
+port scl = XS1_PORT_1O;
+port sda = XS1_PORT_1P;
+
 int main()
 {
   interface packet_tx_if  tx[max_tx]; //tx worker, cmd in ,
@@ -782,8 +787,8 @@ int main()
   par
   {
     Router_v2(tx,rx);
-    serial_rx_v5(uart_rx,rx[serial_rx],p_1F);
-    serial_tx_v5(uart_tx,tx_out[serial_tx],p_1G);
+    serial_rx_v5(uart_rx,rx[serial_rx],uart_rx_p);
+    serial_tx_v5(uart_tx,tx_out[serial_tx],uart_tx_p);
     i2c_custom(i2c,1,scl,sda,100);
     serial_manager(uart_tx,uart_rx);
     TX_Worker(tx,tx_out);
@@ -866,7 +871,7 @@ void print_ascii_buff(const char* buff,unsigned len)
   printf("\n");
 }
 
-#if 1
+#if 0
 void spi_test(client interface spi_device_if master_spi_if)
 {
   struct spi_frm_v2 frm2;
