@@ -267,11 +267,11 @@ struct mcp2515_cnf_t
   unsigned char cpha,cpol;
   unsigned char ss_mask;
   unsigned char can_ctrl,can_status,rxb_status;
-  unsigned char rxb_ctrl[RXB_COUNT];
-  unsigned char txb_ctrl[TXB_COUNT];
-
-  unsigned char buff[5+TXB_DATA_MAX];      //sidh sidl eid8 eid0
-  unsigned char cnf1,cnf2,cnf3,tec,rec,eflg;
+//  unsigned char rxb_ctrl[RXB_COUNT];
+//  unsigned char txb_ctrl[TXB_COUNT];
+//
+//  unsigned char buff[5+TXB_DATA_MAX];      //sidh sidl eid8 eid0
+//  unsigned char cnf1,cnf2,cnf3,tec,rec,eflg;
 };
 
 /*

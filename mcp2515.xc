@@ -164,8 +164,26 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
         {
 
         }
-        // clear rx and tx interrupt flags
-
+        // clear all rx and tx interrupt flags
+        mcp2515.ackInterrupt((MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I | MCP2515_INT_RX0I | MCP2515_INT_RX1I));
+        break;
+        /*
+         * Send can bus packet.
+         * MSB - LSB 32 bits dest - if bit31 is 1 then this is a extended packet id
+         */
+      case tx.send(const char* data,unsigned char len):
+          if (len < 5) break; // at least 5 bytes are needed to make a packet
+          unsigned i=4;
+          unsigned id;
+          while (i--)
+          {
+            id = (id << 8) | *data;
+            data++;
+          }
+          len -=4;    // data bytes len
+          // prepare mcp2515 tx buffer
+        break;
+      case tx.ack():
         break;
     }
   }
