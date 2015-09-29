@@ -265,5 +265,19 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
         break;
     }
   }
+}
+
+//todo a frame code-decode for mcp2515. it converts from raw data to data ready for tx and rx buffer
+/*
+ * Data is push to router to mcp2515_raw.
+ * then it appears in tx interface and it is inject to router as can frame.
+ *
+ * mcp2515 rx - came fom interrupt that push to here
+ * mcp2515 tx - to mcp2515 tx interface.
+ * can tx - a can to mcp2515 coded ( two interfaces in, out).
+ * can rx - read data from mcp2415rx and push back as can
+ */
+void mcp2515_rxtx_decode(client interface rx_frame_if router,interface tx_if tx)
+{
 
 }
