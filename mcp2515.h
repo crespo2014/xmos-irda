@@ -243,9 +243,29 @@
 #define MCP2515_INT_RX1I  (1<<1)
 #define MCP2515_INT_RX0I  (1<<0)
 
+/*
+ * CAN STAT. iCOD contains the code of the highest priority interrupt
+ * 0 - not interrupt
+ * 1 ERR
+ * 2 WAK
+ *
+ */
+#define  MCP2515_ICOD_MASK  0x03
+#define  MCP2515_ICOD_BIT   0x0
+
+#define  MCP2515_ICOD_ERR   0x1
+#define  MCP2515_ICOD_WAK   0x2
+#define  MCP2515_ICOD_TX0   0x3
+#define  MCP2515_ICOD_TX1   0x4
+#define  MCP2515_ICOD_TX2   0x5
+#define  MCP2515_ICOD_RX0   0x6
+#define  MCP2515_ICOD_RX1   0x7
+
 struct mcp2515_cnf_t
 {
+  unsigned T;
   unsigned char cpha,cpol;
+  unsigned char ss_mask;
   unsigned char can_ctrl,can_status,rxb_status;
   unsigned char rxb_ctrl[RXB_COUNT];
   unsigned char txb_ctrl[TXB_COUNT];
@@ -259,7 +279,10 @@ struct mcp2515_cnf_t
  */
 interface mcp2515_int_if
 {
-    unsigned char ClearInt();
+    //void ClearInt();
+    unsigned char getIntFlag();
+    void setInterruptEnable(unsigned char ie);
+    void ackInterrupt(unsigned char bitmask);     // update canintf to acknowledge the interrupt
 };
 
 interface mcp2515_if
@@ -276,5 +299,5 @@ interface mcp2515_if
 };
 
 [[distributable]] extern void mcp2515_master(unsigned char ss_mask,server interface mcp2515_if mcp2515,client interface spi_master_if spi,server interface mcp2515_int_if mcp2515_int);
-[[distributable]] extern void mcp2515_interrupt_manager(client interface mcp2515_int_if mcp2515,server interface interrupt_if int_src);
+[[distributable]] extern void mcp2515_interrupt_manager(client interface mcp2515_int_if mcp2515,server interface interrupt_if int_src,server interface tx_if tx,client interface rx_frame_if router);
 #endif /* MCP2515_H_ */
