@@ -33,6 +33,12 @@ struct interrupt_mask_t
 {
   unsigned char mask;
   unsigned char val;
+  /*
+   * bit 0 polarization or level
+   * bit 1 0 - level trigger
+   *       1 - edge trigger
+   */
+  unsigned char trigger;
 };
 
 /*
@@ -42,6 +48,7 @@ struct interrupt_mask_t
 interface interrupt_if
 {
   void onInterrupt();
+ // void ack();   // read port and generated a new notifycation in case
 };
 
 /*

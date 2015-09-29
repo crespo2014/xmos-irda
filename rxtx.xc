@@ -312,12 +312,18 @@ void RX_Packer(streaming chanend ch,unsigned timeout,client interface rx_frame_i
 
 /*
  * Task to use pins aas interrupt source
+ * todo set level trigger, edge trigger
  */
 [[combinable]]  void interrupt_manager(in port iport,unsigned count,struct interrupt_mask_t masks[count],client interface interrupt_if int_if[count])
 {
+  //calculate no interrupt value
   unsigned pv,pv_l;
-  iport :> pv;
-  pv_l = ~pv;     // trigger all interupts
+  iport :> pv_l;
+  for (int i =0;i<count;i++)
+  {
+    // clear bit and set the inverted value
+    pv_l = (pv_l & (~masks[i].mask)) | ( masks[i].val ^  masks[i].mask);
+  }
   while(1)
   {
     select
@@ -328,7 +334,6 @@ void RX_Packer(streaming chanend ch,unsigned timeout,client interface rx_frame_i
           if ((pv & masks[i].mask) == masks[i].val)
             int_if[i].onInterrupt();
         }
-        pv_l = pv;
         break;
     }
   }

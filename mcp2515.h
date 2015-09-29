@@ -44,10 +44,10 @@
 
 
 
-#define RXB_0      0x30
+#define RXB_0      0x60
 #define RXB_COUNT  2
 #define RXB_NEXT   0x10
-#define RXB_CTRL       0
+#define RXB_CTRL   0
 #define RXB_SIDH   1    //SID10 .. SID3  (RO)
 #define RXB_SIDL   2    //SID2 .. SID0 SRR IDE X EID17 EID16
 #define RXB_EID8   3    //EID15 .. EID8
@@ -90,8 +90,8 @@
                                   // 0 = Digital input
 #define TX_RTSCTRL_B0RTSM (1<<0)  // 1 = Pin is used to request message transmission of TXB0 buffer (on falling edge)
                                   // 0 = Digital input
-
-#define TXB_SIDL_EXIDE  (1<<3)    // 1 = Message will transmit extended identifier
+#define TXB_SIDL_EXIDE_BIT  3
+#define TXB_SIDL_EXIDE  (1 << TXB_SIDL_EXIDE_BIT)    // 1 = Message will transmit extended identifier
                                   // 0 = Message will transmit standard identifier
 #define TXB_DLC_LEN_MASK  0x0F    // how many bystes to send
 #define TXB_DLC_RTR       (1<<6)  // 1 = Transmitted Message will be a Remote Transmit Request
@@ -283,6 +283,14 @@ interface mcp2515_int_if
     unsigned char getIntFlag();
     void setInterruptEnable(unsigned char ie);
     void ackInterrupt(unsigned char bitmask);     // update canintf to acknowledge the interrupt
+    /*
+     * Push the buffer into the tx buffer and send it.
+     */
+    void pushBuffer(unsigned char tx_idx,const char* buff,const char len);
+    /*
+     * required buffer len RXB_NEXT
+     */
+    void pullBuffer(unsigned char rx_idx,char *buff);
 };
 
 interface mcp2515_if
