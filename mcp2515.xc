@@ -96,7 +96,7 @@ do { \
 
 #define CAN_TO_MCP2515(__in,__len,__out) \
   do { \
-     if (__len < 5) break; /* at least 5 bytes are needed to make a packet */ \
+     if ((__len < 5) | (len > 12)) break; /* at least 5 bytes are needed to make a packet */ \
      unsigned __i = (__in[0] << 24) | (__in[1] << 16 ) | (__in[2] << 8) | __in[3]; \
      buff[0] = __i >> 3; \
      buff[1] = (__i << 5) | (__i >> (28-1) && 0x03); \
@@ -112,6 +112,14 @@ do { \
 
 #define MCP2515_TO_CAN(__in,__len,__out) \
     do { \
+      unsigned __id = (*__in << 3) | (*(__in + 1) >> 5) | ((*(__in + 1) & 0x3) << 24) | (*(__in+2) << 16) | (*(__in+3) << 8); \
+      if (*(__in+1) & TXB_SIDL_EXIDE) __id |= CAN_EXID; \
+      if (*(__in+4) & TXB_DLC_RTR) __id |= CAN_RTR; \
+      *__out = id >> 24; \
+      *(__out + 1) = id >> 16; \
+      *(__out + 2) = id >> 8; \
+      *(__out + 3) = id & 0xFF; \
+      _id = *(__in + 4) & 0x07; \
     } while(0)
 
 
