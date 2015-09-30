@@ -480,7 +480,7 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
         {
           if (bitcount > 1)
           {
-            pframe->dt[0] = cmd_irda_input;
+            pframe->dt[0] = cmd_irda_rx;
             pframe->dt[1] = bitcount - 1;
             pframe->dt[2] = v >> 24;
             pframe->dt[3] = v >> 16;

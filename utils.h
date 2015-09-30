@@ -19,7 +19,7 @@
  * Read a hex number.
  * return over 255 if there is an error.
  */
-extern unsigned readHexChar(char str);
+extern unsigned readHexChar(const char *&str);
 extern unsigned readHexByte(const char* &str);
 extern unsigned getHexChar(unsigned char num);
 extern unsigned getHexByte(unsigned char num);
@@ -29,7 +29,14 @@ extern void getHexBuffer(const unsigned char *d,unsigned len,char * &str);
 void u8ToHex(unsigned char num,char * &str);
 
 // copy str and update dest with last copied character
-//extern void strcpy(char* &dest,const char* src);
+extern void strcpy(char* &dest,const char* src);
+
+// copy string macro that
+#define STRCPY(__dest,__src,__len) \
+  do { \
+    __len = 0; \
+    while ((*(__dest + __len) = *(__src + __len)) != 0) ++__len; \
+  } while(0)
 
 // print a ascii buffer
 extern void printbuff(const char* d,unsigned len);

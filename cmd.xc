@@ -21,18 +21,20 @@
 #include "serial.h"
 #include "utils.h"
 #include "cmd.h"
-
-
+#include "mcp2515.h"
 
 /*
  * Use a termination character to make not possible past the end of the string
  */
-enum cmd_e getCommand(const unsigned char* c,const unsigned char* &t)
+unsigned getCommand(const unsigned char* c,const unsigned char* &t)
 {
-  if (isPreffix("I2CW",c,t) && *t == ' ') return i2cw_cmd;
-  if (isPreffix("I2CR",c,t) && *t == ' ') return i2cr_cmd;
-  if (isPreffix("I2CWR",c,t) && *t == ' ') return i2cwr_cmd;
-  return none_cmd;
+  if (isPreffix("I2CW",c,t) && *t == ' ') return cmd_i2cw;
+  if (isPreffix("I2CR",c,t) && *t == ' ') return cmd_i2cr;
+  if (isPreffix("I2CWR",c,t) && *t == ' ') return cmd_i2cwr;
+  if (isPreffix("CANTX",c,t) && *t == ' ') return cmd_can_tx;
+  if (isPreffix("SPI0",c,t) && *t == ' ') return cmd_spi0_tx;
+  if (isPreffix("INFO",c,t) && *t == ' ') return cmd_info;
+  return cmd_none;
 }
 
 /*
@@ -66,6 +68,34 @@ enum cmd_st
   cmd_ascii,
 };
 
+/*
+ * ASCII can tx command.
+ * Build a mcp2515 struct and send to mcp2515 tx channel
+ * ID until 32bits
+ * data max 8 bytes
+ *
+ * 0 - invalid format
+ * 1 - sucess
+ */
+unsigned ascii_cantx(const char* buff,struct rx_u8_buff &ret)
+{
+  unsigned d,id;
+  id = 0;
+  do
+  {
+    d = readHexChar(buff);
+    id = id << 8 + d;
+  } while (*buff != ' ' && d < 0xFF);
+  if (d > 0xFF) return 0;
+  ret.dt[0] = id >> 24;
+  ret.dt[1] = id >> 16;
+  ret.dt[2] = id >> 8;
+  ret.dt[3] = id & 0xFF;
+  // read all hex data
+  //TO_MCP2515(id,)
+
+  return 1;
+}
 
 void ascii_i2cw(const char* buff,struct rx_u8_buff &ret,client interface i2c_custom_if i2c)
 {
@@ -108,6 +138,7 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
   ret.len = safestrlen(ret.dt);
 }
 
+
 void ProcessCommand(const char* data,unsigned char len,struct rx_u8_buff &pframe,client interface i2c_custom_if i2c)
 {
   const unsigned char* l;
@@ -134,6 +165,7 @@ void ProcessCommand(const char* data,unsigned char len,struct rx_u8_buff &pframe
   }
 }
 #endif
+
 /*
  * Task to parse user commands.
  */
@@ -142,20 +174,34 @@ void ProcessCommand(const char* data,unsigned char len,struct rx_u8_buff &pframe
   // packet use to push
   struct rx_u8_buff tfrm;   // temporal frame
   struct rx_u8_buff * movable pframe = &tfrm;
+  unsigned ascii_mode = 1;    //all data from rx is send to commnad to return as ascii or not
+  tx.cts();
   while(1)
   {
     select
     {
       case tx.send(const char* data,unsigned char len):
-          /*
-        printf("in :");
-        printbuff(data,len);
-        ProcessCommand(data,len,*pframe,i2c);
-        printf("\nout :");
-        printbuff(pframe->dt,pframe->len);
-        rx.push(pframe,serial_tx);
-        printf("\n");
-        */
+         unsigned cmd_id;
+         if (*data > ' ')   //binary commands should go strait to the device
+         {
+           const unsigned char* l;
+           switch (getCommand(data,l))
+           {
+            case cmd_i2cw:
+              ascii_i2cw(++l,*pframe,i2c);
+              break;
+            case cmd_can_tx:
+              if (ascii_cantx(l,*pframe))
+              {
+                rx.push(pframe,mcp2515_tx);
+              }
+              break;
+            default:
+              STRCPY(pframe->dt,"Ascii cmd unimplemented",pframe->len);
+              break;
+           }
+         }
+        tx.cts();
         break;
       case tx.ack():
         break;

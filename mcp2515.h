@@ -301,6 +301,23 @@ interface mcp2515_if
 //  void rts();
 };
 
+/*
+ * create a tx buffer for the mcp2515 chip
+ */
+#define TO_MCP2515(__id,__data,__len,__out) \
+  do { \
+    *(__out + 0) = __id >> 3; \
+    *(__out + 1) = (__id << 5) | (__id >> (28-1) && 0x03); \
+    if (__id & CAN_EXID) *(__out + 1) |= TXB_SIDL_EXIDE; \
+    *(__out + 2) = (__i >> (26-7)); \
+    *(__out + 3) = (__i >> (18-7)); \
+    *(__out + 4) = len & 0x07;    \
+     if (__i & CAN_RTR) *(__out + 4) |= TXB_DLC_RTR; \
+     for (__i=4;__i<__len;__i++) { \
+       *(__out + 5 + i) = *(__in +__i); \
+     } \
+  } while(0)
+
 [[distributable]] extern void mcp2515_master(server interface mcp2515_if mcp2515[n],size_t n,unsigned char ss_mask,client interface spi_master_if spi);
 [[distributable]] extern void mcp2515_interrupt_manager(client interface mcp2515_if mcp2515,server interface interrupt_if int_src,server interface tx_if tx,client interface rx_frame_if router);
 #endif /* MCP2515_H_ */

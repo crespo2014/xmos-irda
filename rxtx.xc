@@ -223,6 +223,7 @@ struct frames_buffer
 
 /*
  * Task for tx interface.
+ * todo frames with valid id will be reported back to management port as sucess or failed.
  */
 [[combinable]] void TX_Worker(client interface packet_tx_if rx[max_tx],client interface tx_if tx[max_tx])
 {
@@ -299,7 +300,7 @@ void RX_Packer(streaming chanend ch,unsigned timeout,client interface rx_frame_i
 }
 
 /*
- * Task to use pins aas interrupt source
+ * Task to use pins as interrupt source
  * todo set level trigger, edge trigger
  */
 [[combinable]]  void interrupt_manager(in port iport,unsigned count,struct interrupt_mask_t masks[count],client interface interrupt_if int_if[count])
