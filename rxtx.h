@@ -13,6 +13,12 @@
 #include <xs1.h>
 
 /*
+ * CAN frame has some extra bits
+ */
+#define CAN_RTR  (1<<30)  // remote transmit request
+#define CAN_EXID (1<<31)  // extended id
+
+/*
  * Some Rx task can hold a buffer until it is peek from other task
  * a serial rx can hold this buffer.
  * then a Buffer interface can peek data until \n

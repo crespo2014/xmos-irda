@@ -79,6 +79,42 @@ do { \
   __spi.execute(&__frm,__obj.ss_mask,__obj.cpol,__obj.cpha,__obj.T); \
 } while(0) ;
 
+/*
+ * Convert a frame to a mcp2515 buffer
+ * CAN
+ * EXID RTR ID  - 32bits
+ * data
+ * Size of out data depends on mcp2515
+ * MCP2515 tx buffer
+ * SID10 - SID3
+ * SID2 - SID0 X EXIDE  X EID17 EID16
+ * EID15 - EID8   // it is not necessary to send this two bytes
+ * EID7  - EID0
+ * RTR DLC3-DLC0
+ * DATA
+ */
+
+#define CAN_TO_MCP2515(__in,__len,__out) \
+  do { \
+     if (__len < 5) break; /* at least 5 bytes are needed to make a packet */ \
+     unsigned __i = (__in[0] << 24) | (__in[1] << 16 ) | (__in[2] << 8) | __in[3]; \
+     buff[0] = __i >> 3; \
+     buff[1] = (__i << 5) | (__i >> (28-1) && 0x03); \
+     if (__i & CAN_EXID) buff[1] |= TXB_SIDL_EXIDE; \
+     buff[2] = (__i >> (26-7)); \
+     buff[3] = (__i >> (18-7)); \
+     buff[4] = len & 0x07;    \
+     if (__i & CAN_RTR) buff[4] |= TXB_DLC_RTR; \
+     for (__i=4;__i<__len;__i++) { \
+       __out[5+__i] = __in[__i]; \
+     } \
+  } while(0)
+
+#define MCP2515_TO_CAN(__in,__len,__out) \
+    do { \
+    } while(0)
+
+
 static inline void MCP2515_READ_RXB_STATUS(struct spi_frm_v2 &frm)
 {
   frm.buff[0] = SPI_RXB_STATUS;
@@ -213,53 +249,26 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
          * data max 8 bytes
          */
       case tx.send(const char* data,unsigned char len):
-          if (len < 5) break; // at least 5 bytes are needed to make a packet
-          unsigned i=4;
-          unsigned id;
-          while (i--)
-          {
-            id = (id << 8) | *data;
-            data++;
-          }
-          len -=4;    // data bytes len
-          /*
-           * prepare mcp2515 tx buffer
-           * SID10 - SID3
-           * SID2 - SID0 X EXIDE  X EID17 EID16
-           * EID15 - EID8   // it is not necessary to send this two bytes
-           * EID7  - EID0
-           * RTR DLC3-DLC0
-           * DATA
-           */
-          unsigned char buff[14];
-          buff[0] = id >> 3;
-          buff[1] = (id << 5) | ((id >> (31-TXB_SIDL_EXIDE_BIT)) & TXB_SIDL_EXIDE) | ((id >> (28-1) && 0x03));
-          buff[2] = (id >> (26-7));
-          buff[3] = (id >> (18-7));
-          buff[4] = len & 0x07;   // todo RTR flag
-          unsigned char *d = buff+5;
-          while (len--)
-          {
-            *d = *data;
-            d++;
-            data++;
-          }
-          if (rxtx_st & MCP2515_INT_TX0I)
-          {
-            id = 0;
-          } else if (rxtx_st & MCP2515_INT_TX1I)
-            id = 1;
-          else id = 2;
-          mcp2515.pushBuffer(id,buff,d-buff);
-          // clear tx buffer bit
-          if (id == 0)
-            rxtx_st &= (~MCP2515_INT_TX0I);
-          else if (id == 1)
-            rxtx_st &= (~MCP2515_INT_TX1I);
-          else
-            rxtx_st &= (~MCP2515_INT_TX2I);
-          if ((rxtx_st & (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I)))  //
-            tx.cts();   // reset the notification if there is any buffer available
+        if (len < 5) break; // at least 5 bytes are needed to make a packet
+        unsigned char buff[TXB_NEXT];
+        CAN_TO_MCP2515(data,len,buff);
+        unsigned id;
+        if (rxtx_st & MCP2515_INT_TX0I)
+        {
+          id = 0;
+        } else if (rxtx_st & MCP2515_INT_TX1I)
+          id = 1;
+        else id = 2;
+        mcp2515.pushBuffer(id,buff,len +1); // -4 for id + 5 for txb header
+        // clear tx buffer bit
+        if (id == 0)
+          rxtx_st &= (~MCP2515_INT_TX0I);
+        else if (id == 1)
+          rxtx_st &= (~MCP2515_INT_TX1I);
+        else
+          rxtx_st &= (~MCP2515_INT_TX2I);
+        if ((rxtx_st & (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I)))  //
+          tx.cts();   // reset the notification if there is any buffer available
         break;
       case tx.ack():
         break;
@@ -267,16 +276,3 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
   }
 }
 
-/*
- * Convert from frame with can data to mcp2515 frame
- * can 4xbyte + data
- */
-void mcp2515_to_can(client interface rx_frame_if router,interface tx_if tx)
-{
-
-}
-
-void can_to_mcp2515(interface tx_if tx,client interface rx_frame_if router)
-{
-
-}
