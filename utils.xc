@@ -36,6 +36,37 @@ unsigned readHexByte(const char* &str)
   v |=  readHexChar(str);
   return v;
 }
+/*
+ * str will point to last non-read character
+ */
+unsigned read32BitsHex(const char* &str)
+{
+  unsigned d;
+  for (int i=0;i<4;i++)
+  {
+    unsigned v = readHexChar(str);
+    if (v > 0xFF) break;
+    d = d << 8 | v;
+  }
+  return d;
+}
+
+/*
+ * str will point to last character, it should be ' ' or \n otherwise an error ocurred
+ */
+unsigned  readHexBuffer(const char* &str,unsigned char* buff,unsigned max)
+{
+  unsigned v = 0;
+  unsigned i = 0;
+  while (i < max && v < 0xFF)
+  {
+    v = readHexByte(str);
+    *buff = v;
+    buff++;
+    i++;
+  }
+  return i;
+}
 
 unsigned getHexChar(unsigned u4)
 {

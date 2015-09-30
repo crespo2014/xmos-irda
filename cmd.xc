@@ -70,30 +70,30 @@ enum cmd_st
 
 /*
  * ASCII can tx command.
- * Build a mcp2515 struct and send to mcp2515 tx channel
+ * Build a can packet
+ * IN:
  * ID until 32bits
  * data max 8 bytes
+ * OUT:
+ *  32bits id
+ *  data
  *
  * 0 - invalid format
  * 1 - sucess
  */
 unsigned ascii_cantx(const char* buff,struct rx_u8_buff &ret)
 {
-  unsigned d,id;
-  id = 0;
-  do
-  {
-    d = readHexChar(buff);
-    id = id << 8 + d;
-  } while (*buff != ' ' && d < 0xFF);
-  if (d > 0xFF) return 0;
+  unsigned id;
+  id = read32BitsHex(buff);
+  if (*buff != ' ') return 0;
   ret.dt[0] = id >> 24;
   ret.dt[1] = id >> 16;
   ret.dt[2] = id >> 8;
   ret.dt[3] = id & 0xFF;
-  // read all hex data
-  //TO_MCP2515(id,)
-
+  buff++; // jump space
+  id  = readHexBuffer(buff,ret.dt+4,sizeof(ret.dt)-4);
+  ret.len = 4 + id;
+  if (*buff == ' ' && *buff != '\n') return 0;
   return 1;
 }
 

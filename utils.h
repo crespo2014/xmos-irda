@@ -24,6 +24,11 @@ extern unsigned readHexByte(const char* &str);
 extern unsigned getHexChar(unsigned char num);
 extern unsigned getHexByte(unsigned char num);
 extern void getHexBuffer(const unsigned char *d,unsigned len,char * &str);
+/*
+ * convert ascii hex buffer to  raw data
+ */
+extern unsigned readHexBuffer(const char* &str,unsigned char* buff,unsigned max);
+extern unsigned read32BitsHex(const char* &str);
 
 //convert unsigned 8bit number to hex string and update pointer
 void u8ToHex(unsigned char num,char * &str);
