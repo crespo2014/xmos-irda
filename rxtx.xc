@@ -34,18 +34,6 @@
  *                    ^   ^
  *  CHO_TX <-------- ROUTER <----- CH1_TX
  *
-
- *
- *
- * TODO Combinable task using clocked port.
- * case p <: data:  // executed when buffered port is ready
- * Sendign state ( 0 - idle , 1 - sending, 2 - waiting for time )
- *
- * Modify buffer behavior
- * max-size, use-count, next-write
- * if uxe-count == max-size then full
- * next-write is increment on each store
- * next to read is (next-write + max-size + use_count) % max-size
  */
 
 #include <timer.h>
