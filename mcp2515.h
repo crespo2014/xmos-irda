@@ -277,27 +277,22 @@ struct mcp2515_cnf_t
 /*
  * Interface between mcp2515 main task and mcp2515 interrupt task.
  */
-interface mcp2515_int_if
-{
-    //void ClearInt();
-    unsigned char getIntFlag();
-    void setInterruptEnable(unsigned char ie);
-    void ackInterrupt(unsigned char bitmask);     // update canintf to acknowledge the interrupt
-    /*
-     * Push the buffer into the tx buffer and send it.
-     */
-    void pushBuffer(unsigned char tx_idx,const char* buff,const char len);
-    /*
-     * required buffer len RXB_NEXT
-     */
-    void pullBuffer(unsigned char rx_idx,char *buff);
-};
-
 interface mcp2515_if
 {
   void setMode(unsigned char mode);
   void Reset();
   unsigned char getStatus();
+  unsigned char getIntFlag();
+  void setInterruptEnable(unsigned char ie);
+  void ackInterrupt(unsigned char bitmask);     // update canintf to acknowledge the interrupt
+  /*
+   * Push the buffer into the tx buffer and send it.
+   */
+  void pushBuffer(unsigned char tx_idx,const char* buff,const char len);
+  /*
+   * required buffer len RXB_NEXT
+   */
+  void pullBuffer(unsigned char rx_idx,char *buff);
 //  unsigned char getRXStatus();
 //  unsigned char getControl();
 //  unsigned char getInterruptEnable();
@@ -306,6 +301,6 @@ interface mcp2515_if
 //  void rts();
 };
 
-[[distributable]] extern void mcp2515_master(unsigned char ss_mask,server interface mcp2515_if mcp2515,client interface spi_master_if spi,server interface mcp2515_int_if mcp2515_int);
-[[distributable]] extern void mcp2515_interrupt_manager(client interface mcp2515_int_if mcp2515,server interface interrupt_if int_src,server interface tx_if tx,client interface rx_frame_if router);
+[[distributable]] extern void mcp2515_master(server interface mcp2515_if mcp2515[n],size_t n,unsigned char ss_mask,client interface spi_master_if spi);
+[[distributable]] extern void mcp2515_interrupt_manager(client interface mcp2515_if mcp2515,server interface interrupt_if int_src,server interface tx_if tx,client interface rx_frame_if router);
 #endif /* MCP2515_H_ */

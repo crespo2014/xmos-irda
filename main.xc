@@ -695,7 +695,7 @@ unsafe int  main()
 }
 */
 
-#if 1
+
 // Serial test with router.
 void serial_manager(
     client interface uart_v4 tx,
@@ -764,7 +764,7 @@ void serial_send_loop(out port tx)
     i++;
   }
 }
-
+#if 0
 out port uart_tx_p = XS1_PORT_1H;
 in port uart_rx_p = XS1_PORT_1J;
 out port p_feed = XS1_PORT_1N;
@@ -994,8 +994,89 @@ int main()
   return 0;
 }
 
+#endif
+
+#if 1
+
+// SPI Master
+out port spi_out = XS1_PORT_4C;
+in port spi_miso = XS1_PORT_1H;
+
+//SPI slave
+in port spi_in = XS1_PORT_4D;
+out port spi_slv_miso = XS1_PORT_1J;
+
+//Interrupt sources
+in port interrupt_port = XS1_PORT_1A;
+
+//UART
+out port uart_tx_p = XS1_PORT_1B;
+in port  uart_rx_p = XS1_PORT_1C;
+
+//IRDA
+in port p_irda = XS1_PORT_1D;
+
+//I2C
+port scl = XS1_PORT_1E;
+port sda = XS1_PORT_1F;
+
+// UART LOOP for testing
+out port p_feed = XS1_PORT_1G;
+
+// tracing port
+in port i1 = XS1_PORT_1K;
+in port i2 = XS1_PORT_1I;
+in port i3 = XS1_PORT_1L;
 
 
+int main()
+{
+  interface packet_tx_if  tx[max_tx];    //tx worker, cmd in ,
+  interface rx_frame_if  rx[max_rx];     // serial rx, cmd out
+  interface tx_if        tx_out[max_tx]; // tx interfaces
+  interface serial_rx_if uart_rx;
+  interface uart_v4      uart_tx;
+
+  // buses
+  interface i2c_custom_if i2c[1];
+  interface spi_master_if master_spi_if;
+
+  //devices
+  interface mcp2515_if mcp2515[1];    // for interrupt and command
+
+  //interrupt souurces
+  struct interrupt_mask_t int_mask[] = { {1,0} };
+  interface interrupt_if int_if[1];
+
+
+  //interface tx_if irda_emu;
+  par
+  {
+    Router_v2(tx,rx);
+    serial_rx_v5(uart_rx,rx[serial_rx],uart_rx_p);
+    serial_tx_v5(uart_tx,tx_out[serial_tx],uart_tx_p);
+
+    TX_Worker(tx,tx_out);
+    cmd_v1(rx[cmd_rx],tx_out[cmd_tx],i2c[0]);
+
+    // buses
+    spi_master(spi_out,spi_miso,master_spi_if);
+
+    //devices
+    mcp2515_master(mcp2515,1,SPI1_MCP2515_SS_MASK,master_spi_if);
+
+    // RX interfaces
+    irda_rx_v5(p_irda,10*us,rx[irda_rx]);
+
+    interrupt_manager(interrupt_port,1,int_mask,int_if);
+    mcp2515_interrupt_manager(mcp2515[0],int_if[0],tx_out[mcp2515_tx],rx[mcp2515_rx]);
+
+    i2c_custom(i2c,1,scl,sda,100);
+    serial_manager(uart_tx,uart_rx);
+    serial_send_loop(p_feed);
+  }
+  return 0;
+}
 #endif
 /* todo.
  * analog to digital converter plus interface via serial port

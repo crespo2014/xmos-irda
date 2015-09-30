@@ -114,6 +114,7 @@ enum tx_task
 {
   cmd_tx = 0,
   serial_tx,
+  mcp2515_tx,
   max_tx,
 };
 
@@ -122,6 +123,7 @@ enum rx_task
   serial_rx = 0,
   irda_rx,
   cmd_rx,     // command dispatching
+  mcp2515_rx,
   max_rx,
 };
 

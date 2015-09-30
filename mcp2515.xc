@@ -136,7 +136,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
  * Add ss mask as input parameter
  * Talk to spi master,
  */
-[[distributable]] void mcp2515_master(unsigned char ss_mask,server interface mcp2515_if mcp2515,client interface spi_master_if spi,server interface mcp2515_int_if mcp2515_int)
+[[distributable]] void mcp2515_master(server interface mcp2515_if mcp2515[n],size_t n,unsigned char ss_mask,client interface spi_master_if spi)
 {
   struct mcp2515_cnf_t obj;
   //RESET(frm,spi);
@@ -163,37 +163,37 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
   {
     select
     {
-      case mcp2515.setMode(unsigned char mode):
+      case mcp2515[unsigned i].setMode(unsigned char mode):
         obj.can_ctrl = (obj.can_ctrl &(~MODE_MASK)) | (mode & MODE_MASK);
         WRITE(CAN_CTRL,obj.can_ctrl,spi,obj);
         break;
-      case mcp2515.Reset():
+      case mcp2515[unsigned i].Reset():
         RESET(spi,obj);
         break;
-      case mcp2515.getStatus() -> unsigned char ret:
+      case mcp2515[unsigned i].getStatus() -> unsigned char ret:
           READ_CAN_STATUS(frm,spi,obj,obj.can_status);
         ret = obj.can_status;
         break;
-      case mcp2515_int.getIntFlag() -> unsigned char flag:
+      case mcp2515[unsigned i].getIntFlag() -> unsigned char flag:
         READ(CAN_INTF,spi,obj,flag);
         break;
-      case mcp2515_int.setInterruptEnable(unsigned char ie):
+      case mcp2515[unsigned i].setInterruptEnable(unsigned char ie):
         WRITE(CAN_INTE,ie,spi,obj);
         break;
         /*
          * Clean specific interrupt source
          */
-      case mcp2515_int.ackInterrupt(unsigned char bitmask):
+      case mcp2515[unsigned i].ackInterrupt(unsigned char bitmask):
         BIT_MODIFY(CAN_INTF,bitmask,0,spi,obj);
         break;
-      case mcp2515_int.pushBuffer(unsigned char tx_idx,const char* buff,const char len):
+      case mcp2515[unsigned i].pushBuffer(unsigned char tx_idx,const char* buff,const char len):
         WRITE_BUFF(TXB_0 + TXB_SIDH + TXB_NEXT*tx_idx,buff,len,spi,obj);
         // request to send
         WRITE(TXB_0 + TXB_CTRL + TXB_NEXT*tx_idx,TXB_CTRL_TXREQ,spi,obj);
         RTS(tx_idx,spi,obj);
         break;
         // accepted idx values 1 an 0
-      case mcp2515_int.pullBuffer(unsigned char rx_idx,char *buff):
+      case mcp2515[unsigned i].pullBuffer(unsigned char rx_idx,char *buff):
         RD_RXB((rx_idx & 1) << 1,buff,spi,obj);
         break;
     }
@@ -204,7 +204,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
  * This task link the interrupt service with the mcp2515
  * todo oneshot and so modes
  */
-[[distributable]] void mcp2515_interrupt_manager(client interface mcp2515_int_if mcp2515,server interface interrupt_if int_src,server interface tx_if tx,client interface rx_frame_if router)
+[[distributable]] void mcp2515_interrupt_manager(client interface mcp2515_if mcp2515,server interface interrupt_if int_src,server interface tx_if tx,client interface rx_frame_if router)
 {
   unsigned char rxtx_st;    // rx tx buffer status
   rxtx_st = (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I); // by default tx buffers are empty
