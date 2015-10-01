@@ -354,15 +354,14 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
   {
     select
     {
-    case tx.send(const char* data,unsigned char len):
-      if (len == 5)
+    case tx.send(struct rx_u8_buff  *frame):
+      if (frame->len == 5)
       {
-        unsigned int bitmask = (1<<(*data-1));
-        data++;
+        unsigned int bitmask = (1<<(frame->dt[0]-1));
         unsigned v= 0;
-        while (--len)
+        for (int i = 0;i< frame->len;i++)
         {
-          v = (v << 8) | (*data++);
+          v = (v << 8) | frame->dt[i];
         }
         //start bit
         p <: 0;
@@ -407,14 +406,14 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
   {
     select
     {
-      case tx.send(const char* data,unsigned char len):
-        if (len == 5)
+      case tx.send(struct rx_u8_buff  *frame):
+        if (frame->len == 5)
         {
-          unsigned bitcount = *data++;
+          unsigned bitcount = *frame->dt;
           unsigned v= 0;
-          while (--len)
+          for (int i=1;i< frame->len;++i)
           {
-            v = (v << 8) | (*data++);
+            v = (v << 8) | frame->dt[i];
           }
           SONY_IRDA_32b_SEND(v,bitcount,p32);
           sync(p32);

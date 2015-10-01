@@ -216,8 +216,8 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
       case uart_if.setbaud(unsigned baud):
         baudrate = baud;
         break;
-      case tx.send(const char* data,unsigned char len):
-        UART_TIMED_SEND(data,len,p,baudrate,t);
+      case tx.send(struct rx_u8_buff  *frame):
+        UART_TIMED_SEND(frame->dt,frame->len,p,baudrate,t);
 #if 0
         unsigned outData;    // out value
         t :> tp;

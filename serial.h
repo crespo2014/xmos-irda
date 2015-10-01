@@ -113,14 +113,13 @@ do { \
 #define UART_TIMED_SEND(pdata,len,p,baudrate,t)  do { \
   unsigned outData;    unsigned tp__; \
   t :> tp__; \
-  while (len--)  { \
-    outData = (*pdata) << 1 | 0x200;   /*stop bit 10 as 1, start bit 0 as 0*/ \
+  for (int i =0 ; i< len;i++) { \
+    outData = (pdata[i]) << 1 | 0x200;   /*stop bit 10 as 1, start bit 0 as 0*/ \
     for (int i = 0;i<10;i++) {  \
       t when timerafter(tp__) :> void; \
       p <: >>outData; \
       tp__ += (UART_BASE_BIT_LEN_ticks*baudrate); \
     } \
-    pdata++; \
   } \
   tp__ += (UART_BASE_BIT_LEN_ticks*baudrate*10);  /* 1 byte gap */ \
   t when timerafter(tp__) :> void;  \

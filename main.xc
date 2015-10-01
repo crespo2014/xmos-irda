@@ -749,7 +749,7 @@ void serial_manager(
         buff[2] = data >> 16;
         buff[3] = data >> 8;
         buff[4] = data & 0xFF;
-        tx.send(buff,5);
+//        tx.send(buff,5);
 //      irda_send(d,8,tx);
       data++;
       tp = tp + 500*us;
@@ -864,15 +864,6 @@ int main()
 }
 #endif
 
-
-
-//out port op1G = XS1_PORT_1G;
-//out port debug = XS1_PORT_1I;
-//
-//in port ip1C = XS1_PORT_1C;
-//
-//port sda = XS1_PORT_1O;
-//port scl = XS1_PORT_1P;
 
 void print_buff(const char* buff,unsigned len)
 {

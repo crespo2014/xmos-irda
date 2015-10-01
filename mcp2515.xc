@@ -97,7 +97,7 @@ do { \
 
 #define CAN_TO_MCP2515(__in,__len,__out) \
   do { \
-     if ((__len < 5) | (len > 12)) break; /* at least 5 bytes are needed to make a packet */ \
+     if ((__len < 5) | (__len > 12)) break; /* at least 5 bytes are needed to make a packet */ \
      unsigned __i = ( *(__in) << 24) | ( *(__in + 1) << 16 ) | (*(__in + 2) << 8) | *(__in + 3); \
      *(__out) = __i >> 3; \
      *(__out + 1) = (__i << 5) | (__i >> (28-1) && 0x03); \
@@ -271,10 +271,10 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
          * MSB - LSB 32 bits dest - if bit31 is 1 then this is a extended packet id
          * data max 8 bytes
          */
-      case tx.send(const char* data,unsigned char len):
-        if (len < 5) break; // at least 5 bytes are needed to make a packet
+      case tx.send(struct rx_u8_buff  *frame):
+        if (frame->len < 5) break; // at least 5 bytes are needed to make a packet
         unsigned char buff[TXB_NEXT];
-        CAN_TO_MCP2515(data,len,buff);    //
+        CAN_TO_MCP2515(frame->dt,frame->len,buff);    //
         //
         unsigned id;
         if (rxtx_st & MCP2515_INT_TX0I)
@@ -283,7 +283,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
         } else if (rxtx_st & MCP2515_INT_TX1I)
           id = 1;
         else id = 2;
-        mcp2515.pushBuffer(id,buff,len +1); // -4 for id + 5 for txb header
+        mcp2515.pushBuffer(id,buff,frame->len +1); // -4 for id + 5 for txb header
         // clear tx buffer bit
         if (id == 0)
           rxtx_st &= (~MCP2515_INT_TX0I);

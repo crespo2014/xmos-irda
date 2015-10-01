@@ -165,18 +165,20 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
   {
     select
     {
-      case tx.send(const char* data,unsigned char len):
-         if (*data > ' ')   //binary commands should go straight to the device
+      case tx.send(struct rx_u8_buff  *frame):
+        if (frame->src_rx == serial_rx)
+        {
+         if (frame->dt[0] > ' ')   //binary commands should go straight to the device
          {
            unsigned len;
-           unsigned cmd_id = getCommand(data,len);
+           unsigned cmd_id = getCommand(frame->dt,len);
            switch (cmd_id)
            {
             case cmd_i2cw:
-              ascii_i2cw(data + len + 1,*pframe,i2c);
+              ascii_i2cw(frame->dt + len + 1,*pframe,i2c);
               break;
             case cmd_can_tx:
-              if (ascii_cantx(data + len + 1,*pframe))
+              if (ascii_cantx(frame->dt + len + 1,*pframe))
               {
                 rx.push(pframe,mcp2515_tx);
               }
@@ -186,6 +188,7 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
               break;
            }
          }
+          }
         tx.cts();
         break;
       case tx.ack():

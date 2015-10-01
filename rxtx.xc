@@ -123,24 +123,24 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
   {
     select
     {
-      case tx.send(const char* data,unsigned char len):
+      case tx.send(struct rx_u8_buff  *frame):
         // Give two bytes packet gap
         p <: (unsigned short)0;
-        while(len--)
+        for (int j =0;j<frame->len;j++)
         {
           p <: (unsigned char)0x7;    //start
-          unsigned dt = *data++;
-          unsigned i = 8;
-          while(i--)
+          unsigned mask = 0x80;
+          while(mask)
           {
-            if (dt & 0x80)
+            if (frame->dt[j] & mask)
               p <: (unsigned char)0x03;
             else
               p <: (unsigned char)0x01;
-            dt <<=1;
+            mask >>=1;
           }
           p <: (unsigned char)0x0;  //24 * 8 = 192ns
         }
+        tx.cts();
         break;
       case tx.ack():
         break;
@@ -243,7 +243,7 @@ struct frames_buffer
           rx[j].get(pfrm,j);
           if (pfrm != 0)
           {
-            tx[j].send(pfrm->dt,pfrm->len);  // send buffer
+            tx[j].send(pfrm);  // send buffer
             rx[j].push(pfrm); // release the buffer
             break;
           }
@@ -258,7 +258,7 @@ struct frames_buffer
           rx[j].get(pfrm,j);
           if (pfrm != 0)
           {
-            tx[j].send(pfrm->dt,pfrm->len);
+            tx[j].send(pfrm);
             rx[j].push(pfrm);
             break;
           }

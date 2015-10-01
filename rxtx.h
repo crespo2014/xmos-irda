@@ -12,34 +12,32 @@
 #include <timer.h>
 #include <xs1.h>
 
+enum tx_task
+{
+  cmd_tx = 0,
+  serial_tx,
+  mcp2515_tx,
+  max_tx,
+};
+
+enum rx_task
+{
+  serial_rx = 0,
+  irda_rx,
+  cmd_rx,     // command dispatching
+  mcp2515_rx,
+  test_rx,      // testing interface
+  max_rx,
+};
+
 /*
  * Comunications
  * Binary.
  * ID_8 DEST_8 DATA  --> send to command interface ;extract id, dest; send to router; tx_work will reply back to command.
  * command interface will translate all packet with destination tx, parser it, and forward it.
  *
- * ones command is send using tx worker, a reply is send to managament if it is necessary
- *
- * incoming data from interface can be send to command port or managament port.
- * an id is preffix before send to command port.
- *
- * it is better use at managamnet tx, to convert all outgoing data.
- * SRC DATA  - source
- *
- *            (ID_8 DEST_8 DATA)
- * in cmd --> [cmd] --> router
- *               <-- [notify] <-- router <-- [input port] <-- interrupt
- * (ID_8 SRC_8 DATA)          (SRC_8 DATA)
- *
- *            [router] -->[tx worker] --> [out if]
- *            [notify]<--          <-- reply
- *
- *  managament port send raw data, frame is fill up with data, and go into router and so.
- *  managament port recieved raw data comming from decoded.
- *
- *  man TX <--- [ coded base on src_rx ] <-- [any interface]
- *  man RX --> [ decoded ] --> [any interface]
- *
+ *  Data comming from user interface is decode to send to the specificy interface.
+ *  data comming fro minterface is forward to user interface
  */
 
 /*
@@ -64,7 +62,7 @@ struct rx_u8_buff
     unsigned char overflow; // how many bytes lost
     unsigned char id;       // request id , use it for reply
     // router will set up this value base on incomming interface
-    unsigned char src_rx;   // where this data is comming from. ( for managament port, fields need to be update before procceded).
+    enum rx_task src_rx;   // where this data is comming from. ( for managament port, fields need to be update before procceded).
     unsigned char header_len; // header len, real data, start here
 
 };
@@ -143,29 +141,13 @@ interface out_port_if {
 // todo . send function should contains full frame, because we need data usefull for the cmd interface.
 interface tx_if
 {
-  [[clears_notification]] void send(const char* data,unsigned char len);
+  [[clears_notification]] void send(struct rx_u8_buff  *pframe);
   // clear to send
   [[notification]] slave void cts();
   [[clears_notification]] void ack();
 };
 
-enum tx_task
-{
-  cmd_tx = 0,
-  serial_tx,
-  mcp2515_tx,
-  max_tx,
-};
 
-enum rx_task
-{
-  serial_rx = 0,
-  irda_rx,
-  cmd_rx,     // command dispatching
-  mcp2515_rx,
-  test_rx,      // testing interface
-  max_rx,
-};
 
 //Tx or output interface
 interface packet_tx_if
