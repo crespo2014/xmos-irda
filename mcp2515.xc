@@ -256,11 +256,12 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
           }
           unsigned char buff[RXB_NEXT];
           mcp2515.pullBuffer(idx,buff);
-          pframe->dt[0] = cmd_can_rx;     // send to command interface for translation into ascii
-          MCP2515_TO_CAN(buff,sizeof(buff),pframe->dt + 1,pframe->len);
+          MCP2515_TO_CAN(buff,sizeof(buff),pframe->dt,pframe->len);
           pframe->overflow = 0;
           pframe->len++;  //
-          router.push(pframe,cmd_tx);
+          pframe->id = 0; // no id associated to this command
+          pframe->src_rx = cmd_can_rx;
+          router.push(pframe,cmd_tx); // send to command interface for translation
         }
         // clear all rx and tx interrupt flags
         mcp2515.ackInterrupt(MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I | MCP2515_INT_RX0I | MCP2515_INT_RX1I);

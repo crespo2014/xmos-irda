@@ -33,6 +33,13 @@
  *
  *            [router] -->[tx worker] --> [out if]
  *            [notify]<--          <-- reply
+ *
+ *  managament port send raw data, frame is fill up with data, and go into router and so.
+ *  managament port recieved raw data comming from decoded.
+ *
+ *  man TX <--- [ coded base on src_rx ] <-- [any interface]
+ *  man RX --> [ decoded ] --> [any interface]
+ *
  */
 
 /*
@@ -55,7 +62,11 @@ struct rx_u8_buff
     unsigned char dt[32];
     unsigned char len;      // actual len of buffer
     unsigned char overflow; // how many bytes lost
-    unsigned char id;       // id set by managament to get a reply for thsi command.
+    unsigned char id;       // request id , use it for reply
+    // router will set up this value base on incomming interface
+    unsigned char src_rx;   // where this data is comming from. ( for managament port, fields need to be update before procceded).
+    unsigned char header_len; // header len, real data, start here
+
 };
 
 /*
@@ -129,6 +140,7 @@ interface out_port_if {
 
 // for irda write from msb to lsb
 // len is the number of bits
+// todo . send function should contains full frame, because we need data usefull for the cmd interface.
 interface tx_if
 {
   [[clears_notification]] void send(const char* data,unsigned char len);
@@ -136,6 +148,7 @@ interface tx_if
   [[notification]] slave void cts();
   [[clears_notification]] void ack();
 };
+
 enum tx_task
 {
   cmd_tx = 0,
@@ -150,6 +163,7 @@ enum rx_task
   irda_rx,
   cmd_rx,     // command dispatching
   mcp2515_rx,
+  test_rx,      // testing interface
   max_rx,
 };
 

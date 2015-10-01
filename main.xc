@@ -378,6 +378,25 @@ void channel_signal(streaming chanend ch,out port p)
     w++;
   }
 }
+/*
+ * use as test interface to push commands to router
+ */
+void command_pusher(client interface rx_frame_if router)
+{
+  struct rx_u8_buff tfrm;   // temporal frame
+  struct rx_u8_buff * movable pframe = &tfrm;
+  const char * str;
+  timer t;
+  unsigned tp;
+  t :> tp;
+  while(1) {
+    t when timerafter(tp) :> void;
+    tp = tp + 500*us;
+    str = "CANTX 0A 0102030405\n";
+    STRCPY(pframe->dt,str,pframe->len);
+    router.push(pframe,cmd_tx);
+  }
+}
 
 /*
  * Test done
@@ -1067,6 +1086,7 @@ int main()
 
     // RX interfaces
     irda_rx_v5(p_irda,10*us,rx[irda_rx]);
+    command_pusher(rx[test_rx]);
 
     interrupt_manager(interrupt_port,1,int_mask,int_if);
     mcp2515_interrupt_manager(mcp2515[0],int_if[0],tx_out[mcp2515_tx],rx[mcp2515_rx]);

@@ -178,8 +178,9 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
           // timeout waiting for new byte (gap between bytes)
           if (pframe->overflow || (pframe->len != 0 && (pframe->dt[0] < ' ' ||  pframe->dt[pframe->len-1] == '\n')))
           {
+            // todo send to decoder,
             // for binary command send to device, for ascii send to cmd parser
-            router.push(pframe,pframe->dt[0] < ' ' ? pframe->dt[0] : cmd_tx);
+            router.push(pframe,cmd_tx);
           }
           pframe->len = 0;
           pframe->overflow = 0;
