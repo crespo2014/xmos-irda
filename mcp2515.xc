@@ -11,6 +11,7 @@
 #include "spi_custom.h"
 #include "utils.h"
 #include "rxtx.h"
+#include "cmd.h"
 
 #define WRITE_BUFF(__addres,__buff,__len,__spi,__obj) \
   do { \
@@ -70,7 +71,7 @@
   } while(0) ;
 
 /*
- * aceepted id 0 for rx0 and 2 for rx1
+ * acepted id 0 for rx0 and 2 for rx1
  */
 #define RD_RXB(__idx,__buff,__spi,__obj)  \
 do { \
@@ -97,29 +98,33 @@ do { \
 #define CAN_TO_MCP2515(__in,__len,__out) \
   do { \
      if ((__len < 5) | (len > 12)) break; /* at least 5 bytes are needed to make a packet */ \
-     unsigned __i = (__in[0] << 24) | (__in[1] << 16 ) | (__in[2] << 8) | __in[3]; \
-     buff[0] = __i >> 3; \
-     buff[1] = (__i << 5) | (__i >> (28-1) && 0x03); \
+     unsigned __i = ( *(__in) << 24) | ( *(__in + 1) << 16 ) | (*(__in + 2) << 8) | *(__in + 3); \
+     *(__out) = __i >> 3; \
+     *(__out + 1) = (__i << 5) | (__i >> (28-1) && 0x03); \
      if (__i & CAN_EXID) buff[1] |= TXB_SIDL_EXIDE; \
-     buff[2] = (__i >> (26-7)); \
-     buff[3] = (__i >> (18-7)); \
-     buff[4] = len & 0x07;    \
+     *(__out + 2) = (__i >> (26-7)); \
+     *(__out + 3) = (__i >> (18-7)); \
+     *(__out + 4) = len & 0x07;    \
      if (__i & CAN_RTR) buff[4] |= TXB_DLC_RTR; \
      for (__i=4;__i<__len;__i++) { \
-       __out[5+__i] = __in[__i]; \
+       *(__out + 5 +__i) = *(__in + __i); \
      } \
   } while(0)
 
-#define MCP2515_TO_CAN(__in,__len,__out) \
+#define MCP2515_TO_CAN(__in,__len,__out,__outlen) \
     do { \
       unsigned __id = (*__in << 3) | (*(__in + 1) >> 5) | ((*(__in + 1) & 0x3) << 24) | (*(__in+2) << 16) | (*(__in+3) << 8); \
       if (*(__in+1) & TXB_SIDL_EXIDE) __id |= CAN_EXID; \
       if (*(__in+4) & TXB_DLC_RTR) __id |= CAN_RTR; \
-      *__out = id >> 24; \
-      *(__out + 1) = id >> 16; \
-      *(__out + 2) = id >> 8; \
-      *(__out + 3) = id & 0xFF; \
-      _id = *(__in + 4) & 0x07; \
+      *(__out) = __id >> 24; \
+      *(__out + 1) = __id >> 16; \
+      *(__out + 2) = __id >> 8; \
+      *(__out + 3) = __id & 0xFF; \
+      __outlen = *(__in + 4) & 0x07; /* read size */ \
+      __id = __outlen; \
+      while (__id--) { \
+        *(__out + 4 + __id) = *(__in + 5 + __id); \
+      } \
     } while(0)
 
 
@@ -214,6 +219,8 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
  */
 [[distributable]] void mcp2515_interrupt_manager(client interface mcp2515_if mcp2515,server interface interrupt_if int_src,server interface tx_if tx,client interface rx_frame_if router)
 {
+  struct rx_u8_buff tfrm;   // temporal frame
+  struct rx_u8_buff * movable pframe = &tfrm;
   unsigned char rxtx_st;    // rx tx buffer status
   rxtx_st = (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I); // by default tx buffers are empty
   mcp2515.setInterruptEnable(MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I | MCP2515_INT_RX0I | MCP2515_INT_RX1I);   // enable all
@@ -229,24 +236,31 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
         {
           if ((rxtx_st & (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I)) == 0)  //
           {
-            tx.cts();
+            tx.cts(); // it was not any buffer empty before, then signal
           }
-          rxtx_st |= (intFlags & (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I));  // update to known which buffer is empty
+//          rxtx_st |= (intFlags & (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I));  // update to known which buffer is empty
         }
-        // did a new packet came
-        if (intFlags & MCP2515_INT_RX0I)
+        rxtx_st |= intFlags;   // get all events, keeping previous ones
+
+        while(rxtx_st & (MCP2515_INT_RX0I | MCP2515_INT_RX1I))
         {
-          // read the packet and send to router
+          unsigned idx;
+          if (rxtx_st & MCP2515_INT_RX0I)
+          {
+            idx = 0;
+            rxtx_st &=(~MCP2515_INT_RX0I);
+          }else
+          {
+            idx = 1;
+            rxtx_st &=(~MCP2515_INT_RX1I);
+          }
           unsigned char buff[RXB_NEXT];
-          mcp2515.pullBuffer(0,buff);
-          // parset it
-        }
-        if (intFlags & MCP2515_INT_RX1I)
-        {
-          // read the packet and send to router
-          unsigned char buff[RXB_NEXT];
-          mcp2515.pullBuffer(0,buff);
-          // parset it
+          mcp2515.pullBuffer(idx,buff);
+          pframe->dt[0] = cmd_can_rx;     // send to command interface for translation into ascii
+          MCP2515_TO_CAN(buff,sizeof(buff),pframe->dt + 1,pframe->len);
+          pframe->overflow = 0;
+          pframe->len++;  //
+          router.push(pframe,cmd_tx);
         }
         // clear all rx and tx interrupt flags
         mcp2515.ackInterrupt(MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I | MCP2515_INT_RX0I | MCP2515_INT_RX1I);
@@ -259,7 +273,8 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
       case tx.send(const char* data,unsigned char len):
         if (len < 5) break; // at least 5 bytes are needed to make a packet
         unsigned char buff[TXB_NEXT];
-        CAN_TO_MCP2515(data,len,buff);
+        CAN_TO_MCP2515(data+1,len,buff);    //
+        //
         unsigned id;
         if (rxtx_st & MCP2515_INT_TX0I)
         {

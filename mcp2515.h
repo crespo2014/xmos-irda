@@ -243,6 +243,8 @@
 #define MCP2515_INT_RX1I  (1<<1)
 #define MCP2515_INT_RX0I  (1<<0)
 
+
+
 /*
  * CAN STAT. iCOD contains the code of the highest priority interrupt
  * 0 - not interrupt
@@ -312,9 +314,9 @@ interface mcp2515_if
     *(__out + 2) = (__i >> (26-7)); \
     *(__out + 3) = (__i >> (18-7)); \
     *(__out + 4) = len & 0x07;    \
-     if (__i & CAN_RTR) *(__out + 4) |= TXB_DLC_RTR; \
-     for (__i=4;__i<__len;__i++) { \
-       *(__out + 5 + i) = *(__in +__i); \
+     if (__id & CAN_RTR) *(__out + 4) |= TXB_DLC_RTR; \
+     for (int __i=0;__i<__len;__i++) { \
+       *(__out + 5 + i) = *(__data +__i); \
      } \
   } while(0)
 

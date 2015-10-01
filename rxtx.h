@@ -13,6 +13,29 @@
 #include <xs1.h>
 
 /*
+ * Comunications
+ * Binary.
+ * ID_8 DEST_8 DATA  --> send to command interface ;extract id, dest; send to router; tx_work will reply back to command.
+ * command interface will translate all packet with destination tx, parser it, and forward it.
+ *
+ * ones command is send using tx worker, a reply is send to managament if it is necessary
+ *
+ * incoming data from interface can be send to command port or managament port.
+ * an id is preffix before send to command port.
+ *
+ * it is better use at managamnet tx, to convert all outgoing data.
+ * SRC DATA  - source
+ *
+ *            (ID_8 DEST_8 DATA)
+ * in cmd --> [cmd] --> router
+ *               <-- [notify] <-- router <-- [input port] <-- interrupt
+ * (ID_8 SRC_8 DATA)          (SRC_8 DATA)
+ *
+ *            [router] -->[tx worker] --> [out if]
+ *            [notify]<--          <-- reply
+ */
+
+/*
  * CAN frame has some extra bits
  */
 #define CAN_RTR  (1<<30)  // remote transmit request
@@ -23,6 +46,8 @@
  * a serial rx can hold this buffer.
  * then a Buffer interface can peek data until \n
  * and parse without blocking rx by channel or something else
+ *
+ *
  */
 
 struct rx_u8_buff
@@ -30,6 +55,7 @@ struct rx_u8_buff
     unsigned char dt[32];
     unsigned char len;      // actual len of buffer
     unsigned char overflow; // how many bytes lost
+    unsigned char id;       // id set by managament to get a reply for thsi command.
 };
 
 /*

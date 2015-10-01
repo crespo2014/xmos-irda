@@ -11,9 +11,10 @@
 
 #include "i2c_custom.h"
 /*
- * Commands definition
+ * Commands definition for binary packets send to cmd interface
+ * it is not the same than rx tx interfaces
+ * intefaces work with raw data
  */
-
 #define cmd_none    0
 #define cmd_i2cw    1
 #define cmd_i2cr    2
