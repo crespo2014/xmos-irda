@@ -197,6 +197,7 @@ struct frames_buffer
       if (frames[dest].count != 0)
         tx_if[j].ondata();
       break;
+      // returned frame from tx interface
     case tx_if[int _].push(struct rx_u8_buff  * movable &old_p):
       free_list[free_count++] = move(old_p);
       break;
@@ -204,10 +205,11 @@ struct frames_buffer
     case tx_if[int _].ack():
         break;
         // an input task push data, it need back a free buffer.
-    case rx_if[int _].push(struct rx_u8_buff  * movable &old_p,enum tx_task j):
+    case rx_if[int idx].push(struct rx_u8_buff  * movable &old_p,enum tx_task j):
       if (frames[j].count != frame_buffer_list_max && free_count)
       {
         unsigned char pos = (frames[j].rd_idx + frames[j].count) & (frame_buffer_list_max -1);
+        old_p->src_rx =  idx;
         frames[j].list[pos] = move(old_p);
         frames[j].count++;
         if (frames[j].count == 1)
