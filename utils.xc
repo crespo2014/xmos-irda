@@ -41,7 +41,7 @@ unsigned readHexByte(const char* &str)
  */
 unsigned read32BitsHex(const char* &str)
 {
-  unsigned d;
+  unsigned d = 0;
   for (int i=0;i<4;i++)
   {
     unsigned v = readHexChar(str);
@@ -109,6 +109,14 @@ void strcpy(char* &dest,const char* src)
   }
 }
 #endif
+
+/*
+ * Str will point to last not equal value
+ */
+#define ispreffix_(__prefix,__str) \
+  do { \
+    while (*(__prefix) == *(__str)) { ++__prefix;++__str; } \
+  } while(0) \
 
 unsigned isPreffix(const char* pref,const char *str,const char *&last)
 {

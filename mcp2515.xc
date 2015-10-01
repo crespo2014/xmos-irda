@@ -274,7 +274,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
       case tx.send(const char* data,unsigned char len):
         if (len < 5) break; // at least 5 bytes are needed to make a packet
         unsigned char buff[TXB_NEXT];
-        CAN_TO_MCP2515(data+1,len,buff);    //
+        CAN_TO_MCP2515(data,len,buff);    //
         //
         unsigned id;
         if (rxtx_st & MCP2515_INT_TX0I)

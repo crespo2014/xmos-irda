@@ -182,7 +182,7 @@ void ProcessCommand(const char* data,unsigned char len,struct rx_u8_buff &pframe
     {
       case tx.send(const char* data,unsigned char len):
          unsigned cmd_id;
-         if (*data > ' ')   //binary commands should go strait to the device
+         if (*data > ' ')   //binary commands should go straight to the device
          {
            const unsigned char* l;
            switch (getCommand(data,l))
@@ -191,7 +191,7 @@ void ProcessCommand(const char* data,unsigned char len,struct rx_u8_buff &pframe
               ascii_i2cw(++l,*pframe,i2c);
               break;
             case cmd_can_tx:
-              if (ascii_cantx(l,*pframe))
+              if (ascii_cantx(++l,*pframe))
               {
                 rx.push(pframe,mcp2515_tx);
               }
