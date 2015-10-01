@@ -114,10 +114,7 @@ void strcpy(char* &dest,const char* src)
 /*
  * Str will point to last not equal value
  */
-#define ispreffix_(__prefix,__str) \
-  do { \
-    while (*(__prefix) == *(__str)) { ++__prefix;++__str; } \
-  } while(0) \
+
 
 unsigned isPreffix(const char* pref,const char *str,const char *&last)
 {

@@ -34,7 +34,7 @@ extern unsigned read32BitsHex(const char* &str);
 void u8ToHex(unsigned char num,char * &str);
 
 // copy str and update dest with last copied character
-extern void strcpy(char* &dest,const char* src);
+//extern void strcpy(char* &dest,const char* src);
 
 // copy string macro that
 #define STRCPY(__dest,__src,__len) \
@@ -42,6 +42,18 @@ extern void strcpy(char* &dest,const char* src);
     __len = 0; \
     while ((*(__dest + __len) = *(__src + __len)) != 0) ++__len; \
   } while(0)
+
+#define ispreffix_(__prefix,__str,__len) \
+  do { \
+    while (*(__prefix + __len) == *(__str + __len)) { ++__len; } \
+  } while(0) \
+
+static inline unsigned CheckPreffix(const char* preffix,const char* str,unsigned &len)
+{
+  len = 0;
+  while( *(preffix + len) == *(str+len) ) { ++len; }
+  return (*(preffix + len) == 0 &&  *(str+len) == ' ');
+}
 
 // print a ascii buffer
 extern void printbuff(const char* d,unsigned len);

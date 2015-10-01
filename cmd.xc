@@ -25,15 +25,21 @@
 
 /*
  * Use a termination character to make not possible past the end of the string
+ * update prefix len.
  */
-unsigned getCommand(const unsigned char* c,const unsigned char* &t)
+static inline unsigned getCommand(const unsigned char* c,unsigned &len)
 {
-  if (isPreffix("I2CW",c,t) && *t == ' ') return cmd_i2cw;
-  if (isPreffix("I2CR",c,t) && *t == ' ') return cmd_i2cr;
-  if (isPreffix("I2CWR",c,t) && *t == ' ') return cmd_i2cwr;
-  if (isPreffix("CANTX",c,t) && *t == ' ') return cmd_can_tx;
-  if (isPreffix("SPI0",c,t) && *t == ' ') return cmd_spi0_tx;
-  if (isPreffix("INFO",c,t) && *t == ' ') return cmd_info;
+  const char * preffix;
+  preffix = "I2CW";
+  ispreffix_(preffix,c,len);
+  if (*(c + len) == ' ' && *(preffix + len) == 0 ) return cmd_i2cw;
+  if (CheckPreffix("I2CR",c,len)) return cmd_i2cr;
+  if (CheckPreffix("I2CW",c,len)) return cmd_i2cw;
+  if (CheckPreffix("I2CR",c,len)) return cmd_i2cr;
+  if (CheckPreffix("I2CWR",c,len)) return cmd_i2cwr;
+  if (CheckPreffix("CANTX",c,len)) return cmd_can_tx;
+  if (CheckPreffix("SPI0",c,len)) return cmd_spi0_tx;
+  if (CheckPreffix("INFO",c,len)) return cmd_info;
   return cmd_none;
 }
 
@@ -83,6 +89,7 @@ enum cmd_st
  */
 unsigned ascii_cantx(const char* buff,struct rx_u8_buff &ret)
 {
+#if 1
   unsigned id;
   id = read32BitsHex(buff);
   if (*buff != ' ') return 0;
@@ -94,15 +101,17 @@ unsigned ascii_cantx(const char* buff,struct rx_u8_buff &ret)
   id  = readHexBuffer(buff,ret.dt+4,sizeof(ret.dt)-4);
   ret.len = 4 + id;
   if (*buff == ' ' && *buff != '\n') return 0;
+#endif
   return 1;
 }
 
 void ascii_i2cw(const char* buff,struct rx_u8_buff &ret,client interface i2c_custom_if i2c)
 {
+#if 1
   struct i2c_frm frm;
   if (!i2cw_decode(buff,frm,'\n'))
   {
-    safestrcpy(ret.dt,"I2CW invalid format");
+    STRCPY(ret.dt,"I2CW invalid format",ret.len);
   }
   else
   {
@@ -110,6 +119,7 @@ void ascii_i2cw(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
     i2c_decode_answer(frm,ret);
   }
   ret.len = safestrlen(ret.dt);
+#endif
 }
 #if 0
 void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_custom_if i2c)
@@ -174,30 +184,31 @@ void ProcessCommand(const char* data,unsigned char len,struct rx_u8_buff &pframe
   // packet use to push
   struct rx_u8_buff tfrm;   // temporal frame
   struct rx_u8_buff * movable pframe = &tfrm;
-  unsigned ascii_mode = 1;    //all data from rx is send to commnad to return as ascii or not
+  //unsigned ascii_mode = 1;    //all data from rx is send to commnad to return as ascii or not
   tx.cts();
   while(1)
   {
     select
     {
       case tx.send(const char* data,unsigned char len):
-         unsigned cmd_id;
          if (*data > ' ')   //binary commands should go straight to the device
          {
-           const unsigned char* l;
-           switch (getCommand(data,l))
+           unsigned len;
+           unsigned cmd_id = getCommand(data,len);
+           switch (cmd_id)
            {
             case cmd_i2cw:
-              ascii_i2cw(++l,*pframe,i2c);
+              ascii_i2cw(data + len + 1,*pframe,i2c);
               break;
             case cmd_can_tx:
-              if (ascii_cantx(++l,*pframe))
+              if (ascii_cantx(data + len + 1,*pframe))
               {
                 rx.push(pframe,mcp2515_tx);
               }
               break;
             default:
-              STRCPY(pframe->dt,"Ascii cmd unimplemented",pframe->len);
+              const char* src = "Ascii cmd unimplemented";
+              STRCPY(pframe->dt,src,pframe->len);
               break;
            }
          }
