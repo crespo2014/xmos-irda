@@ -122,7 +122,7 @@ void ascii_i2cw(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
   ret.len = safestrlen(ret.dt);
 #endif
 }
-#if 0
+#if 1
 void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_custom_if i2c)
 {
   const char* resp;
@@ -135,7 +135,7 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
       break;
     }
     i2c.i2c_execute(frm);
-    if (frm.ret_code != i2c_success)
+    if (frm.ret_code != i2c_ack)
     {
       char* t = ret.dt;
       strcpy(t,"I2CW NOK E: ");
@@ -149,32 +149,6 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
   ret.len = safestrlen(ret.dt);
 }
 
-
-void ProcessCommand(const char* data,unsigned char len,struct rx_u8_buff &pframe,client interface i2c_custom_if i2c)
-{
-  const unsigned char* l;
-  if (*data > ' ')
-  {
-    //cmd_id = getCommand(data,l);
-    switch (getCommand(data,l))
-    {
-     case i2cw_cmd:
-       ascii_i2cw(++l,pframe,i2c);
-       break;
-     default:
-       char* str = pframe.dt;
-       strcpy(str,"Ascii cmd unimplemented");
-       pframe.len = str - pframe.dt;
-       break;
-    }
-  }
-  else
-  {
-    char* str = pframe.dt;
-    strcpy(str,"Binary cmd unimplemented");
-    pframe.len = str - pframe.dt;
-  }
-}
 #endif
 
 /*

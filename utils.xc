@@ -99,34 +99,6 @@ void u8ToHex(unsigned char num,char * &str)
   str++;
 }
 
-
-#if 0
-void strcpy(char* &dest,const char* src)
-{
-  while ((*dest = *src) != 0)
-  {
-    ++dest;
-    ++src;
-  }
-}
-#endif
-
-/*
- * Str will point to last not equal value
- */
-
-
-unsigned isPreffix(const char* pref,const char *str,const char *&last)
-{
-  last = str;
-  while (*pref == *last)
-  {
-    ++pref;
-    ++last;
-  }
-  return (*pref == 0);
-}
-
 void printbuff(const char* d,unsigned len)
 {
   while (len--)
