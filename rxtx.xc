@@ -230,6 +230,8 @@ struct frames_buffer
 #define CTS_BIT 1   // clear to send data
 #define RTS_BIT 2   // request to send data
   unsigned char flags[max_tx];
+  for (int i= 0; i< max_tx;i++)
+    flags[i] = 0;
   while(1)
   {
     select

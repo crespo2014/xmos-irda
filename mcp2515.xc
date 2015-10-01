@@ -101,13 +101,13 @@ do { \
      unsigned __i = ( *(__in) << 24) | ( *(__in + 1) << 16 ) | (*(__in + 2) << 8) | *(__in + 3); \
      *(__out) = __i >> 3; \
      *(__out + 1) = (__i << 5) | (__i >> (28-1) && 0x03); \
-     if (__i & CAN_EXID) buff[1] |= TXB_SIDL_EXIDE; \
+     if (__i & CAN_EXID) *(__out + 1) |= TXB_SIDL_EXIDE; \
      *(__out + 2) = (__i >> (26-7)); \
      *(__out + 3) = (__i >> (18-7)); \
-     *(__out + 4) = len & 0x07;    \
-     if (__i & CAN_RTR) buff[4] |= TXB_DLC_RTR; \
+     *(__out + 4) = (__len - 4) & 0x07;    \
+     if (__i & CAN_RTR) *(__out + 4) |= TXB_DLC_RTR; \
      for (__i=4;__i<__len;__i++) { \
-       *(__out + 5 +__i) = *(__in + __i); \
+       *(__out + 1 +__i) = *(__in + __i); \
      } \
   } while(0)
 

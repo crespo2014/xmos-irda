@@ -391,7 +391,7 @@ void command_pusher(client interface rx_frame_if router)
   t :> tp;
   while(1) {
     t when timerafter(tp) :> void;
-    tp = tp + 10*us;
+    tp = tp + 500*us;
     str = "CANTX 0A 0102030405\n";
     STRCPY(pframe->dt,str,pframe->len);
     router.push(pframe,cmd_tx);

@@ -58,9 +58,10 @@ unsigned  readHexBuffer(const char* &str,unsigned char* buff,unsigned max)
 {
   unsigned v = 0;
   unsigned i = 0;
-  while (i < max && v < 0xFF)
+  while (i < max)
   {
     v = readHexByte(str);
+    if (v > 0xFF) break;
     *buff = v;
     buff++;
     i++;
