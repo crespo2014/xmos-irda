@@ -37,6 +37,7 @@ void u8ToHex(unsigned char num,char * &str);
 //extern void strcpy(char* &dest,const char* src);
 
 // copy string macro that
+#if 0
 #define STRCPY(__dest,__src,__len) \
   do { \
     __len = 0; \
@@ -46,13 +47,22 @@ void u8ToHex(unsigned char num,char * &str);
 #define ispreffix_(__prefix,__str,__len) \
   do { \
     while (*(__prefix + __len) == *(__str + __len)) { ++__len; } \
-  } while(0) \
+  } while(0)
+
+#endif
+
+static inline unsigned strcpy(char* dest,const char* src)
+{
+  unsigned len = 0;
+  while (( dest[len] = src[len]) != 0) ++len;
+  return len;
+}
 
 static inline unsigned CheckPreffix(const char* preffix,const char* str,unsigned &len)
 {
   len = 0;
-  while( *(preffix + len) == *(str+len) ) { ++len; }
-  return (*(preffix + len) == 0 &&  *(str+len) == ' ');
+  while( preffix[len] == str[len] ) { ++len; }
+  return (preffix[len] == 0 &&  str[len] == ' ');
 }
 
 // print a ascii buffer

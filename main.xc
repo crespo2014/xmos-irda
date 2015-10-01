@@ -385,15 +385,13 @@ void command_pusher(client interface rx_frame_if router)
 {
   struct rx_u8_buff tfrm;   // temporal frame
   struct rx_u8_buff * movable pframe = &tfrm;
-  const char * str;
   timer t;
   unsigned tp;
   t :> tp;
   while(1) {
     t when timerafter(tp) :> void;
     tp = tp + 500*us;
-    str = "CANTX 0A 0102030405\n";
-    STRCPY(pframe->dt,str,pframe->len);
+    pframe->len = strcpy(pframe->dt,"CANTX 0A 0102030405\n");
     router.push(pframe,cmd_tx);
   }
 }

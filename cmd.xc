@@ -29,18 +29,19 @@
  */
 static inline unsigned getCommand(const unsigned char* c,unsigned &len)
 {
-  const char * preffix;
-  preffix = "I2CW";
-  ispreffix_(preffix,c,len);
-  if (*(c + len) == ' ' && *(preffix + len) == 0 ) return cmd_i2cw;
-  if (CheckPreffix("I2CR",c,len)) return cmd_i2cr;
-  if (CheckPreffix("I2CW",c,len)) return cmd_i2cw;
-  if (CheckPreffix("I2CR",c,len)) return cmd_i2cr;
-  if (CheckPreffix("I2CWR",c,len)) return cmd_i2cwr;
-  if (CheckPreffix("CANTX",c,len)) return cmd_can_tx;
-  if (CheckPreffix("SPI0",c,len)) return cmd_spi0_tx;
-  if (CheckPreffix("INFO",c,len)) return cmd_info;
-  return cmd_none;
+  unsigned id = cmd_none;
+//  const char * preffix;
+//  preffix = "I2CW";
+//  ispreffix_(preffix,c,len);
+//  if (*(c + len) == ' ' && *(preffix + len) == 0 ) return cmd_i2cw;
+  if (CheckPreffix("I2CR",c,len)) id = cmd_i2cr;
+  else if (CheckPreffix("I2CW",c,len)) id = cmd_i2cw;
+  else if (CheckPreffix("I2CR",c,len)) id = cmd_i2cr;
+  else if (CheckPreffix("I2CWR",c,len)) id = cmd_i2cwr;
+  else if (CheckPreffix("CANTX",c,len)) id = cmd_can_tx;
+  else if (CheckPreffix("SPI0",c,len)) id = cmd_spi0_tx;
+  else if (CheckPreffix("INFO",c,len)) id = cmd_info;
+  return id;
 }
 
 /*
@@ -111,7 +112,7 @@ void ascii_i2cw(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
   struct i2c_frm frm;
   if (!i2cw_decode(buff,frm,'\n'))
   {
-    STRCPY(ret.dt,"I2CW invalid format",ret.len);
+    ret.len = strcpy(ret.dt,"I2CW invalid format");
   }
   else
   {
@@ -207,8 +208,7 @@ void ProcessCommand(const char* data,unsigned char len,struct rx_u8_buff &pframe
               }
               break;
             default:
-              const char* src = "Ascii cmd unimplemented";
-              STRCPY(pframe->dt,src,pframe->len);
+              pframe->len = strcpy(pframe->dt,"Ascii cmd unimplemented");
               break;
            }
          }

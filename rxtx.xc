@@ -243,8 +243,8 @@ struct frames_buffer
           rx[j].get(pfrm,j);
           if (pfrm != 0)
           {
-            tx[j].send(pfrm->dt,pfrm->len);
-            rx[j].push(pfrm);
+            tx[j].send(pfrm->dt,pfrm->len);  // send buffer
+            rx[j].push(pfrm); // release the buffer
             break;
           }
         }
