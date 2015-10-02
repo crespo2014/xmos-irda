@@ -26,6 +26,7 @@
 #define cmd_info     8 //request ssytem info, including commands id
 #define cmd_fail     9 // failed to decode teh command
 #define cmd_invalid_hex 10
+#define cmd_invalid_dest 11     // invalid destiniation interface
 
 //extern unsigned  getCommand(const unsigned char* c,const unsigned char* &t);
 extern unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret);
