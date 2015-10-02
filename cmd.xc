@@ -46,14 +46,6 @@ static inline unsigned getCommand(const unsigned char* c,unsigned &len)
   return id;
 }
 
-enum cmd_st
-{
-  cmd_id,
-  cmd_len,
-  cmd_data,
-  cmd_ascii,
-};
-
 /*
  * ASCII can tx command.
  * Build a can packet
@@ -146,6 +138,7 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
     {
       case tx.send(struct rx_u8_buff  * movable &_packet):
         unsigned len;
+        unsigned cmd_id;
         if (_packet->src_rx == serial_rx || _packet->src_rx == test_rx)
         {
           if (_packet->dt[0] < ' ')   //binary commands should go straight to the device
@@ -162,7 +155,7 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
           else
           {
               m_frame->id = 0;
-              unsigned cmd_id = getCommand(_packet->dt,len);
+              cmd_id = getCommand(_packet->dt,len);
               len++;
               if (cmd_id != cmd_none)
               {

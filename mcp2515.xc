@@ -223,7 +223,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
   struct rx_u8_buff * movable pframe = &tfrm;
   unsigned char rxtx_st;    // rx tx buffer status
   rxtx_st = (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I); // by default tx buffers are empty
-  mcp2515.setInterruptEnable(MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I | MCP2515_INT_RX0I | MCP2515_INT_RX1I);   // enable all
+  mcp2515.setInterruptEnable(MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I | MCP2515_INT_RX0I | MCP2515_INT_RX1I);   // enable all interrputs
   tx.cts();
   while(1)
   {
