@@ -230,17 +230,15 @@ struct frames_buffer
  */
 [[combinable]] void TX_Worker(client interface packet_tx_if rx[max_tx],client interface tx_if tx[max_tx])
 {
-#define CTS_BIT 1   // clear to send data
-#define RTS_BIT 2   // request to send data
-  unsigned char flags[max_tx];
-  for (int i= 0; i< max_tx;i++)
-    flags[i] = 0;
+  unsigned cts,rts;
+  cts = 0;
+  rts = 0;
   while(1)
   {
     select
     {
       case tx[int j].cts():
-        if (flags[j] & (1 << RTS_BIT))
+        if (rts & (1 << j))
         {
           struct rx_u8_buff  * movable pfrm;
           rx[j].get(pfrm,j);
@@ -251,11 +249,12 @@ struct frames_buffer
             break;
           }
         }
-        flags[j] |= (1 << CTS_BIT);
+        cts &= (~(1 << j));
+        rts &= (~(1 << j));
         tx[j].ack();
         break;
       case rx[int j].ondata():
-        if (flags[j] & (1 << CTS_BIT))
+        if (cts & (1<<j))
         {
           struct rx_u8_buff  * movable pfrm;
           rx[j].get(pfrm,j);
@@ -266,7 +265,8 @@ struct frames_buffer
             break;
           }
         }
-        flags[j] |= (1 << RTS_BIT);
+        cts &= (~(1 << j));
+        rts &= (~(1 << j));
         rx[j].ack();
         break;
     }
