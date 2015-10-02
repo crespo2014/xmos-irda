@@ -1,6 +1,19 @@
 /*
  * i2c.xc
  *  Implementation of i2c comunication layer
+ *
+ *  Packet Description
+ *  Address u8 - device address
+ *  wr_len  u8 - len of data to write
+ *  rd_len  u8 - len of data to read
+ *  data       - data to be written
+ *
+ *  Reply
+ *  i2c     u8  i2c id
+ *  address u8  device address
+ *  data        read data
+ *
+ *
  *  Created on: 10 Jul 2015
  *      Author: lester.crespo
  */

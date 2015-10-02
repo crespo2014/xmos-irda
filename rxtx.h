@@ -142,6 +142,7 @@ interface out_port_if {
 // todo . rename to packet_out_if
 interface tx_if
 {
+  //todo. send a reply id id !=0 or data need to be send back
   [[clears_notification]] void send(struct rx_u8_buff  * movable &_packet);
   // clear to send
   [[notification]] slave void cts();

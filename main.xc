@@ -19,6 +19,21 @@
 #include "spi_custom.h"
 #include "mcp2515.h"
 #include "utils.h"
+
+
+void print_buff(const char* buff,unsigned len)
+{
+  while (len--)
+    printf("%02X ",*buff++);
+  printf("\n");
+}
+
+void print_ascii_buff(const char* buff,unsigned len)
+{
+  while (len--)
+    printf("%c",*buff++);
+  printf("\n");
+}
 /*
 out port p_1G = XS1_PORT_1G;
 
@@ -381,7 +396,7 @@ void channel_signal(streaming chanend ch,out port p)
 /*
  * use as test interface to push commands to router
  */
-void command_pusher(client interface rx_frame_if router)
+[[combinable]] void command_pusher(client interface rx_frame_if router)
 {
   struct rx_u8_buff tfrm;   // temporal frame
   struct rx_u8_buff * movable pframe = &tfrm;
@@ -389,10 +404,38 @@ void command_pusher(client interface rx_frame_if router)
   unsigned tp;
   t :> tp;
   while(1) {
-    t when timerafter(tp) :> void;
-    tp = tp + 500*us;
-    pframe->len = strcpy(pframe->dt,"CANTX 0A 0102030405\n");
-    router.push(pframe,cmd_tx);
+    select
+    {
+      case t when timerafter(tp) :> void:
+      tp = tp + 500*us;
+      pframe->len = strcpy(pframe->dt,"CANTX 01 0A 0102030405\n");
+      router.push(pframe,cmd_tx);
+      break;
+    }
+  }
+}
+
+/*
+ * Use to debug output
+ */
+[[distributable]] void packet_tx_debug(server interface tx_if tx)
+{
+  tx.cts();
+  while(1)
+  {
+    select {
+      case tx.send(struct rx_u8_buff  * movable &pck):
+       printf("tx : ");
+       if (pck->dt[0] > ' ')
+         print_ascii_buff(pck->dt,pck->len);
+       else
+         print_buff(pck->dt,pck->len);
+       printf("\n");
+       tx.cts();
+       break;
+      case tx.ack():
+       break;
+    }
   }
 }
 
@@ -712,6 +755,10 @@ unsafe int  main()
 }
 */
 
+void dummy_uart_tx(server interface uart_v4 tx)
+{
+
+}
 
 // Serial test with router.
 void serial_manager(
@@ -865,19 +912,7 @@ int main()
 #endif
 
 
-void print_buff(const char* buff,unsigned len)
-{
-  while (len--)
-    printf("%02X ",*buff++);
-  printf("\n");
-}
 
-void print_ascii_buff(const char* buff,unsigned len)
-{
-  while (len--)
-    printf("%c",*buff++);
-  printf("\n");
-}
 
 #if 0
 void spi_test(client interface spi_device_if master_spi_if)
@@ -1062,7 +1097,11 @@ int main()
   {
     Router_v2(tx,rx);
     serial_rx_v5(uart_rx,rx[serial_rx],uart_rx_p);
-    serial_tx_v5(uart_tx,tx_out[serial_tx],uart_tx_p);
+
+    packet_tx_debug(tx_out[serial_tx]);
+    dummy_uart_tx(uart_tx);
+    //serial_tx_v5(uart_tx,tx_out[serial_tx],uart_tx_p);
+
 
     TX_Worker(tx,tx_out,rx[reply_rx]);
     cmd_v1(rx[cmd_rx],tx_out[cmd_tx],i2c[0]);
@@ -1082,7 +1121,8 @@ int main()
 
     i2c_custom(i2c,1,scl,sda,100);
     serial_manager(uart_tx,uart_rx);
-    serial_send_loop(p_feed);
+
+    //serial_send_loop(p_feed); // command pusher does teh job
   }
   return 0;
 }
