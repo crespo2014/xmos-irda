@@ -240,6 +240,7 @@ struct frames_buffer
       case tx[int j].cts():
         if (rts & (1 << j))
         {
+          rts &= (~(1 << j));
           struct rx_u8_buff  * movable pfrm;
           rx[j].get(pfrm,j);
           if (pfrm != 0)
@@ -249,13 +250,13 @@ struct frames_buffer
             break;
           }
         }
-        cts &= (~(1 << j));
-        rts &= (~(1 << j));
+        cts |= (1 << j);
         tx[j].ack();
         break;
       case rx[int j].ondata():
         if (cts & (1<<j))
         {
+          cts &= (~(1 << j));
           struct rx_u8_buff  * movable pfrm;
           rx[j].get(pfrm,j);
           if (pfrm != 0)
@@ -265,8 +266,7 @@ struct frames_buffer
             break;
           }
         }
-        cts &= (~(1 << j));
-        rts &= (~(1 << j));
+        rts |= (1 << j);
         rx[j].ack();
         break;
     }
