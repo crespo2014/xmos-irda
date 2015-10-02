@@ -1064,7 +1064,7 @@ int main()
     serial_rx_v5(uart_rx,rx[serial_rx],uart_rx_p);
     serial_tx_v5(uart_tx,tx_out[serial_tx],uart_tx_p);
 
-    TX_Worker(tx,tx_out);
+    TX_Worker(tx,tx_out,rx[reply_rx]);
     cmd_v1(rx[cmd_rx],tx_out[cmd_tx],i2c[0]);
 
     // buses

@@ -228,7 +228,7 @@ struct frames_buffer
  * Task for tx interface.
  * todo frames with valid id will be reported back to management port as sucess or failed.
  */
-[[combinable]] void TX_Worker(client interface packet_tx_if rx[max_tx],client interface tx_if tx[max_tx])
+[[combinable]] void TX_Worker(client interface packet_tx_if rx[max_tx],client interface tx_if tx[max_tx],client interface rx_frame_if reply)
 {
   unsigned cts,rts;
   cts = 0;

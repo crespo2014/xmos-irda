@@ -170,7 +170,7 @@ interface rx_frame_if
 };
 
 [[distributable]] extern void Router_v2(server interface packet_tx_if tx_if[max_tx],server interface rx_frame_if rx_if[max_rx]);
-[[combinable]] extern void TX_Worker(client interface packet_tx_if tx_input[max_tx],client interface tx_if tx_out[max_tx]);
+[[combinable]] extern void TX_Worker(client interface packet_tx_if rx[max_tx],client interface tx_if tx[max_tx],client interface rx_frame_if reply);
 
 extern void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1);
 [[distributable]] extern void fastTX_v7(server interface tx_if tx,clock clk,out buffered port:8 p);

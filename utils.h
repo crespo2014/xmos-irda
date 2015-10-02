@@ -21,8 +21,8 @@
  */
 extern unsigned readHexChar(const char *&str);
 extern unsigned readHexByte(const char* &str);
-extern unsigned getHexChar(unsigned char num);
-extern unsigned getHexByte(unsigned char num);
+extern unsigned getHexChar(unsigned num);
+//extern unsigned getHexByte(unsigned char num);
 extern void getHexBuffer(const unsigned char *d,unsigned len,char * &str);
 /*
  * convert ascii hex buffer to  raw data
@@ -32,6 +32,12 @@ extern unsigned read32BitsHex(const char* &str);
 
 //convert unsigned 8bit number to hex string and update pointer
 void u8ToHex(unsigned char num,char * &str);
+
+static inline void getHex_u8(unsigned num, char* dest)
+{
+  dest[0] = getHexChar(num >> 4);
+  dest[1] = getHexChar(num & 0x0F);
+}
 
 
 // copy string macro that

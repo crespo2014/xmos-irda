@@ -137,7 +137,7 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
 {
   // packet use to push
   struct rx_u8_buff tfrm;   // temporal frame
-  struct rx_u8_buff * movable pframe = &tfrm;
+  struct rx_u8_buff * movable m_frame = &tfrm;
   //unsigned ascii_mode = 1;    //all data from rx is send to commnad to return as ascii or not
   tx.cts();
   while(1)
@@ -153,28 +153,53 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
             _packet->header_len = 2;    // id dest
             if (_packet->dt[1] < max_rx)
               rx.push(_packet,_packet->dt[1]);
-          }
-         if (_packet->dt[0] > ' ')
-         {
-           unsigned len;
-           unsigned cmd_id = getCommand(_packet->dt,len);
-           switch (cmd_id)
-           {
+            else
+            {
+              m_frame->len = strcpy(m_frame->dt,"NOK: Invalid dest interface\n>");
+              m_frame->id = 0;
+              m_frame->header_len  = 0;
+              rx.push(m_frame,serial_tx);
+            }
+          } else   // ascii command
+          {
+            m_frame->id = 0;
+            unsigned len;
+            unsigned cmd_id = getCommand(_packet->dt,len);
+            switch (cmd_id)
+            {
             case cmd_i2cw:
-              ascii_i2cw(_packet->dt + len + 1,pframe,i2c);
+              ascii_i2cw(_packet->dt + len + 1,m_frame,i2c);
               break;
             case cmd_can_tx:
-              if (ascii_cantx(_packet->dt + len + 1,*pframe))
+              if (ascii_cantx(_packet->dt + len + 1,*m_frame))
               {
-                rx.push(pframe,mcp2515_tx);
+                rx.push(m_frame,mcp2515_tx);
               }
               break;
             default:
-              pframe->len = strcpy(pframe->dt,"Ascii cmd unimplemented");
+              //invalid command
+              m_frame->len = strcpy(m_frame->dt,"NOK: Ascii cmd unimplemented\n>");
+              m_frame->id = 0;
+              m_frame->header_len  = 0;
+              rx.push(m_frame,serial_tx);
               break;
-           }
-         }
+            }
           }
+        } else if (_packet->src_rx == reply_rx)
+        {
+          // sen command id as ok,
+          unsigned len;
+          _packet->header_len = 0;
+          len = strcpy(_packet->dt,"RPL ");
+          getHex_u8(_packet->id,_packet->dt + len);
+          len += 2;
+          _packet->len = len;
+          _packet->id = 0;    //no reply for command going to user interface
+          rx.push(_packet,serial_tx);
+        } else
+        {
+          // forward packet to serial, with SRC_ID, DATA,
+        }
         tx.cts();
         break;
       case tx.ack():
