@@ -65,7 +65,7 @@ struct rx_u8_buff
     // router will set up this value base on incomming interface
     unsigned char src_rx;   // where this packet is comming from. ( for managament port, fields need to be update before procced).
     unsigned char header_len; // header len, real data, start here
-
+    unsigned char cmd_id;       //which command generated this packet
 };
 
 /*

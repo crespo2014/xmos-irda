@@ -138,40 +138,41 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
     {
       case tx.send(struct rx_u8_buff  * movable &_packet):
         unsigned len;
-        unsigned cmd_id;
+        //unsigned cmd_id;
         if (_packet->src_rx == serial_rx || _packet->src_rx == test_rx)
         {
           if (_packet->dt[0] < ' ')   //binary commands should go straight to the device
           {
             _packet->id = _packet->dt[0];
+            _packet->cmd_id = _packet->dt[1];
             _packet->header_len = 2;    // id dest
             if (_packet->dt[1] < max_rx)
             {
               rx.push(_packet,_packet->dt[1]);
               break;
             }
-            cmd_id = cmd_invalid_dest;
+            m_frame->cmd_id = cmd_invalid_dest;
           }
           else
           {
-              m_frame->id = 0;
-              cmd_id = getCommand(_packet->dt,len);
-              len++;
-              if (cmd_id != cmd_none)
+            m_frame->id = 0;
+            m_frame->cmd_id = getCommand(_packet->dt,len);
+            len++;
+            if (m_frame->cmd_id != cmd_none)
+            {
+              // read command id.
+              unsigned id = readHex_u8(_packet->dt + len);
+              if (id > 0xFF || _packet->dt[len + 2] != ' ')
+                m_frame->cmd_id = cmd_invalid_hex;
+              else
               {
-                // read command id.
-                unsigned id = readHex_u8(_packet->dt + len);
-                if (id > 0xFF || _packet->dt[len + 2] != ' ')
-                  cmd_id = cmd_invalid_hex;
-                else
-                {
-                  m_frame->id = id;
-                  len += 3;
-                }
+                m_frame->id = id;
+                len += 3;
               }
-           }
-           m_frame->header_len  = 0;
-          switch (cmd_id)
+            }
+          }
+          m_frame->header_len  = 0;
+          switch (m_frame->cmd_id)
           {
           case cmd_i2cw:
             ascii_i2cw(_packet->dt + len,m_frame,i2c);
@@ -198,15 +199,16 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
           }
         } else if (_packet->src_rx == reply_rx)
         {
-          // sen command id as ok,
-          unsigned len;
-          _packet->header_len = 0;
-          len = strcpy(_packet->dt,"RPL ");
-          getHex_u8(_packet->id,_packet->dt + len);
-          len += 2;
-          _packet->len = len;
-          _packet->id = 0;    //no reply for command going to user interface
-          rx.push(_packet,serial_tx);
+          m_frame->header_len = 0;
+          m_frame->len = strcpy(m_frame->dt,"RPL ");
+          getHex_u8(_packet->id,m_frame->dt+m_frame->len);
+          m_frame->len += 2;
+          switch (_packet->cmd_id)
+          {
+          case cmd_can_tx:
+            break;
+          }
+          rx.push(m_frame,serial_tx);
         } else
         {
           // forward packet to serial, with SRC_ID, DATA,
