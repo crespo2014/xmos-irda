@@ -27,6 +27,7 @@ enum rx_task
   cmd_rx,     // command dispatching
   mcp2515_rx,
   test_rx,      // testing interface
+  reply_rx,     // command comming from tx worker as reply
   max_rx,
 };
 
@@ -138,7 +139,7 @@ interface out_port_if {
 
 // for irda write from msb to lsb
 // len is the number of bits
-// todo . send function should contains full frame, because we need data usefull for the cmd interface.
+// todo . rename to packet_out_if
 interface tx_if
 {
   [[clears_notification]] void send(struct rx_u8_buff  * movable &_packet);
@@ -148,6 +149,7 @@ interface tx_if
 };
 
 //Tx or output interface
+// todo rename to packet_container_out_if
 interface packet_tx_if
 {
   // data is waiting to be read
@@ -161,6 +163,7 @@ interface packet_tx_if
 };
 
 //Rx or input interface
+// todo rename to packet_container_in_if
 interface rx_frame_if
 {
   void push(struct rx_u8_buff  * movable &old_p,enum tx_task dest);
