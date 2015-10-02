@@ -130,6 +130,12 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
   struct rx_u8_buff tfrm;   // temporal frame
   struct rx_u8_buff * movable pframe = &tfrm;
   unsigned baudrate;
+  /*
+   *  0 - wait for 1
+   *  1 - wait for 0
+   *  2 - wait for 0 or timeout
+   *  3 - 13 reading data
+   */
   unsigned char st;   // status 0 - waiting to be pv, waiting start, 1 - 10 data,
   timer t;
   unsigned int tp;
@@ -142,45 +148,51 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
   {
     select
     {
-      case st == 0 || st == 11 => rx when pinseq(0) :> void: // wait for start
+      case st < 3 => rx when pinseq(st==0) :> void: // wait for 1 or 0
         t :> tp;
-        tp += (baudrate*(UART_BASE_BIT_LEN_ticks/2));
-        st = 1;
+        if (st > 0)  // start signal received, prepare for reading
+        {
+          tp += (baudrate*(UART_BASE_BIT_LEN_ticks/2));
+          st = 3;   // set to 3
+        }
+        else
+          st = 1;
         break;
-      case st != 0 => t when timerafter(tp) :> void:    // only read if it is not idle
+      case st > 1 => t when timerafter(tp) :> void:    // only read if it is not idle
         rx :> >>dt;
-        st++;
-        if (st < 11) // read until 10 bits
+        if (st > 2)  // read until 10 bits
         {
+          st++;
           tp += (UART_BASE_BIT_LEN_ticks*baudrate);
-        }else if (st == 11)
-        {
-          tp += (UART_BASE_BIT_LEN_ticks*baudrate*5); // all bits have been read, wait for 1 1/2 bytes gap
-          dt >>= 22;
-          if ( (dt & 0x201) != 0x200 )   // test stop bit
+          if (st == 13)     // bit 10 was read
           {
-            uart_if.error();
-            //pframe->len = 0;  // discard data, or push to router and send nok
-            pframe->overflow++;  //next status is 12
-            //st = 0;
-            break;
+            dt >>= 22;
+            if ( (dt & 0x201) != 0x200 )   // check start stop bits
+            {
+              uart_if.error();
+              //pframe->len = 0;  // discard data, or push to router and send nok
+              pframe->overflow++;  //next status is 12
+              st = 0;              // wait for signal high again.
+              break;
+            }
+            // store the data
+            if (pframe->len < sizeof(pframe->dt))
+            {
+              dt = dt >> 1;
+              pframe->dt[pframe->len] = dt;
+              pframe->len++;
+            } else
+              pframe->overflow++;
+            // wait for next or timeout
+            st = 2;
+            tp += (UART_BASE_BIT_LEN_ticks*baudrate*5); // wait for 1 1/2 bytes gap before trigger timeout
           }
-          dt = dt >> 1;
-          if (pframe->len == sizeof(pframe->dt))
-          {
-            pframe->overflow++;
-            break;
-          }
-          pframe->dt[pframe->len] = dt;
-          pframe->len++;
-        } else if (st >= 12)
+        } else   //timeout waiting for more data
         {
-          // timeout waiting for new byte (gap between bytes)
+          // for ascii mode time out is disable
           if (pframe->overflow || (pframe->len != 0 && (pframe->dt[0] < ' ' ||  pframe->dt[pframe->len-1] == '\n')))
           {
-            // todo send to decoder,
-            // for binary command send to device, for ascii send to cmd parser
-            router.push(pframe,cmd_tx);
+            router.push(pframe,cmd_tx); // command interface will parse the command
           }
           pframe->len = 0;
           pframe->overflow = 0;
