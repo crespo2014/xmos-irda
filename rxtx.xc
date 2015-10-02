@@ -307,25 +307,19 @@ void RX_Packer(streaming chanend ch,unsigned timeout,client interface rx_frame_i
 /*
  * Task to use pins as interrupt source
  * todo set level trigger, edge trigger
+ * inactive - value of port for not interrupt source
  */
-[[combinable]]  void interrupt_manager(in port iport,unsigned count,struct interrupt_mask_t masks[count],client interface interrupt_if int_if[count])
+[[combinable]]  void interrupt_manager(in port iport,unsigned count,struct interrupt_mask_t masks[count],client interface interrupt_if int_if[count],unsigned inactive)
 {
-  //calculate no interrupt value
-  unsigned pv,pv_l;
-  iport :> pv_l;
-  for (int i =0;i<count;i++)
-  {
-    // clear bit and set the inverted value
-    pv_l = (pv_l & (~masks[i].mask)) | ( masks[i].val ^  masks[i].mask);
-  }
+  unsigned pv;
   while(1)
   {
     select
     {
-      case iport when pinsneq(pv_l) :> pv:
+      case iport when pinsneq(inactive) :> pv:
         for (int i =0 ;i < count;i++)
         {
-          if ((pv & masks[i].mask) == masks[i].val)
+          if ((inactive ^ pv) & (1<< i))
             int_if[i].onInterrupt();
         }
         break;

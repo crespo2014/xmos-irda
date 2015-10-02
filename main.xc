@@ -400,6 +400,7 @@ void channel_signal(streaming chanend ch,out port p)
 {
   struct rx_u8_buff tfrm;   // temporal frame
   struct rx_u8_buff * movable pframe = &tfrm;
+  unsigned pos = 0;
   timer t;
   unsigned tp;
   t :> tp;
@@ -408,7 +409,14 @@ void channel_signal(streaming chanend ch,out port p)
     {
       case t when timerafter(tp) :> void:
       tp = tp + 500*us;
-      pframe->len = strcpy(pframe->dt,"CANTX 01 0A 0102030405\n");
+      if (pos == 0)
+        pframe->len = strcpy(pframe->dt,"CANTX 01 0A 0102030405\n");
+      else if (pos == 1)
+        pframe->len = strcpy(pframe->dt,"UNK 01 0A 0102030405\n");
+      else  if (pos == 2)
+        pframe->len = strcpy(pframe->dt,"CANTX H1 0A 0102030405\n");
+      pos++;
+      if (pos > 2) pos = 0;
       router.push(pframe,cmd_tx);
       break;
     }
@@ -1116,7 +1124,7 @@ int main()
     irda_rx_v5(p_irda,10*us,rx[irda_rx]);
     command_pusher(rx[test_rx]);
 
-    interrupt_manager(interrupt_port,1,int_mask,int_if);
+    interrupt_manager(interrupt_port,1,int_mask,int_if,0);
     mcp2515_interrupt_manager(mcp2515[0],int_if[0],tx_out[mcp2515_tx],rx[mcp2515_rx]);
 
     i2c_custom(i2c,1,scl,sda,100);

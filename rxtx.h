@@ -176,7 +176,7 @@ interface rx_frame_if
 extern void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1);
 [[distributable]] extern void fastTX_v7(server interface tx_if tx,clock clk,out buffered port:8 p);
 
-[[combinable]] extern void interrupt_manager(in port iport,unsigned count,struct interrupt_mask_t masks[count],client interface interrupt_if int_if[count]);
+[[combinable]] extern void interrupt_manager(in port iport,unsigned count,struct interrupt_mask_t masks[count],client interface interrupt_if int_if[count],unsigned inactive);
 
 
 #endif /* RXTX_H_ */
