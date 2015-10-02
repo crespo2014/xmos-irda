@@ -271,10 +271,10 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
          * MSB - LSB 32 bits dest - if bit31 is 1 then this is a extended packet id
          * data max 8 bytes
          */
-      case tx.send(struct rx_u8_buff  *frame):
-        if (frame->len < 5) break; // at least 5 bytes are needed to make a packet
+      case tx.send(struct rx_u8_buff  * movable &pck):
+        if ( pck->len - pck->header_len < 5) break; // at least 5 bytes are needed to make a packet
         unsigned char buff[TXB_NEXT];
-        CAN_TO_MCP2515(frame->dt,frame->len,buff);    //
+        CAN_TO_MCP2515(pck->dt + pck->header_len,pck->len - pck->header_len ,buff);    //
         //
         unsigned id;
         if (rxtx_st & MCP2515_INT_TX0I)
@@ -283,7 +283,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
         } else if (rxtx_st & MCP2515_INT_TX1I)
           id = 1;
         else id = 2;
-        mcp2515.pushBuffer(id,buff,frame->len +1); // -4 for id + 5 for txb header
+        mcp2515.pushBuffer(id,buff,pck->len - pck->header_len +1); // -4 for id + 5 for txb header
         // clear tx buffer bit
         if (id == 0)
           rxtx_st &= (~MCP2515_INT_TX0I);

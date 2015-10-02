@@ -123,16 +123,16 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
   {
     select
     {
-      case tx.send(struct rx_u8_buff  *frame):
+      case tx.send(struct rx_u8_buff  * movable &pck):
         // Give two bytes packet gap
         p <: (unsigned short)0;
-        for (int j =0;j<frame->len;j++)
+        for (int j =pck->header_len;j<pck->len;j++)
         {
           p <: (unsigned char)0x7;    //start
           unsigned mask = 0x80;
           while(mask)
           {
-            if (frame->dt[j] & mask)
+            if (pck->dt[j] & mask)
               p <: (unsigned char)0x03;
             else
               p <: (unsigned char)0x01;
@@ -199,7 +199,8 @@ struct frames_buffer
       break;
       // returned frame from tx interface
     case tx_if[int _].push(struct rx_u8_buff  * movable &old_p):
-      free_list[free_count++] = move(old_p);
+      if (old_p != 0)
+        free_list[free_count++] = move(old_p);
       break;
       // clears ondata event, usefull for on demand tx
     case tx_if[int _].ack():

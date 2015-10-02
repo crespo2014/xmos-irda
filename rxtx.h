@@ -62,7 +62,7 @@ struct rx_u8_buff
     unsigned char overflow; // how many bytes lost
     unsigned char id;       // request id , use it for reply
     // router will set up this value base on incomming interface
-    enum rx_task src_rx;   // where this packet is comming from. ( for managament port, fields need to be update before procced).
+    unsigned char src_rx;   // where this packet is comming from. ( for managament port, fields need to be update before procced).
     unsigned char header_len; // header len, real data, start here
 
 };
@@ -141,22 +141,23 @@ interface out_port_if {
 // todo . send function should contains full frame, because we need data usefull for the cmd interface.
 interface tx_if
 {
-  [[clears_notification]] void send(struct rx_u8_buff  *pframe);
+  [[clears_notification]] void send(struct rx_u8_buff  * movable &_packet);
   // clear to send
   [[notification]] slave void cts();
   [[clears_notification]] void ack();
 };
 
-
-
 //Tx or output interface
 interface packet_tx_if
 {
-  [[notification]] slave void ondata();       // means data is waiting to be read
+  // data is waiting to be read
+  [[notification]] slave void ondata();
+  // get data
   [[clears_notification]] void get(struct rx_u8_buff  * movable &old_p,enum tx_task dest);
-  // For on demand tx interface this function clears the event
+  // clear events
   [[clears_notification]] void ack();
-  void push(struct rx_u8_buff  * movable &old_p);   // return back the frame
+  // return buffer tx interfaces does not keep any buffer
+  void push(struct rx_u8_buff  * movable &old_p);
 };
 
 //Rx or input interface

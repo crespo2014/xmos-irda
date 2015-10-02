@@ -114,7 +114,7 @@ do { \
   unsigned outData;    unsigned tp__; \
   t :> tp__; \
   for (int i =0 ; i< len;i++) { \
-    outData = (pdata[i]) << 1 | 0x200;   /*stop bit 10 as 1, start bit 0 as 0*/ \
+    outData = *(pdata + i) << 1 | 0x200;   /*stop bit 10 as 1, start bit 0 as 0*/ \
     for (int i = 0;i<10;i++) {  \
       t when timerafter(tp__) :> void; \
       p <: >>outData; \

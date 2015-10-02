@@ -6,6 +6,11 @@
  *
  * Core task.
  * It handle all commands received, and execute the desire command
+ *
+ * Binary command comming from user port
+ * id_8 - command id for reply 0 - no reply needed  (0 -31) ok
+ * dest_8 - destination interface
+ * data   - specific interface data
  
  TODO : Sharing a multibits port.
  a distributable task bringing 8 interfaces with set clear.
@@ -22,6 +27,7 @@
 #include "utils.h"
 #include "cmd.h"
 #include "mcp2515.h"
+#include "rxtx.h"
 
 /*
  * Use a termination character to make not possible past the end of the string
@@ -106,20 +112,20 @@ unsigned ascii_cantx(const char* buff,struct rx_u8_buff &ret)
   return 1;
 }
 
-void ascii_i2cw(const char* buff,struct rx_u8_buff &ret,client interface i2c_custom_if i2c)
+void ascii_i2cw(const char* buff,struct rx_u8_buff *ret,client interface i2c_custom_if i2c)
 {
 #if 1
   struct i2c_frm frm;
   if (!i2cw_decode(buff,frm,'\n'))
   {
-    ret.len = strcpy(ret.dt,"I2CW invalid format");
+    ret->len = strcpy(ret->dt,"I2CW invalid format");
   }
   else
   {
     i2c.i2c_execute(frm);
-    i2c_decode_answer(frm,ret);
+    i2c_decode_answer(frm,*ret);
   }
-  ret.len = safestrlen(ret.dt);
+  ret->len = safestrlen(ret->dt);
 #endif
 }
 #if 1
@@ -165,20 +171,27 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
   {
     select
     {
-      case tx.send(struct rx_u8_buff  *frame):
-        if (frame->src_rx == serial_rx)
+      case tx.send(struct rx_u8_buff  * movable &_packet):
+        if (_packet->src_rx == serial_rx || _packet->src_rx == test_rx)
         {
-         if (frame->dt[0] > ' ')   //binary commands should go straight to the device
+          if (_packet->dt[0] < ' ')   //binary commands should go straight to the device
+          {
+            _packet->id = _packet->dt[0];
+            _packet->header_len = 2;    // id dest
+            if (_packet->dt[1] < max_rx)
+              rx.push(_packet,_packet->dt[1]);
+          }
+         if (_packet->dt[0] > ' ')
          {
            unsigned len;
-           unsigned cmd_id = getCommand(frame->dt,len);
+           unsigned cmd_id = getCommand(_packet->dt,len);
            switch (cmd_id)
            {
             case cmd_i2cw:
-              ascii_i2cw(frame->dt + len + 1,*pframe,i2c);
+              ascii_i2cw(_packet->dt + len + 1,pframe,i2c);
               break;
             case cmd_can_tx:
-              if (ascii_cantx(frame->dt + len + 1,*pframe))
+              if (ascii_cantx(_packet->dt + len + 1,*pframe))
               {
                 rx.push(pframe,mcp2515_tx);
               }
