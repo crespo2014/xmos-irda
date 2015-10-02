@@ -246,7 +246,7 @@ struct frames_buffer
           if (pfrm != 0)
           {
             tx[j].send(pfrm);  // send buffer
-            if (j != serial_tx) reply.push(pfrm,cmd_tx);  // send to command for reply
+            if (j != serial_tx && j != cmd_tx) reply.push(pfrm,cmd_tx);  // send to command for reply
             rx[j].push(pfrm); // release the buffer
             break;
           }
@@ -263,7 +263,7 @@ struct frames_buffer
           if (pfrm != 0)
           {
             tx[j].send(pfrm);
-            if (j != serial_tx) reply.push(pfrm,cmd_tx);  // send to command for reply
+            if (j != serial_tx && j != cmd_tx) reply.push(pfrm,cmd_tx);  // send to command for reply
             rx[j].push(pfrm);
             break;
           }
