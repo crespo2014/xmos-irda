@@ -24,6 +24,8 @@
 #define cmd_can_tx  6   // push data to can bus
 #define cmd_spi0_tx     7   // write to spi slave 0
 #define cmd_info     8 //request ssytem info, including commands id
+#define cmd_fail     9 // failed to decode teh command
+#define cmd_invalid_hex 10
 
 //extern unsigned  getCommand(const unsigned char* c,const unsigned char* &t);
 extern unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret);

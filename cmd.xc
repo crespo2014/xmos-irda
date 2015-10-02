@@ -165,18 +165,35 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
             m_frame->id = 0;
             unsigned len;
             unsigned cmd_id = getCommand(_packet->dt,len);
+            len++;
+            if (cmd_id != cmd_none)
+            {
+              // read command id.
+              unsigned id = readHex_u8(_packet->dt + len);
+              if (id > 0xFF || _packet->dt[len + 2] != ' ')
+                cmd_id = cmd_invalid_hex;
+              else
+                m_frame->id = id;
+              len += 3;
+            }
             switch (cmd_id)
             {
             case cmd_i2cw:
-              ascii_i2cw(_packet->dt + len + 1,m_frame,i2c);
+              ascii_i2cw(_packet->dt + len,m_frame,i2c);
               break;
             case cmd_can_tx:
-              if (ascii_cantx(_packet->dt + len + 1,*m_frame))
+              if (ascii_cantx(_packet->dt + len,*m_frame))
               {
                 rx.push(m_frame,mcp2515_tx);
               }
               break;
-            default:
+            case cmd_invalid_hex:
+              m_frame->len = strcpy(m_frame->dt,"NOK: Invalid hex value\n>");
+              m_frame->id = 0;
+              m_frame->header_len  = 0;
+              rx.push(m_frame,serial_tx);
+              break;
+            case cmd_none:
               //invalid command
               m_frame->len = strcpy(m_frame->dt,"NOK: Ascii cmd unimplemented\n>");
               m_frame->id = 0;

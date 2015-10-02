@@ -39,6 +39,33 @@ static inline void getHex_u8(unsigned num, char* dest)
   dest[1] = getHexChar(num & 0x0F);
 }
 
+static inline unsigned readHex_u4(unsigned hexchar)
+{
+  do
+  {
+    if (hexchar < '0') break;
+    if (hexchar <= '9')
+    {
+      return hexchar - '0';
+    }
+    if (hexchar < 'A') break;
+    if (hexchar <= 'F')
+      return (hexchar - 'A' + 10);
+    if (hexchar < 'a') break;
+    if (hexchar > 'f') break;
+    return hexchar - 'a' + 10;
+  } while(0);
+  return 0xFFF;
+}
+
+static inline unsigned readHex_u8(const char* str)
+{
+  return readHex_u4(str[0]) << 4 | readHex_u4(str[1]) ;
+}
+
+
+
+
 
 // copy string macro that
 #if 0
