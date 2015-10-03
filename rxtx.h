@@ -24,10 +24,10 @@ enum rx_task
 {
   serial_rx = 0,
   irda_rx,
-  cmd_rx,     // command dispatching
   mcp2515_rx,
   test_rx,      // testing interface
   reply_rx,     // command comming from tx worker as reply
+  cmd_rx,     // command dispatching
   max_rx,
 };
 

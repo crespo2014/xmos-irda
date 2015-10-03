@@ -143,7 +143,7 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
     select
     {
       case tx.send(struct rx_u8_buff  * movable &_packet):
-        tracePacket(_packet);
+       // tracePacket(_packet);
         unsigned len;
         if (_packet->src_rx == serial_rx || _packet->src_rx == test_rx)
         {

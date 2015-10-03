@@ -73,7 +73,7 @@ unsigned getHexChar(unsigned u4)
 {
   if (u4 < 10)
     return u4 + '0';
-  return u4 + 'A';
+  return u4 + ('A' - 10);
 }
 /*
  * Convert a data buffer to hex char string
