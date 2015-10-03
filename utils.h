@@ -160,7 +160,7 @@ static inline unsigned strcpy(char* dest,const char* src)
  */
 static inline unsigned strcpy_2(char dest[],const char src[])
 {
-  unsigned len;
+  unsigned len = 0;
   while ((dest[len] == src[len]) != 0)
   {
    len++;

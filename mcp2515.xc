@@ -293,6 +293,8 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
           rxtx_st &= (~MCP2515_INT_TX2I);
         if ((rxtx_st & (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I)))  //
           tx.cts();   // reset the notification if there is any buffer available
+        // build a empty reply
+        pck->header_len = pck->len;
         break;
       case tx.ack():
         break;
