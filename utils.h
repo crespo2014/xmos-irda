@@ -30,9 +30,6 @@ extern void getHexBuffer(const unsigned char *d,unsigned len,char * &str);
 extern unsigned readHexBuffer(const char* &str,unsigned char* buff,unsigned max);
 extern unsigned read32BitsHex(const char* &str);
 
-//convert unsigned 8bit number to hex string and update pointer
-void u8ToHex(unsigned char num,char * &str);
-
 static inline void getHex_u8(unsigned num, char* dest)
 {
   dest[0] = getHexChar(num >> 4);
@@ -58,11 +55,79 @@ static inline unsigned readHex_u4(unsigned hexchar)
   return 0xFFF;
 }
 
-static inline unsigned readHex_u8(const char* str)
+{unsigned ,unsigned } static inline getmul(unsigned a)
 {
-  return readHex_u4(str[0]) << 4 | readHex_u4(str[1]) ;
+  return {0,0};
 }
 
+{unsigned ,unsigned } static inline readHex_u8_2(const char* str)
+{
+  unsigned d = 0;
+  unsigned len;
+  for (len=0;len<2;len++)
+  {
+    unsigned v = readHex_u4(str[len]);
+    d = d << 4 | v;
+    if (v > 0xFF) break;
+  }
+  return {d,len};
+}
+
+static inline unsigned readHex_u8(const char* str,unsigned &len)
+{
+  unsigned d = 0;
+  for (int len=0;len<2;len++)
+  {
+    unsigned v = readHex_u4(str[len]);
+    if (v > 0xFF) break;
+    d = d << 4 | v;
+  }
+  return d;
+}
+
+static inline unsigned readHex_u32(const char* str,unsigned char &len)
+{
+  unsigned d = 0;
+  for (int len=0;len<8;len++)
+  {
+    unsigned v = readHex_u4(str[len]);
+    if (v > 0xFF) break;
+    d = d << 4 | v;
+  }
+  return d;
+}
+
+/*
+ * Convert number to 2 hex characters
+ */
+static inline void u8ToHex(unsigned num, char dest[])
+{
+  dest[0] = getHexChar(num >> 4);
+  dest[1] = getHexChar(num & 0x0F);
+}
+
+/*
+ * Convert a buffer to hex ascii
+ */
+static inline unsigned DataToHex(const unsigned char data[],unsigned len,char dest[])
+{
+#if 0
+  for (int i=0;i<len;i++)
+  {
+    u8ToHex(data[i],dest+i*2);
+  }
+  return len*2;
+#else
+  char* d = dest;
+  const char* v = data;
+  while(len--)
+  {
+    u8ToHex(*v,d);
+    d += 2;
+  }
+  return d-dest;
+#endif
+}
 
 
 
@@ -86,6 +151,20 @@ static inline unsigned strcpy(char* dest,const char* src)
 {
   unsigned len = 0;
   while (( dest[len] = src[len]) != 0) ++len;
+  return len;
+}
+/*
+ * rerturn value may alias arguments,
+ * it means that point to same location than arguments do.
+ * todo how to avoid bound checking
+ */
+static inline unsigned strcpy_2(char dest[],const char src[])
+{
+  unsigned len;
+  while ((dest[len] == src[len]) != 0)
+  {
+   len++;
+  }
   return len;
 }
 

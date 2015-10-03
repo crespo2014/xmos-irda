@@ -137,6 +137,7 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
     select
     {
       case tx.send(struct rx_u8_buff  * movable &_packet):
+        char *str;
         unsigned len;
         //unsigned cmd_id;
         if (_packet->src_rx == serial_rx || _packet->src_rx == test_rx)
@@ -157,17 +158,19 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
           {
             m_frame->id = 0;
             m_frame->cmd_id = getCommand(_packet->dt,len);
-            len++;
+            _packet->header_len = len + 1;
             if (m_frame->cmd_id != cmd_none)
             {
+              unsigned v;
+              {v,len} = readHex_u8_2(_packet->dt + _packet->header_len);
               // read command id.
-              unsigned id = readHex_u8(_packet->dt + len);
-              if (id > 0xFF || _packet->dt[len + 2] != ' ')
+              unsigned id = readHex_u8(_packet->dt + _packet->header_len,len);
+              if (id > 0xFF || _packet->dt[_packet->header_len + len] != ' ')
                 m_frame->cmd_id = cmd_invalid_hex;
               else
               {
                 m_frame->id = id;
-                len += 3;
+                _packet->header_len += (len+1);
               }
             }
           }
@@ -175,10 +178,10 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
           switch (m_frame->cmd_id)
           {
           case cmd_i2cw:
-            ascii_i2cw(_packet->dt + len,m_frame,i2c);
+            ascii_i2cw(_packet->dt + _packet->header_len,m_frame,i2c);
             break;
           case cmd_can_tx:
-            if (ascii_cantx(_packet->dt + len,*m_frame))
+            if (ascii_cantx(_packet->dt + + _packet->header_len,*m_frame))
             {
               rx.push(m_frame,mcp2515_tx);
             }
@@ -199,19 +202,38 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
           }
         } else if (_packet->src_rx == reply_rx)
         {
+          //Just reply data
           m_frame->header_len = 0;
-          m_frame->len = strcpy(m_frame->dt,"RPL ");
+          m_frame->len = 0;
+          m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"RPL ");
           getHex_u8(_packet->id,m_frame->dt+m_frame->len);
           m_frame->len += 2;
-          switch (_packet->cmd_id)
+          if (_packet->header_len != _packet->len)
           {
-          case cmd_can_tx:
-            break;
+            m_frame->len += DataToHex(_packet->dt+_packet->header_len,_packet->len -_packet->header_len,m_frame->dt+m_frame->len);
           }
+          m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"\n>");
           rx.push(m_frame,serial_tx);
         } else
         {
           // forward packet to serial, with SRC_ID, DATA,
+          m_frame->header_len = 0;
+          m_frame->len = 0;
+          switch (_packet->src_rx)
+          {
+          case mcp2515_rx:
+            m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"CANRX ");
+            break;
+          default:
+            m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"RX ");
+            break;
+          }
+          if (_packet->header_len != _packet->len)
+          {
+            m_frame->len += DataToHex(_packet->dt+_packet->header_len,_packet->len -_packet->header_len,m_frame->dt+m_frame->len);
+          }
+          m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"\n>");
+          rx.push(m_frame,serial_tx);
         }
         tx.cts();
         break;
