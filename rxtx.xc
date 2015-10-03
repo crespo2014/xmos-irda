@@ -311,7 +311,7 @@ void RX_Packer(streaming chanend ch,unsigned timeout,client interface rx_frame_i
  * todo set level trigger, edge trigger
  * inactive - value of port for not interrupt source
  */
-[[combinable]]  void interrupt_manager(in port iport,unsigned count,struct interrupt_mask_t masks[count],client interface interrupt_if int_if[count],unsigned inactive)
+[[combinable]]  void interrupt_manager(in port iport,unsigned count,client interface interrupt_if int_if[count],unsigned inactive)
 {
   unsigned pv;
   while(1)

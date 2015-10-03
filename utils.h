@@ -97,13 +97,53 @@ static inline unsigned readHex_u32(const char* str,unsigned char &len)
   return d;
 }
 
+{unsigned ,unsigned } static inline asciiToHex32(const char* str)
+{
+  unsigned d = 0;
+  unsigned len;
+  for (len=0;len<8;len++)
+  {
+    unsigned v = readHex_u4(str[len]);
+    if (v > 0xFF) break;
+    d = d << 4 | v;
+  }
+  return {d,len};
+}
+/*
+ * return
+ * value, len
+ */
+{unsigned ,unsigned } static inline asciiToHex8(const char str[])
+{
+  unsigned d = 0;
+  unsigned len;
+  for (len=0;len<2;len++)
+  {
+    unsigned v = readHex_u4(str[len]);
+    if (v > 0xFF) break;
+    d = d << 4 | v;
+  }
+  return {d,len};
+}
+
+static inline void u8To2Hex(unsigned char num,char * &str)
+{
+  *str = getHexChar(num >> 4);
+  str++;
+  *str = getHexChar(num & 0x0F);
+  str++;
+}
+
 /*
  * Convert number to 2 hex characters
  */
-static inline void u8ToHex(unsigned num, char dest[])
+static inline unsigned u8ToHex(unsigned num, char dest[])
 {
-  dest[0] = getHexChar(num >> 4);
-  dest[1] = getHexChar(num & 0x0F);
+  unsigned pos = 0;
+  if (num >> 4)
+    dest[pos++] = getHexChar(num >> 4);
+  dest[pos++] = getHexChar(num & 0x0F);
+  return pos;
 }
 
 /*
@@ -118,14 +158,13 @@ static inline unsigned DataToHex(const unsigned char data[],unsigned len,char de
   }
   return len*2;
 #else
-  char* d = dest;
-  const char* v = data;
-  while(len--)
+  unsigned pos;
+  for (pos = 0;pos< len;pos++)
   {
-    u8ToHex(*v,d);
-    d += 2;
+    dest[pos*2] = getHexChar(data[pos] >> 4);
+    dest[pos*2+1] = getHexChar(data[pos] & 0x0F);
   }
-  return d-dest;
+  return pos*2;
 #endif
 }
 
@@ -147,6 +186,36 @@ static inline unsigned DataToHex(const unsigned char data[],unsigned len,char de
 
 #endif
 
+
+//static inline char  *  alias strcpy_0(char* dest,const char* src)
+//{
+//  while ((*dest++ = *src++) != 0);
+//  return dest;
+//}
+
+static inline unsigned strcpy_1(char* dest,const char* src)
+{
+  unsigned len = 0;
+#if 1
+  while ((*dest = *src) != 0)
+  {
+    ++dest;
+    ++src;
+    ++len;
+  }
+#else
+  while(1)
+  {
+    *dest = *src;
+    if (*dest == 0) break;
+    dest++;
+    src++;
+    ++len;
+  }
+#endif
+  return len;
+}
+
 static inline unsigned strcpy(char* dest,const char* src)
 {
   unsigned len = 0;
@@ -161,21 +230,31 @@ static inline unsigned strcpy(char* dest,const char* src)
 static inline unsigned strcpy_2(char dest[],const char src[])
 {
   unsigned len = 0;
-  while ((dest[len] == src[len]) != 0)
+  while ((dest[len] = src[len]) != 0)
   {
    len++;
   }
   return len;
 }
-
-static inline unsigned CheckPreffix(const char* preffix,const char* str,unsigned &len)
+/*
+ * return
+ * 1 match
+ * 0 does not match
+ * len
+ */
+{unsigned ,unsigned } static inline CheckPreffix(const char preffix[],const char str[])
 {
-  len = 0;
+  unsigned len = 0;
   while( preffix[len] == str[len] ) { ++len; }
-  return (preffix[len] == 0 &&  str[len] == ' ');
+  return {(preffix[len] == 0 &&  str[len] == ' '),len};
 }
 
 // print a ascii buffer
 extern void printbuff(const char* d,unsigned len);
+
+static inline void tracePacket(struct rx_u8_buff *b)
+{
+  printf("Pck: id : %d, cmd : %d, head : %d, len : %d\n",b->id,b->cmd_id,b->header_len,b->len);
+}
 
 #endif /* UTILS_H_ */

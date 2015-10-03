@@ -59,28 +59,13 @@ enum rx_task
 struct rx_u8_buff
 {
     unsigned char dt[32];
-    unsigned char len;      // actual len of buffer
-    unsigned char overflow; // how many bytes lost
-    unsigned char id;       // request id , use it for reply
+    unsigned len;          // last data byte
+    unsigned overflow;     // how many bytes lost
+    unsigned id;           // request id , use it for reply
     // router will set up this value base on incomming interface
-    unsigned char src_rx;   // where this packet is comming from. ( for managament port, fields need to be update before procced).
-    unsigned char header_len; // header len, real data, start here
-    unsigned char cmd_id;       //which command generated this packet
-};
-
-/*
- * For interuptions
- */
-struct interrupt_mask_t
-{
-  unsigned char mask;
-  unsigned char val;
-  /*
-   * bit 0 polarization or level
-   * bit 1 0 - level trigger
-   *       1 - edge trigger
-   */
-  unsigned char trigger;
+    unsigned src_rx;       // where this packet is comming from. ( for managament port, fields need to be update before procced).
+    unsigned header_len;   // header len, real data, start here
+    unsigned cmd_id;       //which command generated this packet
 };
 
 /*
@@ -176,7 +161,7 @@ interface rx_frame_if
 extern void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1);
 [[distributable]] extern void fastTX_v7(server interface tx_if tx,clock clk,out buffered port:8 p);
 
-[[combinable]] extern void interrupt_manager(in port iport,unsigned count,struct interrupt_mask_t masks[count],client interface interrupt_if int_if[count],unsigned inactive);
+[[combinable]] extern void interrupt_manager(in port iport,unsigned count,client interface interrupt_if int_if[count],unsigned inactive);
 
 
 #endif /* RXTX_H_ */

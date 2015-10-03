@@ -412,9 +412,9 @@ void channel_signal(streaming chanend ch,out port p)
       if (pos == 0)
         pframe->len = strcpy(pframe->dt,"CANTX 01 0A 0102030405\n");
       else if (pos == 1)
-        pframe->len = strcpy(pframe->dt,"UNK 01 0A 0102030405\n");
+        pframe->len = strcpy(pframe->dt,"CANTX 0 A 0102030405\n");
       else  if (pos == 2)
-        pframe->len = strcpy(pframe->dt,"CANTX H1 0A 0102030405\n");
+        pframe->len = strcpy(pframe->dt,"CANTX AB A 0102030405\n");
       pos++;
       if (pos > 2) pos = 0;
       router.push(pframe,cmd_tx);
@@ -438,7 +438,6 @@ void channel_signal(streaming chanend ch,out port p)
          print_ascii_buff(pck->dt,pck->len);
        else
          print_buff(pck->dt,pck->len);
-       printf("\n");
        tx.cts();
        break;
       case tx.ack():
@@ -1096,7 +1095,6 @@ int main()
   interface mcp2515_if mcp2515[1];    // for interrupt and command
 
   //interrupt souurces
-  struct interrupt_mask_t int_mask[] = { {1,0} };
   interface interrupt_if int_if[1];
 
 
@@ -1124,7 +1122,7 @@ int main()
     irda_rx_v5(p_irda,10*us,rx[irda_rx]);
     command_pusher(rx[test_rx]);
 
-    interrupt_manager(interrupt_port,1,int_mask,int_if,0);
+    interrupt_manager(interrupt_port,1,int_if,0);
     mcp2515_interrupt_manager(mcp2515[0],int_if[0],tx_out[mcp2515_tx],rx[mcp2515_rx]);
 
     i2c_custom(i2c,1,scl,sda,100);

@@ -31,19 +31,25 @@
 
 /*
  * Use a termination character to make not possible past the end of the string
- * update prefix len.
+ * return cmd and len
  */
-static inline unsigned getCommand(const unsigned char* c,unsigned &len)
+{unsigned ,unsigned } static inline getCommand(const unsigned char c[])
 {
-  unsigned id = cmd_none;
-  if (CheckPreffix("I2CR",c,len)) id = cmd_i2cr;
-  else if (CheckPreffix("I2CW",c,len)) id = cmd_i2cw;
-  else if (CheckPreffix("I2CR",c,len)) id = cmd_i2cr;
-  else if (CheckPreffix("I2CWR",c,len)) id = cmd_i2cwr;
-  else if (CheckPreffix("CANTX",c,len)) id = cmd_can_tx;
-  else if (CheckPreffix("SPI0",c,len)) id = cmd_spi0_tx;
-  else if (CheckPreffix("INFO",c,len)) id = cmd_info;
-  return id;
+  unsigned len;
+  unsigned id;
+  {id,len} = CheckPreffix("I2CR",c);
+  if (id) return {cmd_i2cr,len};
+  {id,len} = CheckPreffix("I2CW",c);
+  if (id) return {cmd_i2cw,len};
+  {id,len} =CheckPreffix("I2CWR",c);
+  if (id) return {cmd_i2cwr,len};
+  {id,len} =CheckPreffix("CANTX",c);
+  if (id) return {cmd_can_tx,len};
+  {id,len} =CheckPreffix("SPI0",c);
+  if (id) return {cmd_spi0_tx,len};
+  {id,len} =CheckPreffix("INFO",c);
+  if (id) return {cmd_info,len};
+  return {cmd_none,0};
 }
 
 /*
@@ -137,9 +143,8 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
     select
     {
       case tx.send(struct rx_u8_buff  * movable &_packet):
-        char *str;
+        tracePacket(_packet);
         unsigned len;
-        //unsigned cmd_id;
         if (_packet->src_rx == serial_rx || _packet->src_rx == test_rx)
         {
           if (_packet->dt[0] < ' ')   //binary commands should go straight to the device
@@ -156,21 +161,21 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
           }
           else
           {
-            m_frame->id = 0;
-            m_frame->cmd_id = getCommand(_packet->dt,len);
+            // read command
+            { m_frame->cmd_id, len } = getCommand(_packet->dt);
             _packet->header_len = len + 1;
+            // read packet id
             if (m_frame->cmd_id != cmd_none)
             {
               unsigned v;
-              {v,len} = readHex_u8_2(_packet->dt + _packet->header_len);
-              // read command id.
-              unsigned id = readHex_u8(_packet->dt + _packet->header_len,len);
-              if (id > 0xFF || _packet->dt[_packet->header_len + len] != ' ')
+              {v,len} = asciiToHex8(_packet->dt + _packet->header_len);
+              _packet->header_len += len;
+              if (v > 0xFF || _packet->dt[_packet->header_len] != ' ')
                 m_frame->cmd_id = cmd_invalid_hex;
               else
               {
-                m_frame->id = id;
-                _packet->header_len += (len+1);
+                m_frame->id = v;
+                _packet->header_len += 1;
               }
             }
           }
@@ -202,18 +207,20 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
           }
         } else if (_packet->src_rx == reply_rx)
         {
-          //Just reply data
-          m_frame->header_len = 0;
-          m_frame->len = 0;
-          m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"RPL ");
-          getHex_u8(_packet->id,m_frame->dt+m_frame->len);
-          m_frame->len += 2;
-          if (_packet->header_len != _packet->len)
+          // do not reply command with missing id
+          if (_packet->id != 0)
           {
-            m_frame->len += DataToHex(_packet->dt+_packet->header_len,_packet->len -_packet->header_len,m_frame->dt+m_frame->len);
+            m_frame->header_len = 0;
+            m_frame->len = 0;
+            m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"RPL ");
+            m_frame->len += u8ToHex(_packet->id,m_frame->dt+m_frame->len);
+            if (_packet->header_len != _packet->len)
+            {
+              m_frame->len += DataToHex(_packet->dt+_packet->header_len,_packet->len -_packet->header_len,m_frame->dt+m_frame->len);
+            }
+            m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"\n>");
+            rx.push(m_frame,serial_tx);
           }
-          m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"\n>");
-          rx.push(m_frame,serial_tx);
         } else
         {
           // forward packet to serial, with SRC_ID, DATA,

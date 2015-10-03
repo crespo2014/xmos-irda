@@ -71,7 +71,9 @@ unsigned  readHexBuffer(const char* &str,unsigned char* buff,unsigned max)
 
 unsigned getHexChar(unsigned u4)
 {
-  return u4 + (u4 < 10) ? '0' : 'A';
+  if (u4 < 10)
+    return u4 + '0';
+  return u4 + 'A';
 }
 /*
  * Convert a data buffer to hex char string
@@ -91,13 +93,7 @@ void getHexBuffer(const unsigned char *d,unsigned len,char * &str)
   }
 }
 
-void u8ToHex(unsigned char num,char * &str)
-{
-  *str = getHexChar(num >> 4);
-  str++;
-  *str = getHexChar(num & 0x0F);
-  str++;
-}
+
 
 void printbuff(const char* d,unsigned len)
 {
@@ -110,5 +106,6 @@ void printbuff(const char* d,unsigned len)
     d++;
   }
 }
+
 
 
