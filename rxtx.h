@@ -11,6 +11,7 @@
 
 #include <timer.h>
 #include <xs1.h>
+#include <stdio.h>
 
 enum tx_task
 {
@@ -162,6 +163,11 @@ extern void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out po
 [[distributable]] extern void fastTX_v7(server interface tx_if tx,clock clk,out buffered port:8 p);
 
 [[combinable]] extern void interrupt_manager(in port iport,unsigned count,client interface interrupt_if int_if[count],unsigned inactive);
+
+static inline void tracePacket(struct rx_u8_buff *b)
+{
+  printf("Pck: id : %d, cmd : %d, head : %d, len : %d\n",b->id,b->cmd_id,b->header_len,b->len);
+}
 
 
 #endif /* RXTX_H_ */

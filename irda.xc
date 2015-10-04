@@ -12,6 +12,7 @@
 #include "irda.h"
 #include "serial.h"
 #include "cmd.h"
+#include "utils.h"
 
 #define USER_CLK_DIV    255                 //
 #define USER_T_ns       (1000*1000)    //

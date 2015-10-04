@@ -39,6 +39,7 @@
 #include <timer.h>
 #include <xs1.h>
 #include <xclib.h>
+#include "utils.h"
 
 #define SPI1_SCK_BIT          0
 #define SPI1_MCP2515_SS_BIT   1
@@ -237,4 +238,46 @@ extern void spi_slave(in port ss,in port scl,in port mosi,out port miso,client i
 extern void spi_slave_v2(in port ss,in port scl,in port mosi,out port miso,unsigned char cpol,unsigned char cpha,client interface spi_slave_if_v2 spi_if);
 extern void spi_slave_v3(in port iport,unsigned char scl_mask,unsigned char mosi_mask,unsigned char ss_mask,out port miso,unsigned char cpol,unsigned char cpha, client interface spi_slave_if_v2 spi_if);
 
+/*
+ * spi v4.
+ * using 1 bit port, clocked and strobe
+ */
+struct spi_fast_t
+{
+  out port ss;
+  out buffered port:8 mosi;
+  in buffered port:8 miso;
+  out port sck;
+  clock    clk;
+};
+
+static inline void spi_fast_init(struct spi_fast_t &obj,unsigned T_ns)
+{
+  configure_clock_xcore(obj.clk,T_ns/XCORE_CLK_T_ns);     // dividing clock ticks
+  configure_in_port(obj.miso,obj.clk);
+  configure_out_port(obj.mosi,obj.clk,0);
+  configure_port_clock_output(obj.sck,obj.clk);
+  start_clock(obj.clk);
+}
+
+static inline void spi_fast_send(struct spi_fast_t &obj,const char data[n],unsigned n)
+{
+  for (unsigned i=0;i<n;++i)
+    obj.mosi <: data[i];
+}
+/*
+ * use the same buffer to send and received.
+ */
+static inline void spi_fast_sendrecv(struct spi_fast_t &obj,unsigned len,unsigned rd_pos,const char wr[wr_len],unsigned wr_len,char rd[len])
+{
+  for (unsigned i=0;i<len;++i)
+  {
+    if (i < wr_len)
+      obj.mosi <: wr[i];
+    sync(obj.mosi);
+    if (i > rd_pos)
+      obj.miso :> rd[i-rd_pos];
+
+  }
+}
 #endif /* SPI_CUSTOM_H_ */

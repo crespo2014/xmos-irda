@@ -8,6 +8,7 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
+#define XCORE_CLK_T_ns         4    // produced clock T
 #define SYS_TIMER_T_ns  10   //set to 100 for testing
 
 #define sec 100000000
@@ -252,9 +253,5 @@ static inline unsigned strcpy_2(char dest[],const char src[])
 // print a ascii buffer
 extern void printbuff(const char* d,unsigned len);
 
-static inline void tracePacket(struct rx_u8_buff *b)
-{
-  printf("Pck: id : %d, cmd : %d, head : %d, len : %d\n",b->id,b->cmd_id,b->header_len,b->len);
-}
 
 #endif /* UTILS_H_ */

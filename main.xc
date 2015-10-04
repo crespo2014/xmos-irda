@@ -410,7 +410,7 @@ void channel_signal(streaming chanend ch,out port p)
       case t when timerafter(tp) :> void:
       tp = tp + 200*us;
       if (pos == 0)
-        pframe->len = strcpy(pframe->dt,"CANTX AB 0A 0102030405\n");
+        pframe->len = strcpy(pframe->dt,"CANTX 01 0A 0102030405\n");
       else if (pos == 1)
         pframe->len = strcpy(pframe->dt,"CANTX 0 A 0102030405\n");
       else  if (pos == 2)
@@ -1046,7 +1046,7 @@ int main()
 
 #endif
 
-#if 1
+#if 0
 
 // SPI Master
 out port spi_out = XS1_PORT_4C;
@@ -1133,6 +1133,25 @@ int main()
   return 0;
 }
 #endif
+
+#if 1
+/*
+ * testing fast spi
+ */
+out port ss = XS1_PORT_1K;
+out port sck = XS1_PORT_1I;
+out buffered port:8 mosi = XS1_PORT_1L;
+in buffered port:8 miso = XS1_PORT_1F;
+clock clk = XS1_CLKBLK_1;
+
+int main()
+{
+  struct spi_fast_t spi = { ss,mosi,miso,sck,clk};
+  spi_fast_init(spi,us);
+  return 0;
+}
+#endif
+
 /* todo.
  * analog to digital converter plus interface via serial port
  * linux opengl frontend
