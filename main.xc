@@ -1138,13 +1138,13 @@ int main()
 /*
  * testing fast spi
  */
-out port ss = XS1_PORT_1K;
-out port sck = XS1_PORT_1I;
-out buffered port:8 mosi = XS1_PORT_1L;
-in buffered port:8 miso = XS1_PORT_1F;
-clock clk = XS1_CLKBLK_1;
+//out port ss = XS1_PORT_1K;
+//out port sck = XS1_PORT_1I;
+//out buffered port:8 mosi = XS1_PORT_1L;
+//in buffered port:8 miso = XS1_PORT_1F;
+//clock clk = XS1_CLKBLK_1;
 
-struct spi_fast_t spi = { ss,mosi,miso,sck,clk};
+struct spi_fast_t spi = { XS1_PORT_1K,XS1_PORT_1L,XS1_PORT_1F,XS1_PORT_1I,XS1_CLKBLK_1};
 
 int main()
 {
