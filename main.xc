@@ -1144,9 +1144,10 @@ out buffered port:8 mosi = XS1_PORT_1L;
 in buffered port:8 miso = XS1_PORT_1F;
 clock clk = XS1_CLKBLK_1;
 
+struct spi_fast_t spi = { ss,mosi,miso,sck,clk};
+
 int main()
 {
-  struct spi_fast_t spi = { ss,mosi,miso,sck,clk};
   spi_fast_init(spi,us);
   return 0;
 }
