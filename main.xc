@@ -1046,7 +1046,7 @@ int main()
 
 #endif
 
-#if 0
+#if 1
 
 // SPI Master
 out port spi_out = XS1_PORT_4C;
@@ -1134,7 +1134,7 @@ int main()
 }
 #endif
 
-#if 1
+#if 0
 /*
  * testing fast spi
  */
