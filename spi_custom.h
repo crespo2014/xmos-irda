@@ -253,17 +253,26 @@ struct spi_fast_t
 
 static inline void spi_fast_init(struct spi_fast_t &obj,unsigned T_ns)
 {
+  obj.ss <: 1;
   configure_clock_xcore(obj.clk,T_ns/XCORE_CLK_T_ns);     // dividing clock ticks
   configure_in_port(obj.miso,obj.clk);
   configure_out_port(obj.mosi,obj.clk,0);
   configure_port_clock_output(obj.sck,obj.clk);
+  configure_out_port_strobed_master(obj.mosi, obj.ss, obj.clk, 1);
+  //configure_in_port_strobed_slave(obj.miso, obj.ss, obj.clk);
+  set_port_inv(obj.ss);
+  // duplicating bits size
+  set_port_shift_count(obj.mosi,8); //Define how many bits to send every write operation
+  //port_i
   start_clock(obj.clk);
+  //it does not work, sss go high low between transactions. read doe snot happend until write is done
 }
 
 static inline void spi_fast_send(struct spi_fast_t &obj,const char data[n],unsigned n)
 {
   for (unsigned i=0;i<n;++i)
-    obj.mosi <: data[i];
+    obj.mosi <: (unsigned char)((bitrev(data[i]) >> 24));
+  sync(obj.mosi);
 }
 /*
  * use the same buffer to send and received.
@@ -272,12 +281,12 @@ static inline void spi_fast_sendrecv(struct spi_fast_t &obj,unsigned len,unsigne
 {
   for (unsigned i=0;i<len;++i)
   {
+    sync(obj.mosi);
     if (i < wr_len)
       obj.mosi <: wr[i];
     sync(obj.mosi);
     if (i > rd_pos)
       obj.miso :> rd[i-rd_pos];
-
   }
 }
 #endif /* SPI_CUSTOM_H_ */

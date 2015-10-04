@@ -1144,11 +1144,19 @@ int main()
 //in buffered port:8 miso = XS1_PORT_1F;
 //clock clk = XS1_CLKBLK_1;
 
+out buffered port:32 feed = XS1_PORT_1G;
 struct spi_fast_t spi = { XS1_PORT_1K,XS1_PORT_1L,XS1_PORT_1F,XS1_PORT_1I,XS1_CLKBLK_1};
 
 int main()
 {
+  char dt[5];
   spi_fast_init(spi,us);
+  delay_microseconds(5);
+//  spi_fast_send(spi,"\x55\x2\x3\x4\x5",1);
+  feed <: 0x1248F55;
+  spi_fast_sendrecv(spi,5,0,"\x1\x2\x4\x8\x55",5,dt);
+  print_buff(dt,5);
+  printf("\n");
   return 0;
 }
 #endif
