@@ -83,55 +83,87 @@ unsigned ascii_cantx(const char* buff,struct rx_u8_buff &ret)
   return 1;
 }
 
-void ascii_i2cw(const char* buff,struct rx_u8_buff *ret,client interface i2c_custom_if i2c)
+/*
+ * read command id and device address
+ * return  cursor pos, 0 means error
+ */
+unsigned ascii_i2c_header(const char cmd[],struct rx_u8_buff &ret)
 {
-#if 1
-  struct i2c_frm frm;
-  if (!i2cw_decode(buff,frm,'\n'))
-  {
-    ret->len = strcpy(ret->dt,"I2CW invalid format");
-  }
-  else
-  {
-    i2c.i2c_execute(frm);
-    i2c_decode_answer(frm,*ret);
-  }
-  ret->len = safestrlen(ret->dt);
-#endif
-}
-#if 1
-void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_custom_if i2c)
-{
-  const char* resp;
-  struct i2c_frm frm;
+  unsigned len,v,pos;
+  pos = 0;
   do
   {
-    if (!i2cr_decode(buff,frm))
-    {
-      resp ="I2CR invalid format";
-      break;
-    }
-    i2c.i2c_execute(frm);
-    if (frm.ret_code != i2c_ack)
-    {
-      char* t = ret.dt;
-      strcpy(t,"I2CW NOK E: ");
-      u8ToHex(frm.ret_code,t);
-      *t = 0;
-      ret.len = safestrlen(ret.dt);
-      return;
-    }
-  } while(0);
-  safestrcpy(ret.dt,resp);
-  ret.len = safestrlen(ret.dt);
+    {v,len} = hex_space_to_u8(cmd);   // command id
+    if (v > 0xFF) break;
+    pos = len;
+    ret.cmd_id = v;
+    {v,len} = hex_space_to_u8(cmd);   // i2c address
+    if (v > 0xFF) break;
+    pos += len;
+    ret.dt[0] = v;
+    return pos;
+  } while (0);
+  ret.cmd_id = cmd_invalid_hex;
+  return 0;
 }
 
-#endif
+/*
+ * Decode a i2cw ascii command
+ * u8 id
+ * u8 addr
+ * u8 write len
+ *    data
+ */
+void ascii_i2cw(const char cmd[],struct rx_u8_buff &ret)
+{
+  unsigned len,v,pos;
+  pos = 0;
+  do
+  {
+    {v,len} = hex_space_to_u8(cmd);   // i2c address
+    if (v > 0xFF) break;
+    pos += (len+1);
+    ret.dt[0] = v;
+    {v,len} = hex_space_to_u8(cmd + pos);   // write len
+    if (v > 0xFF) break;
+    pos += (len+1);
+    ret.dt[1] = v;
+    ret.dt[2] = 0;    // no read command needed
+    ret.len = 3 + v;
+    if (!hex_to_binary(cmd + pos,ret.dt + 3,v)) break;
+    return;
+  } while (0);
+  ret.cmd_id = cmd_invalid_hex;
+}
+
+/*
+ * Decode a i2cw ascii command
+ * u8 id
+ * u8 addr
+ * u8 read len
+ */
+void ascii_i2cr(const char cmd[],struct rx_u8_buff &ret)
+{
+  unsigned len,v,pos;
+  pos = ascii_i2c_header(cmd,ret);
+  if (!pos) return;
+  do
+  {
+    {v,len} = hex_space_to_u8(cmd + pos);   // read len
+    if (v > 0xFF) break;
+    pos += len;
+    ret.dt[1] = 0;    // no write command needed
+    ret.dt[2] = v;
+    ret.len = 3;
+    return;
+  } while (0);
+  ret.cmd_id = cmd_invalid_hex;
+}
 
 /*
  * Task to parse user commands.
  */
-[[distributable]] void cmd_v1(client interface rx_frame_if rx,server interface tx_if tx,client interface i2c_custom_if i2c)
+[[distributable]] void cmd_v1(client interface rx_frame_if rx,server interface tx_if tx)
 {
   // packet use to push
   struct rx_u8_buff tfrm;   // temporal frame
@@ -144,7 +176,7 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
     {
       case tx.send(struct rx_u8_buff  * movable &_packet):
        // tracePacket(_packet);
-        unsigned len;
+        unsigned len,pos,v;
         if (_packet->src_rx == serial_rx || _packet->src_rx == test_rx)
         {
           if (_packet->dt[0] < ' ')   //binary commands should go straight to the device
@@ -163,19 +195,17 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
           {
             // read command
             { m_frame->cmd_id, len } = getCommand(_packet->dt);
-            _packet->header_len = len + 1;
+            pos = len + 1;
             // read packet id
             if (m_frame->cmd_id != cmd_none)
             {
-              unsigned v;
-              {v,len} = asciiToHex8(_packet->dt + _packet->header_len);
-              _packet->header_len += len;
-              if (v > 0xFF || _packet->dt[_packet->header_len] != ' ')
-                m_frame->cmd_id = cmd_invalid_hex;
-              else
+              // read command id
+              {v,len} = hex_space_to_u8(_packet->dt + pos);   // command id
+              m_frame->id = v;
+              pos += (len+1);
+              if (v > 0xFF)
               {
-                m_frame->id = v;
-                _packet->header_len += 1;
+                m_frame->cmd_id = cmd_invalid_hex;
               }
             }
           }
@@ -183,7 +213,7 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
           switch (m_frame->cmd_id)
           {
           case cmd_i2cw:
-            ascii_i2cw(_packet->dt + _packet->header_len,m_frame,i2c);
+            ascii_i2cw(_packet->dt + pos,*m_frame);
             break;
           case cmd_can_tx:
             if (ascii_cantx(_packet->dt + + _packet->header_len,*m_frame))
@@ -212,7 +242,16 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
           {
             m_frame->header_len = 0;
             m_frame->len = 0;
-            m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"RPL ");
+            // analize command to create header.
+            switch (_packet->cmd_id)
+            {
+            case cmd_i2c_nack:
+              m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"I2C-NACK ");
+              break;
+            default:
+              m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"RPL ");
+              break;
+            }
             m_frame->len += u8ToHex(_packet->id,m_frame->dt+m_frame->len);
             if (_packet->header_len != _packet->len)
             {
@@ -223,7 +262,7 @@ void ascii_i2cr(const char* buff,struct rx_u8_buff &ret,client interface i2c_cus
           }
         } else
         {
-          // forward packet to serial, with SRC_ID, DATA,
+          // packet comming from input interface - forward it to serial, with SRC_ID, DATA,
           m_frame->header_len = 0;
           m_frame->len = 0;
           switch (_packet->src_rx)

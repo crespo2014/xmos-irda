@@ -1110,7 +1110,7 @@ int main()
 
 
     TX_Worker(tx,tx_out,rx[reply_rx]);
-    cmd_v1(rx[cmd_rx],tx_out[cmd_tx],i2c[0]);
+    cmd_v1(rx[cmd_rx],tx_out[cmd_tx]);
 
     // buses
     spi_master(spi_out,spi_miso,master_spi_if);
@@ -1125,7 +1125,7 @@ int main()
     interrupt_manager(interrupt_port,1,int_if,0);
     mcp2515_interrupt_manager(mcp2515[0],int_if[0],tx_out[mcp2515_tx],rx[mcp2515_rx]);
 
-    i2c_custom(i2c,1,scl,sda,100);
+  //  i2c_custom(i2c,1,scl,sda,100);
     serial_manager(uart_tx,uart_rx);
 
     //serial_send_loop(p_feed); // command pusher does teh job

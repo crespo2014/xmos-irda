@@ -9,7 +9,6 @@
 #ifndef CMD_H_
 #define CMD_H_
 
-#include "i2c_custom.h"
 /*
  * Commands definition for binary packets send to cmd interface
  * it is not the same than rx tx interfaces
@@ -27,11 +26,8 @@
 #define cmd_fail     9 // failed to decode teh command
 #define cmd_invalid_hex 10
 #define cmd_invalid_dest 11     // invalid destiniation interface
+#define cmd_i2c_nack      12    // use by i2c reply if the operation was not success
 
-//extern unsigned  getCommand(const unsigned char* c,const unsigned char* &t);
-extern unsigned get_i2c_buff(const unsigned char* c,struct i2c_frm &ret);
-//extern void get_i2c_resp(struct i2c_frm &data,struct tx_frame_t ret);
-
-[[distributable]] extern void cmd_v1(client interface rx_frame_if rx,server interface tx_if tx,client interface i2c_custom_if i2c);
+[[distributable]] extern void cmd_v1(client interface rx_frame_if rx,server interface tx_if tx);
 
 #endif /* CMD_H_ */

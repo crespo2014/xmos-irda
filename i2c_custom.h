@@ -12,13 +12,15 @@
 #define TEST1 1
 
 #include <xclib.h>
+#include "cmd.h"
+
 /*
  * i2c User protocol
  * address u8  - device address
  * wr_len  u8  - how many bytes to write
  * rd_len  u8  - how many bytes to read
  * data        - data to write
- *
+ * rddata      - read data
  * Reply.
  * I2C :
  */
@@ -207,6 +209,38 @@ static inline unsigned i2c_read(struct i2c_master_t &obj,unsigned addr,unsigned 
       obj.sda <: i2c_ack;
     i2c_send_bit(obj);
     dt[i] = bitrev(data) & 0xFF;
+  }
+  return ret;
+}
+/*
+ * Execute the specific i2c command
+ * u8 address
+ * u8 wr_len
+ * u8 rd_len
+ *    data to write
+ * +wr_len read data
+ *
+ */
+static inline unsigned i2c_execute(struct i2c_master_t &obj,struct rx_u8_buff  &frame)
+{
+  unsigned ret;
+  i2c_send_start(obj);
+  unsigned addr = frame.dt[frame.header_len];
+  unsigned len = frame.dt[frame.header_len+1];
+  ret = i2c_write(obj,addr,frame.dt + frame.header_len + 3,len);
+  len = frame.dt[frame.header_len+2];
+  if (ret == i2c_ack)
+      ret = i2c_read(obj,addr,frame.dt,len);
+  if (ret == i2c_ack)
+  {
+    // signal returned data
+    frame.header_len = 0;
+    frame.len = len;
+  }
+  else
+  {
+    frame.cmd_id = cmd_i2c_nack;
+    frame.header_len = frame.len;
   }
   return ret;
 }

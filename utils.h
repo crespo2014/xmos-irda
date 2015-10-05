@@ -56,9 +56,12 @@ static inline unsigned readHex_u4(unsigned hexchar)
   return 0xFFF;
 }
 
-{unsigned ,unsigned } static inline getmul(unsigned a)
+/*
+ * Convert two hex char to binary
+ */
+unsigned static inline hex2_to_u8(const char str[])
 {
-  return {0,0};
+  return 0;
 }
 
 {unsigned ,unsigned } static inline readHex_u8_2(const char* str)
@@ -114,16 +117,25 @@ static inline unsigned readHex_u32(const char* str,unsigned char &len)
  * return
  * value, len
  */
-{unsigned ,unsigned } static inline asciiToHex8(const char str[])
+{unsigned ,unsigned } static inline Hex_to_u8(const char str[])
 {
+  unsigned d = readHex_u4(str[0]);
+  if (d > 0xFF)  return { d,0 };
+  unsigned v = readHex_u4(str[1]);
+  if (v > 0xFF)  return { d,1 };
+  d = d << 4 | v;
+  return { d, 2 };
+}
+
+{unsigned ,unsigned } static inline hex_space_to_u8(const char str[])
+{
+  unsigned len = 0;
   unsigned d = 0;
-  unsigned len;
-  for (len=0;len<2;len++)
+  while (len < 2 && str[len] != ' ')
   {
-    unsigned v = readHex_u4(str[len]);
-    if (v > 0xFF) break;
-    d = d << 4 | v;
+     d = (d << 4) | readHex_u4(str[len++]);
   }
+  if (str[len] != ' ') d = 0xFFF;
   return {d,len};
 }
 
@@ -167,6 +179,23 @@ static inline unsigned DataToHex(const unsigned char data[],unsigned len,char de
   }
   return pos*2;
 #endif
+}
+
+/*
+ * Convert hex buffer to binary data
+ * 0 error
+ * 1 success
+ */
+unsigned static inline hex_to_binary(const char str[],unsigned char buff[max],unsigned max)
+{
+  unsigned v = 0;
+  unsigned pos = 0;
+  for (unsigned i=0;v< 0x100 && i<max;i++)
+  {
+    v = (readHex_u4(str[pos++]) << 4) | readHex_u4(str[pos++]);
+    buff[i] = v;
+  }
+  return (v < 0x100);
 }
 
 
