@@ -54,9 +54,9 @@ struct i2c_master_t
 {
     port sda;
     port scl;
+    unsigned T;
     timer t;
     unsigned tp;
-    unsigned T;
 };
 
 static inline void i2c_init(struct i2c_master_t &obj)
@@ -242,6 +242,7 @@ static inline unsigned i2c_execute(struct i2c_master_t &obj,struct rx_u8_buff  &
     frame.cmd_id = cmd_i2c_nack;
     frame.header_len = frame.len;
   }
+  i2c_send_stop(obj);
   return ret;
 }
 
@@ -430,5 +431,5 @@ extern unsigned i2cw_decode(const unsigned char* c,struct i2c_frm &ret,char stop
 extern void i2c_decode_answer(struct i2c_frm &data,struct rx_u8_buff &ret);
 
  [[distributable]] extern void i2c_custom(server interface i2c_custom_if i2c_if[n],size_t n,port scl, port sda, unsigned kbits_per_second);
-
+ [[distributable]] extern void i2c_master_v2(struct i2c_master_t &obj,server interface tx_if tx);
 #endif /* I2C_H_ */

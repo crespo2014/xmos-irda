@@ -17,6 +17,7 @@ enum tx_task
 {
   cmd_tx = 0,
   serial_tx,
+  tx_i2c,
   mcp2515_tx,
   max_tx,
 };

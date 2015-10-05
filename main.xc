@@ -408,15 +408,22 @@ void channel_signal(streaming chanend ch,out port p)
     select
     {
       case t when timerafter(tp) :> void:
-      tp = tp + 200*us;
-      if (pos == 0)
-        pframe->len = strcpy(pframe->dt,"CANTX 01 0A 0102030405\n");
-      else if (pos == 1)
+      tp = tp + 100*us;
+      pos++;
+      if (pos == 1)
         pframe->len = strcpy(pframe->dt,"CANTX 0 A 0102030405\n");
       else  if (pos == 2)
         pframe->len = strcpy(pframe->dt,"CANTX AB A 0102030405\n");
-      pos++;
-      if (pos > 2) pos = 0;
+      else  if (pos == 3)
+        pframe->len = strcpy(pframe->dt,"I2CR 2 A \n");
+      else  if (pos == 4)
+        pframe->len = strcpy(pframe->dt,"I2CR 2 A \n");
+      else  if (pos == 5)
+        pframe->len = strcpy(pframe->dt,"I2CW C 01 05 0102030405\n");
+      else if (pos == 6)
+        pframe->len = strcpy(pframe->dt,"I2CWR D 01 05 03 0102030405\n");
+      else
+        pos = 0;
       router.push(pframe,cmd_tx);
       break;
     }
@@ -433,7 +440,7 @@ void channel_signal(streaming chanend ch,out port p)
   {
     select {
       case tx.send(struct rx_u8_buff  * movable &pck):
-       printf("tx : ");
+       printf("tx ");
        if (pck->dt[0] > ' ')
          print_ascii_buff(pck->dt,pck->len);
        else
@@ -1066,10 +1073,6 @@ in port  uart_rx_p = XS1_PORT_1C;
 //IRDA
 in port p_irda = XS1_PORT_1D;
 
-//I2C
-port scl = XS1_PORT_1E;
-port sda = XS1_PORT_1F;
-
 // UART LOOP for testing
 out port p_feed = XS1_PORT_1G;
 
@@ -1078,6 +1081,7 @@ in port i1 = XS1_PORT_1K;
 in port i2 = XS1_PORT_1I;
 in port i3 = XS1_PORT_1L;
 
+struct i2c_master_t i2c_master = {XS1_PORT_1F,XS1_PORT_1E,ms/400};
 
 int main()
 {
@@ -1088,7 +1092,6 @@ int main()
   interface uart_v4      uart_tx;
 
   // buses
-  interface i2c_custom_if i2c[1];
   interface spi_master_if master_spi_if;
 
   //devices
@@ -1126,6 +1129,7 @@ int main()
     mcp2515_interrupt_manager(mcp2515[0],int_if[0],tx_out[mcp2515_tx],rx[mcp2515_rx]);
 
   //  i2c_custom(i2c,1,scl,sda,100);
+    i2c_master_v2(i2c_master,tx_out[tx_i2c]);
     serial_manager(uart_tx,uart_rx);
 
     //serial_send_loop(p_feed); // command pusher does teh job

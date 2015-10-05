@@ -88,13 +88,6 @@
 #include "utils.h"
 #include "safestring.h"
 
-
-//static enum i2c_ecode i2c_read(port scl, port sda,unsigned T,unsigned char address,
-//    const char* data,unsigned len)
-//{
-//  return i2c_error;
-//}
-
 /*
  * TODO for command interface
  *
@@ -109,82 +102,23 @@
  * write use address and data
  * w/r is a combination
  */
-#if 1
-unsigned i2cw_decode(const unsigned char* c,struct i2c_frm &ret,char stop_char)
-{
-  //I2CW ADDRESS DATA
-  unsigned v;
-  unsigned bret = 1;   //ok
-  ret.rd_len = 0;
 
-  v = readHexByte(c);
-  ret.addr = v;
-  if ((*c != ' ') || (v > 0xFF)) bret = 0;
-  if (bret)
+[[distributable]] void i2c_master_v2(struct i2c_master_t &obj,server interface tx_if tx)
+{
+  i2c_init(obj);
+  tx.cts();
+  while(1)
   {
-    c++;
-    ret.wr_len = 0;
-    while(bret && *c != stop_char && ret.wr_len < sizeof(ret.dt))
+    select
     {
-      v = readHexByte(c);
-      ret.dt[ret.wr_len++] = v;
-      if ( v > 0xFF ) bret = 0;
+    case tx.send(struct rx_u8_buff  * movable &pck):
+      i2c_execute(obj,*pck);
+      tx.cts();
+      break;
+    case tx.ack():
+      break;
     }
-    if (bret && (*c != stop_char)) bret = 0;
   }
-  return bret;
-}
-
-
-unsigned i2cr_decode(const unsigned char* c,struct i2c_frm &ret)
-{
-  //I2CR ADDRESS READ_LEN
-  unsigned bret;
-  bret = i2cw_decode(c,ret,'\n');
-  if (ret.wr_len != 1 || ret.rd_len > sizeof(ret.dt)) bret = 0;
-  ret.rd_len = ret.dt[0];
-  ret.wr_len = 0;
-  return bret;
-}
-
-unsigned i2cwr_decode(const unsigned char* c,struct i2c_frm &ret)
-{
-  unsigned v;
-  //I2CR ADDRESS READ_LEN
-  unsigned bret;
-  bret = i2cw_decode(c,ret,' ');
-  if (bret)
-  {
-    v = readHexByte(c);
-    ret.rd_len = v;
-  }
-  if ((v > 0xFF) || (*c != '\n') || ret.rd_len + ret.wr_len > sizeof(ret.dt) ) bret = 0;
-  return bret;
-}
-#endif
-
-void i2c_decode_answer(struct i2c_frm &data,struct rx_u8_buff &ret)
-{
-#if 0
-  switch (data.ret_code)
-  {
-  case i2c_ack:
-    char* t = ret.dt;
-    safestrcpy(t,"I2C OK ");
-    t += safestrlen(t);
-    if (data.rd_len != 0)
-      getHexBuffer(data.dt + data.wr_len,data.rd_len,t);
-    break;
-  default:
-    char* t = ret.dt;
-    safestrcpy(t,"I2CW NOK E: ");
-    t += safestrlen(t);
-    u8ToHex(data.ret_code,t);
-    *t = 0;
-    break;
-  }
-  ret.len = safestrlen(ret.dt);
-#endif
 }
 
 

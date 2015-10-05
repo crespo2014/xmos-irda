@@ -84,30 +84,6 @@ unsigned ascii_cantx(const char* buff,struct rx_u8_buff &ret)
 }
 
 /*
- * read command id and device address
- * return  cursor pos, 0 means error
- */
-unsigned ascii_i2c_header(const char cmd[],struct rx_u8_buff &ret)
-{
-  unsigned len,v,pos;
-  pos = 0;
-  do
-  {
-    {v,len} = hex_space_to_u8(cmd);   // command id
-    if (v > 0xFF) break;
-    pos = len;
-    ret.cmd_id = v;
-    {v,len} = hex_space_to_u8(cmd);   // i2c address
-    if (v > 0xFF) break;
-    pos += len;
-    ret.dt[0] = v;
-    return pos;
-  } while (0);
-  ret.cmd_id = cmd_invalid_hex;
-  return 0;
-}
-
-/*
  * Decode a i2cw ascii command
  * u8 id
  * u8 addr
@@ -145,10 +121,13 @@ void ascii_i2cw(const char cmd[],struct rx_u8_buff &ret)
 void ascii_i2cr(const char cmd[],struct rx_u8_buff &ret)
 {
   unsigned len,v,pos;
-  pos = ascii_i2c_header(cmd,ret);
-  if (!pos) return;
+  pos = 0;
   do
   {
+    {v,len} = hex_space_to_u8(cmd);   // i2c address
+    if (v > 0xFF) break;
+    pos += (len+1);
+    ret.dt[0] = v;
     {v,len} = hex_space_to_u8(cmd + pos);   // read len
     if (v > 0xFF) break;
     pos += len;
@@ -214,6 +193,7 @@ void ascii_i2cr(const char cmd[],struct rx_u8_buff &ret)
           {
           case cmd_i2cw:
             ascii_i2cw(_packet->dt + pos,*m_frame);
+
             break;
           case cmd_can_tx:
             if (ascii_cantx(_packet->dt + pos,*m_frame))
@@ -237,11 +217,14 @@ void ascii_i2cr(const char cmd[],struct rx_u8_buff &ret)
           }
         } else if (_packet->src_rx == reply_rx)
         {
-          // do not reply command with missing id
-          if (_packet->id != 0)
+          // Notify to user that packet was delivered
+          if (_packet->id != 0 || _packet->header_len != _packet->len )
           {
             m_frame->header_len = 0;
-            m_frame->len = 0;
+            m_frame->len = 1;
+            m_frame->dt[0] = ':';
+            m_frame->len += u8ToHex(_packet->id,m_frame->dt+m_frame->len);
+            m_frame->dt[m_frame->len++] = ' ';
             // analize command to create header.
             switch (_packet->cmd_id)
             {
@@ -249,10 +232,9 @@ void ascii_i2cr(const char cmd[],struct rx_u8_buff &ret)
               m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"I2C-NACK ");
               break;
             default:
-              m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"RPL ");
+              m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"OK ");
               break;
             }
-            m_frame->len += u8ToHex(_packet->id,m_frame->dt+m_frame->len);
             if (_packet->header_len != _packet->len)
             {
               m_frame->len += DataToHex(_packet->dt+_packet->header_len,_packet->len -_packet->header_len,m_frame->dt+m_frame->len);
@@ -268,10 +250,10 @@ void ascii_i2cr(const char cmd[],struct rx_u8_buff &ret)
           switch (_packet->src_rx)
           {
           case mcp2515_rx:
-            m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"CANRX ");
+            m_frame->len += strcpy_2(m_frame->dt+m_frame->len,":CANRX ");
             break;
           default:
-            m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"RX ");
+            m_frame->len += strcpy_2(m_frame->dt+m_frame->len,":RX ");
             break;
           }
           if (_packet->header_len != _packet->len)
