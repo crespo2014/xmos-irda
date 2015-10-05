@@ -139,6 +139,10 @@ void ascii_i2cr(const char cmd[],struct rx_u8_buff &ret)
   ret.cmd_id = cmd_invalid_hex;
 }
 
+void buildReply(const struct rx_u8_buff  &rpl,const struct rx_u8_buff  &ret)
+{
+
+}
 /*
  * Task to parse user commands.
  */
@@ -193,7 +197,7 @@ void ascii_i2cr(const char cmd[],struct rx_u8_buff &ret)
           {
           case cmd_i2cw:
             ascii_i2cw(_packet->dt + pos,*m_frame);
-
+            rx.push(m_frame,tx_i2c);
             break;
           case cmd_can_tx:
             if (ascii_cantx(_packet->dt + pos,*m_frame))
