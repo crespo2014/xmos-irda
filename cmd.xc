@@ -46,10 +46,14 @@
   {id,len} =CheckPreffix("CANTX",c);
   if (id) return {cmd_can_tx,len};
   {id,len} =CheckPreffix("SPI0",c);
-  if (id) return {cmd_spi0_tx,len};
-  {id,len} =CheckPreffix("INFO",c);
-  if (id) return {cmd_info,len};
-  return {cmd_none,0};
+  do
+  {
+    if (id) { id = cmd_spi0_tx; break; }
+    {id,len} = CheckPreffix("INFO",c);
+    if (id) { id = cmd_info; break; }
+    id = cmd_none;
+  } while(0);
+  return {id,len};
 }
 
 /*
@@ -216,7 +220,7 @@ void ascii_i2cr(const char cmd[],struct rx_u8_buff &ret)
             ascii_i2cw(_packet->dt + pos,*m_frame);
             break;
           case cmd_can_tx:
-            if (ascii_cantx(_packet->dt + + _packet->header_len,*m_frame))
+            if (ascii_cantx(_packet->dt + pos,*m_frame))
             {
               rx.push(m_frame,mcp2515_tx);
             }
