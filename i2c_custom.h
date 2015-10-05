@@ -13,6 +13,18 @@
 
 #include <xclib.h>
 /*
+ * i2c User protocol
+ * address u8  - device address
+ * wr_len  u8  - how many bytes to write
+ * rd_len  u8  - how many bytes to read
+ * data        - data to write
+ *
+ * Reply.
+ * I2C :
+ */
+
+
+/*
  * Returned error codes for i2c command execution
  */
 enum i2c_ecode
@@ -35,6 +47,170 @@ struct i2c_frm
     unsigned char  dt[20];  // read or written data
 
 };
+
+struct i2c_master_t
+{
+    port sda;
+    port scl;
+    timer t;
+    unsigned tp;
+    unsigned T;
+};
+
+static inline void i2c_init(struct i2c_master_t &obj)
+{
+  set_port_drive_low(obj.scl);
+  set_port_drive_low(obj.sda);
+   //  set_port_pull_up(scl);
+   //  set_port_pull_up(sda);
+  obj.sda :> int _;
+  obj.scl :> int _;
+}
+
+static inline void i2c_send_start(struct i2c_master_t &obj)
+{
+  obj.sda <: 0;
+  obj.t :> obj.tp;
+  obj.tp += (obj.T/2);
+  obj.t when timerafter(obj.tp) :> void;
+  obj.scl <: 0;
+  obj.tp += (obj.T/2);
+}
+
+static inline void i2c_send_stop(struct i2c_master_t &obj)
+{
+  obj.sda <: 0;
+  obj.t when timerafter(obj.tp) :> void;
+  obj.scl :> int _;
+  obj.tp += (obj.T/2);
+  obj.t when timerafter(obj.tp) :> void;
+  obj.sda :> int _;
+  obj.tp += (obj.T/2);
+  obj.t when timerafter(obj.tp) :> void;
+}
+
+/*
+ * Generate a clock pulse, use to send a bit of data
+ */
+static inline void i2c_send_bit(struct i2c_master_t &obj)
+{
+  // clk_up can be use to allow streching at this level.
+  obj.t when timerafter(obj.tp) :> void;
+  obj.scl :> int _;
+  obj.tp += (obj.T/2);
+  obj.t when timerafter(obj.tp) :> void;
+  obj.scl <: 0;   // sda could be 1 after this.
+  obj.tp += (obj.T/2);
+}
+
+/*
+ * Raise clock signal allowing streching
+ */
+static inline unsigned i2c_scl_up(struct i2c_master_t &obj)
+{
+  unsigned ret;
+  obj.t when timerafter(obj.tp) :> void;
+  obj.scl :> ret;  // port go to float state
+  // wait for signal become high
+  for (int i = 8;i != 0;i--)
+  {
+    obj.scl :> ret;
+    if (ret == 1)
+    {
+      obj.tp += (obj.T/4);    // signal is high, a bit can be read at 1/4 of T
+      break;
+    }
+    obj.tp += (obj.T/2);
+    obj.t when timerafter(obj.tp) :> obj.tp;
+  }
+  return ret;
+}
+
+/*
+ * return 0, 1 or timeout
+ * leave scl down at function exit
+ */
+static inline unsigned char i2c_read_bit(struct i2c_master_t &obj)
+{
+  unsigned ecode = i2c_scl_up(obj);
+  if (ecode == 1)
+  {
+    obj.t when timerafter(obj.tp) :> void;
+    obj.sda :> ecode;
+    obj.tp += obj.T/4;
+    obj.t when timerafter(obj.tp) :> void;
+  }
+  else
+    ecode = i2c_timeout;
+  obj.scl <: 0;             // keep it down if something goes wrong
+  obj.tp += obj.T/2;
+  return ecode;
+}
+/*
+ * Send from MSB to LSB
+ * Return 0,1 or timeout reading slave answer
+ */
+static inline enum i2c_ecode i2c_send_u8(struct i2c_master_t &obj,unsigned u8)
+{
+  u8 = 0x100 | (bitrev(u8) >> 24);
+  while (u8 != 0x1)
+  {
+    obj.sda <: >>u8;
+    i2c_send_bit(obj);
+  }
+  obj.sda :> int _; // prepared for reading
+  return i2c_read_bit(obj);
+}
+/*
+ * I2c write command
+ * return 0, 1 or timeout
+ */
+static inline unsigned i2c_write(struct i2c_master_t &obj,unsigned addr,const unsigned char data[len],unsigned len)
+{
+  unsigned ret;
+  i2c_send_start(obj);
+  ret = i2c_send_u8(obj,addr << 1);
+  for (unsigned i =0;ret==i2c_ack && i<len;i++)
+  {
+    ret = i2c_send_u8(obj,data[i]);
+  }
+  return ret;
+}
+/*
+ * I2C read command.
+ * read from msb to lsb
+ * return 0,1 or timeout
+ */
+static inline unsigned i2c_read(struct i2c_master_t &obj,unsigned addr,unsigned char dt[len],unsigned len)
+{
+  unsigned ret;
+  i2c_send_start(obj);
+  ret = i2c_send_u8(obj,(addr << 1) | 1);
+  for (unsigned i =0;ret==i2c_ack && i<len;i++)
+  {
+    // read 8 bits and send ack
+    unsigned data;
+    obj.sda :> int _; // prepared for reading
+    for (unsigned j=0;ret == i2c_ack && j<8;j++)
+    {
+       ret = i2c_scl_up(obj);
+       obj.t when timerafter(obj.tp) :> void;
+       obj.sda :> >> data;
+       obj.tp += (obj.T/4);
+       obj.t when timerafter(obj.tp) :> void;
+       obj.scl <: 0;
+       obj.tp += (obj.T/2);
+    }
+    if (i == len-1) // last byte to read
+      obj.sda <: i2c_nack;
+    else
+      obj.sda <: i2c_ack;
+    i2c_send_bit(obj);
+    dt[i] = bitrev(data) & 0xFF;
+  }
+  return ret;
+}
+
 
 /*
  * No delay after scl go down
