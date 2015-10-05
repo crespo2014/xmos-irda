@@ -46,14 +46,10 @@
   {id,len} =CheckPreffix("CANTX",c);
   if (id) return {cmd_can_tx,len};
   {id,len} =CheckPreffix("SPI0",c);
-  do
-  {
-    if (id) { id = cmd_spi0_tx; break; }
-    {id,len} = CheckPreffix("INFO",c);
-    if (id) { id = cmd_info; break; }
-    id = cmd_none;
-  } while(0);
-  return {id,len};
+  if (id) return {cmd_spi0_tx,len};
+  {id,len} = CheckPreffix("INFO",c);
+  if (id) return {cmd_info,len};
+  return {cmd_none,len};
 }
 
 /*
