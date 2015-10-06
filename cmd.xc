@@ -232,22 +232,17 @@ void dispatch_packet(struct rx_u8_buff  * movable &packet,client interface rx_fr
   case cmd_i2cr:
   case cmd_i2cwr:
     rx.push(packet,tx_i2c);
-    return;
+    break;
   case cmd_can_tx:
     rx.push(packet,mcp2515_tx);
-    return;
-  case cmd_none:
-    packet->len = strcpy(packet->dt,":NOK cmd unimplemented\n>");
-    break;
-  case cmd_invalid_dest:
-    packet->len = strcpy(packet->dt,"NOK: Invalid destination\n>");
     break;
   default:
     packet->len = strcpy(packet->dt,":NOK\n>");
+    packet->header_len = 0;
+     rx.push(packet,serial_tx);
     break;
   }
-  packet->header_len = 0;
-  rx.push(packet,serial_tx);
+
 }
 
 /*
