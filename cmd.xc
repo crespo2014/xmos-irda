@@ -191,7 +191,7 @@ unsigned build_ascii_Reply(const struct rx_u8_buff  &rpl,struct rx_u8_buff  &ret
   {
     ret.len += DataToHex(rpl.dt+rpl.header_len,rpl.len -rpl.header_len,ret.dt+ret.len);
   }
-  ret.len += strcpy_2(ret.dt+ret.len,"\n>");
+  ret.len += strcpy_2(ret.dt+ret.len,"\n");
   return 1;
 }
 /*
@@ -217,6 +217,8 @@ unsigned decode_ascii_frame(const struct rx_u8_buff  &cmd,struct rx_u8_buff  &re
     return ascii_i2cr(cmd.dt + pos,ret);
   case cmd_can_tx:
     return ascii_cantx(cmd.dt + pos,ret);
+  case cmd_info:
+    return 1;
   default:
     return 0;
   }
