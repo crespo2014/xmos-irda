@@ -178,10 +178,13 @@ unsigned build_ascii_Reply(const struct rx_u8_buff  &rpl,struct rx_u8_buff  &ret
   switch (rpl.cmd_id)
   {
   case cmd_i2c_nack:
-    ret.len += strcpy_2(ret.dt+ret.len,"I2C-NACK ");
+    ret.len += strcpy_2(ret.dt + ret.len,"I2C-NACK ");
+    break;
+  case cmd_can_rx:
+    ret.len += strcpy_2(ret.dt + ret.len,"CANRX ");
     break;
   default:
-    ret.len += strcpy_2(ret.dt+ret.len,"OK ");
+    ret.len += strcpy_2(ret.dt + ret.len,"OK ");
     break;
   }
   if (rpl.header_len != rpl.len)
@@ -215,24 +218,38 @@ unsigned decode_ascii_frame(const struct rx_u8_buff  &cmd,struct rx_u8_buff  &re
     return ascii_cantx(cmd.dt + pos,ret);
   default:
     return 0;
-    /*
-  case cmd_invalid_hex:
-    m_frame->len = strcpy(m_frame->dt,"NOK: Invalid hex value\n>");
-    rx.push(m_frame,serial_tx);
-    break;
+  }
+}
+/*
+ * Dispatch the packet
+ * or send back to user if something went wrong
+ */
+void dispatch_packet(struct rx_u8_buff  * movable &packet,client interface rx_frame_if rx)
+{
+  switch (packet->cmd_id)
+  {
+  case cmd_i2cw:
+  case cmd_i2cr:
+  case cmd_i2cwr:
+    rx.push(packet,tx_i2c);
+    return;
+  case cmd_can_tx:
+    rx.push(packet,mcp2515_tx);
+    return;
   case cmd_none:
-    //invalid command
-    m_frame->len = strcpy(m_frame->dt,"NOK: Ascii cmd unimplemented\n>");
-    rx.push(m_frame,serial_tx);
+    packet->len = strcpy(packet->dt,":NOK cmd unimplemented\n>");
     break;
   case cmd_invalid_dest:
-    m_frame->len = strcpy(m_frame->dt,"NOK: Invalid destination\n>");
-    rx.push(m_frame,serial_tx);
+    packet->len = strcpy(packet->dt,"NOK: Invalid destination\n>");
     break;
-    */
+  default:
+    packet->len = strcpy(packet->dt,":NOK\n>");
+    break;
   }
-
+  packet->header_len = 0;
+  rx.push(packet,serial_tx);
 }
+
 /*
  * Task to parse user commands.
  */
@@ -250,6 +267,7 @@ unsigned decode_ascii_frame(const struct rx_u8_buff  &cmd,struct rx_u8_buff  &re
       case tx.send(struct rx_u8_buff  * movable &_packet):
        // tracePacket(_packet);
         unsigned len,pos,v;
+        m_frame->header_len = 0;
         if (_packet->src_rx == serial_rx || _packet->src_rx == test_rx)
         {
           if (_packet->dt[0] != ':')   //binary commands should go straight to the device
@@ -257,82 +275,18 @@ unsigned decode_ascii_frame(const struct rx_u8_buff  &cmd,struct rx_u8_buff  &re
             _packet->id = _packet->dt[0];
             _packet->cmd_id = _packet->dt[1];
             _packet->header_len = 2;    // id dest
-            if (_packet->dt[1] < max_rx)
-            {
-              rx.push(_packet,_packet->dt[1]);
-              break;
-            }
-            m_frame->cmd_id = cmd_invalid_dest;
-          }
-          else
+            dispatch_packet(_packet,rx);
+          } else
           {
-            // read command
-            { m_frame->cmd_id, len } = getCommand(_packet->dt);
-            pos = len + 1;
-            // read packet id
-            if (m_frame->cmd_id != cmd_none)
-            {
-              // read command id
-              {v,len} = hex_space_to_u8(_packet->dt + pos);   // command id
-              m_frame->id = v;
-              pos += (len+1);
-              if (v > 0xFF)
-              {
-                m_frame->cmd_id = cmd_invalid_hex;
-              }
-            }
+            if (!decode_ascii_frame(*_packet,*m_frame))
+              m_frame->cmd_id = cmd_none;
+            dispatch_packet(m_frame,rx);
           }
-          m_frame->header_len  = 0;
-          switch (m_frame->cmd_id)
-          {
-          case cmd_i2cw:
-            ascii_i2cw(_packet->dt + pos,*m_frame);
-            rx.push(m_frame,tx_i2c);
-            break;
-          case cmd_can_tx:
-            if (ascii_cantx(_packet->dt + pos,*m_frame))
-            {
-              rx.push(m_frame,mcp2515_tx);
-            }
-            break;
-          case cmd_invalid_hex:
-            m_frame->len = strcpy(m_frame->dt,"NOK: Invalid hex value\n>");
-            rx.push(m_frame,serial_tx);
-            break;
-          case cmd_none:
-            //invalid command
-            m_frame->len = strcpy(m_frame->dt,"NOK: Ascii cmd unimplemented\n>");
-            rx.push(m_frame,serial_tx);
-            break;
-          case cmd_invalid_dest:
-            m_frame->len = strcpy(m_frame->dt,"NOK: Invalid destination\n>");
-            rx.push(m_frame,serial_tx);
-            break;
-          }
-        } else if (_packet->src_rx == reply_rx)
-        {
-          if (ascii_mode && build_ascii_Reply(*_packet,*m_frame))
-            rx.push(m_frame,serial_tx);
         } else
         {
-          // packet comming from input interface - forward it to serial, with SRC_ID, DATA,
-          m_frame->header_len = 0;
-          m_frame->len = 0;
-          switch (_packet->src_rx)
-          {
-          case mcp2515_rx:
-            m_frame->len += strcpy_2(m_frame->dt+m_frame->len,":CANRX ");
-            break;
-          default:
-            m_frame->len += strcpy_2(m_frame->dt+m_frame->len,":RX ");
-            break;
-          }
-          if (_packet->header_len != _packet->len)
-          {
-            m_frame->len += DataToHex(_packet->dt+_packet->header_len,_packet->len -_packet->header_len,m_frame->dt+m_frame->len);
-          }
-          m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"\n>");
-          rx.push(m_frame,serial_tx);
+          // Data from interfaces are send to user.
+          if (ascii_mode && build_ascii_Reply(*_packet,*m_frame))
+            rx.push(m_frame,serial_tx);
         }
         tx.cts();
         break;
