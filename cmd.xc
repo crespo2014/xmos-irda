@@ -49,7 +49,7 @@
   if (id) return {cmd_spi0_tx,len};
   {id,len} = CheckPreffix("INFO",c);
   if (id) return {cmd_info,len};
-  return {cmd_none,len};
+  return {cmd_none,0};
 }
 
 /*
@@ -90,7 +90,7 @@ unsigned ascii_cantx(const char* buff,struct rx_u8_buff &ret)
  * u8 write len
  *    data
  */
-void ascii_i2cw(const char cmd[],struct rx_u8_buff &ret)
+unsigned ascii_i2cw(const char cmd[],struct rx_u8_buff &ret)
 {
   unsigned len,v,pos;
   pos = 0;
@@ -107,9 +107,9 @@ void ascii_i2cw(const char cmd[],struct rx_u8_buff &ret)
     ret.dt[2] = 0;    // no read command needed
     ret.len = 3 + v;
     if (!hex_to_binary(cmd + pos,ret.dt + 3,v)) break;
-    return;
+    return 1;
   } while (0);
-  ret.cmd_id = cmd_invalid_hex;
+  return 0;
 }
 
 /*
@@ -118,7 +118,7 @@ void ascii_i2cw(const char cmd[],struct rx_u8_buff &ret)
  * u8 addr
  * u8 read len
  */
-void ascii_i2cr(const char cmd[],struct rx_u8_buff &ret)
+unsigned ascii_i2cr(const char cmd[],struct rx_u8_buff &ret)
 {
   unsigned len,v,pos;
   pos = 0;
@@ -134,9 +134,35 @@ void ascii_i2cr(const char cmd[],struct rx_u8_buff &ret)
     ret.dt[1] = 0;    // no write command needed
     ret.dt[2] = v;
     ret.len = 3;
-    return;
+    return 1;
   } while (0);
-  ret.cmd_id = cmd_invalid_hex;
+  return 0;
+}
+/*
+ * i2c write + read command
+ */
+unsigned ascii_i2cwr(const char cmd[],struct rx_u8_buff &ret)
+{
+  unsigned len,v,pos;
+  pos = 0;
+  do
+  {
+    {v,len} = hex_space_to_u8(cmd);   // i2c address
+    if (v > 0xFF) break;
+    pos += (len+1);
+    ret.dt[0] = v;
+    {v,len} = hex_space_to_u8(cmd + pos);   // write len
+    if (v > 0xFF) break;
+    ret.dt[1] = v;
+    pos += (len+1);
+    {v,len} = hex_space_to_u8(cmd + pos);   // read len
+    if (v > 0xFF) break;
+    ret.dt[2] = v;
+    pos += (len+1);
+    if (!hex_to_binary(cmd + pos,ret.dt + 3,v)) break; // data to write
+    return 1;
+  } while (0);
+  return 0;
 }
 
 unsigned build_ascii_Reply(const struct rx_u8_buff  &rpl,struct rx_u8_buff  &ret)
@@ -168,8 +194,43 @@ unsigned build_ascii_Reply(const struct rx_u8_buff  &rpl,struct rx_u8_buff  &ret
 /*
  * Extract all info from ascii command and build a response or a packet to destination interface
  */
-void decode_ascii_frame(const struct rx_u8_buff  &cmd,struct rx_u8_buff  &ret)
+unsigned decode_ascii_frame(const struct rx_u8_buff  &cmd,struct rx_u8_buff  &ret)
 {
+  unsigned len,pos,v;
+  { ret.cmd_id, len } = getCommand(cmd.dt + 0);
+  if (!len) return 0;
+  pos = len + 1;
+  {v,len} = hex_space_to_u8(cmd.dt + pos);   // command id
+  if (v > 0xFF) return 0;
+  ret.id = v;
+  pos += (len+1);
+  ret.header_len  = 0;
+  switch (ret.cmd_id)
+  {
+  case cmd_i2cw:
+    return ascii_i2cw(cmd.dt + pos,ret);
+  case cmd_i2cr:
+    return ascii_i2cr(cmd.dt + pos,ret);
+  case cmd_can_tx:
+    return ascii_cantx(cmd.dt + pos,ret);
+  default:
+    return 0;
+    /*
+  case cmd_invalid_hex:
+    m_frame->len = strcpy(m_frame->dt,"NOK: Invalid hex value\n>");
+    rx.push(m_frame,serial_tx);
+    break;
+  case cmd_none:
+    //invalid command
+    m_frame->len = strcpy(m_frame->dt,"NOK: Ascii cmd unimplemented\n>");
+    rx.push(m_frame,serial_tx);
+    break;
+  case cmd_invalid_dest:
+    m_frame->len = strcpy(m_frame->dt,"NOK: Invalid destination\n>");
+    rx.push(m_frame,serial_tx);
+    break;
+    */
+  }
 
 }
 /*
@@ -191,7 +252,7 @@ void decode_ascii_frame(const struct rx_u8_buff  &cmd,struct rx_u8_buff  &ret)
         unsigned len,pos,v;
         if (_packet->src_rx == serial_rx || _packet->src_rx == test_rx)
         {
-          if (_packet->dt[0] < ' ')   //binary commands should go straight to the device
+          if (_packet->dt[0] != ':')   //binary commands should go straight to the device
           {
             _packet->id = _packet->dt[0];
             _packet->cmd_id = _packet->dt[1];
