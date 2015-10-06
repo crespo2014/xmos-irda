@@ -411,19 +411,24 @@ void channel_signal(streaming chanend ch,out port p)
       tp = tp + 100*us;
       pos++;
       if (pos == 1)
-        pframe->len = strcpy(pframe->dt,"CANTX E A 0102030405\n");
+        pframe->len = strcpy(pframe->dt,":INFO 1 \n");
       else  if (pos == 2)
-        pframe->len = strcpy(pframe->dt,"CANTX AB A 0102030405\n");
+        pframe->len = strcpy(pframe->dt,"\x1\x8");
       else  if (pos == 3)
-        pframe->len = strcpy(pframe->dt,"I2CR 2 A \n");
+        pframe->len = strcpy(pframe->dt,":I2CR 2 A 2\n");
       else  if (pos == 4)
-        pframe->len = strcpy(pframe->dt,"I2CR 2 A \n");
+        pframe->len = strcpy(pframe->dt,":I2CR 2 A 2\n");
       else  if (pos == 5)
-        pframe->len = strcpy(pframe->dt,"I2CW C 01 05 0102030405\n");
-      else if (pos == 6)
-        pframe->len = strcpy(pframe->dt,"I2CWR D 01 05 03 0102030405\n");
+        pframe->len = strcpy(pframe->dt,":I2CW C 01 05 0102030405\n");
+      else  if (pos == 6)
+        pframe->len = strcpy(pframe->dt,":CANTX E A 0102030405\n");
+      else  if (pos == 7)
+        pframe->len = strcpy(pframe->dt,":CANTX AB A 0102030405\n");
       else
+      {
+        pframe->len = strcpy(pframe->dt,":I2CWR D 01 05 03 0102030405\n");
         pos = 0;
+      }
       router.push(pframe,cmd_tx);
       break;
     }

@@ -200,9 +200,10 @@ unsigned build_ascii_Reply(const struct rx_u8_buff  &rpl,struct rx_u8_buff  &ret
 unsigned decode_ascii_frame(const struct rx_u8_buff  &cmd,struct rx_u8_buff  &ret)
 {
   unsigned len,pos,v;
-  { ret.cmd_id, len } = getCommand(cmd.dt + 0);
+  pos = cmd.header_len;
+  { ret.cmd_id, len } = getCommand(cmd.dt + pos);
   if (!len) return 0;
-  pos = len + 1;
+  pos += (len + 1);
   {v,len} = hex_space_to_u8(cmd.dt + pos);   // command id
   if (v > 0xFF) return 0;
   ret.id = v;
@@ -236,10 +237,16 @@ void dispatch_packet(struct rx_u8_buff  * movable &packet,client interface rx_fr
   case cmd_can_tx:
     rx.push(packet,mcp2515_tx);
     break;
-  default:
-    packet->len = strcpy(packet->dt,":NOK\n>");
+  case cmd_info:
+    packet->len = strcpy(packet->dt,":StartKit ");
+    packet->len+= strcpy(packet->dt + packet->len," v1.0\n");
     packet->header_len = 0;
-     rx.push(packet,serial_tx);
+    rx.push(packet,serial_tx);
+    break;
+  default:
+    packet->len = strcpy(packet->dt,":NOK\n");
+    packet->header_len = 0;
+    rx.push(packet,serial_tx);
     break;
   }
 
@@ -273,6 +280,7 @@ void dispatch_packet(struct rx_u8_buff  * movable &packet,client interface rx_fr
             dispatch_packet(_packet,rx);
           } else
           {
+            _packet->header_len = 1;
             if (!decode_ascii_frame(*_packet,*m_frame))
               m_frame->cmd_id = cmd_none;
             dispatch_packet(m_frame,rx);
