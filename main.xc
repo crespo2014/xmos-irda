@@ -415,9 +415,9 @@ void channel_signal(streaming chanend ch,out port p)
       else  if (pos == 2)
         pframe->len = strcpy(pframe->dt,"\x1\x8");
       else  if (pos == 3)
-        pframe->len = strcpy(pframe->dt,":I2CR 2 A 2\n");
+        pframe->len = strcpy(pframe->dt,":I2CR 2 A 2 \n");
       else  if (pos == 4)
-        pframe->len = strcpy(pframe->dt,":I2CR 2 A 2\n");
+        pframe->len = strcpy(pframe->dt,":I2CR 2 A 2 \n");
       else  if (pos == 5)
         pframe->len = strcpy(pframe->dt,":I2CW C 01 05 0102030405\n");
       else  if (pos == 6)
