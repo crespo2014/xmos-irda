@@ -411,7 +411,7 @@ void channel_signal(streaming chanend ch,out port p)
       tp = tp + 100*us;
       pos++;
       if (pos == 1)
-        pframe->len = strcpy(pframe->dt,":INFO 1 \n");
+        pframe->len = strcpy(pframe->dt,":CANTX AB A 0102030405\n");
       else  if (pos == 2)
         pframe->len = strcpy(pframe->dt,"\x1\x8");
       else  if (pos == 3)

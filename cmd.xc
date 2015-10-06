@@ -65,21 +65,21 @@
  * 0 - invalid format
  * 1 - sucess
  */
-unsigned ascii_cantx(const char* buff,struct rx_u8_buff &ret)
+unsigned ascii_cantx(const char cmd[],struct rx_u8_buff &ret)
 {
-#if 1
-  unsigned id;
-  id = read32BitsHex(buff);
-  if (*buff != ' ') return 0;
-  ret.dt[0] = id >> 24;
-  ret.dt[1] = id >> 16;
-  ret.dt[2] = id >> 8;
-  ret.dt[3] = id & 0xFF;
-  buff++; // jump space
-  id  = readHexBuffer(buff,ret.dt+4,sizeof(ret.dt)-4);
-  ret.len = 4 + id;
-  if (*buff == ' ' && *buff != '\n') return 0;
-#endif
+  unsigned len,v,pos;
+  pos = 0;
+  {v,len} = hex_space_to_u32(cmd);     // canbus address
+  if (!len) return 0;
+  pos += (len +1);
+  ret.dt[0] = v >> 24;
+  ret.dt[1] = v >> 16;
+  ret.dt[2] = v >> 8;
+  ret.dt[3] = v & 0xFF;
+  len = hexBuffer_to_u8(cmd + pos ,ret.dt+4,sizeof(ret.dt)-4);
+  ret.len = 4 + len;
+  pos += (len*2+1);
+  if (cmd[pos] == ' ' && cmd[pos] != '\n') return 0;
   return 1;
 }
 
@@ -97,7 +97,7 @@ unsigned ascii_i2cw(const char cmd[],struct rx_u8_buff &ret)
   do
   {
     {v,len} = hex_space_to_u8(cmd);   // i2c address
-    if (v > 0xFF) break;
+
     pos += (len+1);
     ret.dt[0] = v;
     {v,len} = hex_space_to_u8(cmd + pos);   // write len

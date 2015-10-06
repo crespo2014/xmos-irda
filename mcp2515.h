@@ -282,26 +282,13 @@ struct mcp2515_cnf_t
  */
 interface mcp2515_if
 {
-  void setMode(unsigned char mode);
-  void Reset();
-  unsigned char getStatus();
   unsigned char getIntFlag();
   void setInterruptEnable(unsigned char ie);
   void ackInterrupt(unsigned char bitmask);     // update canintf to acknowledge the interrupt
   /*
-   * Push the buffer into the tx buffer and send it.
-   */
-  void pushBuffer(unsigned char tx_idx,const char* buff,const char len);
-  /*
    * required buffer len RXB_NEXT
    */
   void pullBuffer(unsigned char rx_idx,char *buff);
-//  unsigned char getRXStatus();
-//  unsigned char getControl();
-//  unsigned char getInterruptEnable();
-//  void setInterruptEnable(unsigned char flag);
-//  unsigned char getInterruptFlag();
-//  void rts();
 };
 
 /*

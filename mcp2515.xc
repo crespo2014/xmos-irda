@@ -179,6 +179,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
   {
     select
     {
+      /*
       case mcp2515[unsigned i].setMode(unsigned char mode):
         obj.can_ctrl = (obj.can_ctrl &(~MODE_MASK)) | (mode & MODE_MASK);
         WRITE(CAN_CTRL,obj.can_ctrl,spi,obj);
@@ -190,6 +191,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
           READ_CAN_STATUS(frm,spi,obj,obj.can_status);
         ret = obj.can_status;
         break;
+        */
       case mcp2515[unsigned i].getIntFlag() -> unsigned char flag:
         READ(CAN_INTF,spi,obj,flag);
         obj.intflags |= flag;
@@ -206,12 +208,12 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
       case mcp2515[unsigned i].ackInterrupt(unsigned char bitmask):
         BIT_MODIFY(CAN_INTF,bitmask,0,spi,obj);
         break;
-      case mcp2515[unsigned i].pushBuffer(unsigned char tx_idx,const char* buff,const char len):
-        WRITE_BUFF(TXB_0 + TXB_SIDH + TXB_NEXT*tx_idx,buff,len,spi,obj);
-        // request to send
-        WRITE(TXB_0 + TXB_CTRL + TXB_NEXT*tx_idx,TXB_CTRL_TXREQ,spi,obj);
-        RTS(tx_idx,spi,obj);
-        break;
+//      case mcp2515[unsigned i].pushBuffer(unsigned char tx_idx,const char* buff,const char len):
+//        WRITE_BUFF(TXB_0 + TXB_SIDH + TXB_NEXT*tx_idx,buff,len,spi,obj);
+//        // request to send
+//        WRITE(TXB_0 + TXB_CTRL + TXB_NEXT*tx_idx,TXB_CTRL_TXREQ,spi,obj);
+//        RTS(tx_idx,spi,obj);
+//        break;
         // accepted idx values 1 an 0
       case mcp2515[unsigned i].pullBuffer(unsigned char rx_idx,char *buff):
         RD_RXB((rx_idx & 1) << 1,buff,spi,obj);

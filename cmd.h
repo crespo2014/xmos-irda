@@ -24,6 +24,10 @@
 #define cmd_spi0_tx  7   // write to spi slave 0
 #define cmd_info     8 //request ssytem info, including commands id
 #define cmd_mcp2515_loopback  9   // set loopback mode
+#define cmd_mcp2515_listen    10   //
+#define cmd_mcp2515_normal    11
+#define cmd_mcp2515_sleep     12
+#define cmd_mcp2515_reset     13
 
 // response commands
 #define cmd_i2c_nack      12    // use by i2c reply if the operation was not success

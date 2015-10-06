@@ -31,6 +31,8 @@ extern void getHexBuffer(const unsigned char *d,unsigned len,char * &str);
 extern unsigned readHexBuffer(const char* &str,unsigned char* buff,unsigned max);
 extern unsigned read32BitsHex(const char* &str);
 
+// todo read hex buffer util space or enter
+
 static inline void getHex_u8(unsigned num, char* dest)
 {
   dest[0] = getHexChar(num >> 4);
@@ -135,7 +137,19 @@ static inline unsigned readHex_u32(const char* str,unsigned char &len)
   {
      d = (d << 4) | readHex_u4(str[len++]);
   }
-  if (str[len] != ' ') d = 0xFFF;
+  if (str[len] != ' ') {d = 0xFFF;len = 0;}
+  return {d,len};
+}
+
+{unsigned ,unsigned } static inline hex_space_to_u32(const char str[])
+{
+  unsigned len = 0;
+  unsigned d = 0;
+  while (len < 8 && str[len] != ' ')
+  {
+     d = (d << 4) | readHex_u4(str[len++]);
+  }
+  if (str[len] != ' ') len = 0;
   return {d,len};
 }
 
@@ -197,8 +211,22 @@ unsigned static inline hex_to_binary(const char str[],unsigned char buff[max],un
   }
   return (v < 0x100);
 }
-
-
+/*
+ * return bytes processed,
+ * 0 if error ocurred
+ */
+unsigned hexBuffer_to_u8(const char str[],unsigned char buff[max],unsigned max)
+{
+  unsigned v,len,pos;
+  for (pos=0;pos<max;pos++)
+  {
+     {v,len} = readHex_u8_2(str + (pos<<1));
+     if (len == 0) break;
+     if (len == 1) {pos=0;break;}
+     buff[pos] = v;
+  }
+  return pos;
+}
 
 
 // copy string macro that
