@@ -139,7 +139,36 @@ void ascii_i2cr(const char cmd[],struct rx_u8_buff &ret)
   ret.cmd_id = cmd_invalid_hex;
 }
 
-void buildReply(const struct rx_u8_buff  &rpl,const struct rx_u8_buff  &ret)
+unsigned build_ascii_Reply(const struct rx_u8_buff  &rpl,struct rx_u8_buff  &ret)
+{
+  // Notify to user that packet was delivered
+  if (rpl.id == 0 && rpl.header_len == rpl.len ) return 0;
+  ret.header_len = 0;
+  ret.len = 1;
+  ret.dt[0] = ':';
+  ret.len += u8ToHex(rpl.id,ret.dt+ret.len);
+  ret.dt[ret.len++] = ' ';
+  // analize command to create header.
+  switch (rpl.cmd_id)
+  {
+  case cmd_i2c_nack:
+    ret.len += strcpy_2(ret.dt+ret.len,"I2C-NACK ");
+    break;
+  default:
+    ret.len += strcpy_2(ret.dt+ret.len,"OK ");
+    break;
+  }
+  if (rpl.header_len != rpl.len)
+  {
+    ret.len += DataToHex(rpl.dt+rpl.header_len,rpl.len -rpl.header_len,ret.dt+ret.len);
+  }
+  ret.len += strcpy_2(ret.dt+ret.len,"\n>");
+  return 1;
+}
+/*
+ * Extract all info from ascii command and build a response or a packet to destination interface
+ */
+void decode_ascii_frame(const struct rx_u8_buff  &cmd,struct rx_u8_buff  &ret)
 {
 
 }
@@ -151,7 +180,7 @@ void buildReply(const struct rx_u8_buff  &rpl,const struct rx_u8_buff  &ret)
   // packet use to push
   struct rx_u8_buff tfrm;   // temporal frame
   struct rx_u8_buff * movable m_frame = &tfrm;
-  //unsigned ascii_mode = 1;    //all data from rx is send to commnad to return as ascii or not
+  unsigned ascii_mode = 1;    //all data from rx is send to commnad to return as ascii or not
   tx.cts();
   while(1)
   {
@@ -221,31 +250,8 @@ void buildReply(const struct rx_u8_buff  &rpl,const struct rx_u8_buff  &ret)
           }
         } else if (_packet->src_rx == reply_rx)
         {
-          // Notify to user that packet was delivered
-          if (_packet->id != 0 || _packet->header_len != _packet->len )
-          {
-            m_frame->header_len = 0;
-            m_frame->len = 1;
-            m_frame->dt[0] = ':';
-            m_frame->len += u8ToHex(_packet->id,m_frame->dt+m_frame->len);
-            m_frame->dt[m_frame->len++] = ' ';
-            // analize command to create header.
-            switch (_packet->cmd_id)
-            {
-            case cmd_i2c_nack:
-              m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"I2C-NACK ");
-              break;
-            default:
-              m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"OK ");
-              break;
-            }
-            if (_packet->header_len != _packet->len)
-            {
-              m_frame->len += DataToHex(_packet->dt+_packet->header_len,_packet->len -_packet->header_len,m_frame->dt+m_frame->len);
-            }
-            m_frame->len += strcpy_2(m_frame->dt+m_frame->len,"\n>");
+          if (ascii_mode && build_ascii_Reply(*_packet,*m_frame))
             rx.push(m_frame,serial_tx);
-          }
         } else
         {
           // packet comming from input interface - forward it to serial, with SRC_ID, DATA,
