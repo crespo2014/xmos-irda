@@ -269,29 +269,29 @@ void dispatch_packet(struct rx_u8_buff  * movable &packet,client interface rx_fr
   {
     select
     {
-      case tx.send(struct rx_u8_buff  * movable &_packet):
+      case tx.send(struct rx_u8_buff  * movable &pck):
        // tracePacket(_packet);
         unsigned len,pos,v;
         m_frame->header_len = 0;
-        if (_packet->src_rx == serial_rx || _packet->src_rx == test_rx)
+        if (pck->cmd_id == serial_rx)
         {
-          if (_packet->dt[0] != ':')   //binary commands should go straight to the device
+          if (pck->dt[0] != ':')   //binary commands should go straight to the device
           {
-            _packet->id = _packet->dt[0];
-            _packet->cmd_id = _packet->dt[1];
-            _packet->header_len = 2;    // id dest
-            dispatch_packet(_packet,rx);
+            pck->id = pck->dt[0];
+            pck->cmd_id = pck->dt[1];
+            pck->header_len = 2;    // id dest
+            dispatch_packet(pck,rx);
           } else
           {
-            _packet->header_len = 1;
-            if (!decode_ascii_frame(*_packet,*m_frame))
+            pck->header_len = 1;
+            if (!decode_ascii_frame(*pck,*m_frame))
               m_frame->cmd_id = cmd_none;
             dispatch_packet(m_frame,rx);
           }
         } else
         {
           // Data from interfaces are send to user.
-          if (ascii_mode && build_ascii_Reply(*_packet,*m_frame))
+          if (ascii_mode && build_ascii_Reply(*pck,*m_frame))
             rx.push(m_frame,serial_tx);
         }
         tx.cts();

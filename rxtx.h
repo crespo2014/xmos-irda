@@ -65,7 +65,7 @@ struct rx_u8_buff
     unsigned overflow;     // how many bytes lost
     unsigned id;           // request id , use it for reply
     // router will set up this value base on incomming interface
-    unsigned src_rx;       // where this packet is comming from. ( for managament port, fields need to be update before procced).
+    //unsigned src_rx;       // where this packet is comming from. ( for managament port, fields need to be update before procced).
     unsigned header_len;   // header len, real data, start here
     unsigned cmd_id;       //which command generated this packet
 };

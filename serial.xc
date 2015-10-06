@@ -190,8 +190,9 @@ void serial_rx_v5(server interface serial_rx_if uart_if, client interface rx_fra
         } else   //timeout waiting for more data
         {
           // for ascii mode time out is disable
-          if (pframe->overflow || (pframe->len != 0 && (pframe->dt[0] < ' ' ||  pframe->dt[pframe->len-1] == '\n')))
+          if (pframe->overflow || (pframe->len != 0 && (pframe->dt[0] != ':' ||  pframe->dt[pframe->len-1] == '\n')))
           {
+            pframe->cmd_id = serial_rx;
             router.push(pframe,cmd_tx); // command interface will parse the command
           }
           pframe->len = 0;

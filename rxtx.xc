@@ -210,7 +210,6 @@ struct frames_buffer
       if (frames[j].count != frame_buffer_list_max && free_count)
       {
         unsigned char pos = (frames[j].rd_idx + frames[j].count) & (frame_buffer_list_max -1);
-        old_p->src_rx =  idx;
         frames[j].list[pos] = move(old_p);
         frames[j].count++;
         if (frames[j].count == 1)

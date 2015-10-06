@@ -429,6 +429,8 @@ void channel_signal(streaming chanend ch,out port p)
         pframe->len = strcpy(pframe->dt,":I2CWR D 01 05 03 0102030405\n");
         pos = 0;
       }
+      pframe->header_len = 0;
+      pframe->cmd_id = serial_rx;
       router.push(pframe,cmd_tx);
       break;
     }

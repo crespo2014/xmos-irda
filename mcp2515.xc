@@ -306,7 +306,6 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
           pframe->len++;  //
           pframe->id = 0; // no id associated to this command
           pframe->cmd_id = cmd_can_rx;
-          pframe->src_rx = cmd_can_rx;
           router.push(pframe,cmd_tx); // send to command interface for translation
         }
         // clear all rx and tx interrupt flags
