@@ -236,6 +236,7 @@ void dispatch_packet(struct rx_u8_buff  * movable &packet,client interface rx_fr
   case cmd_i2cwr:
     rx.push(packet,tx_i2c);
     break;
+  case cmd_mcp2515_loopback:
   case cmd_can_tx:
     rx.push(packet,mcp2515_tx);
     break;

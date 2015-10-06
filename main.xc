@@ -415,9 +415,9 @@ void channel_signal(streaming chanend ch,out port p)
       else  if (pos == 2)
         pframe->len = strcpy(pframe->dt,"\x1\x8");
       else  if (pos == 3)
-        pframe->len = strcpy(pframe->dt,":I2CR 2 A 2 \n");
+        pframe->len = strcpy(pframe->dt,":I2CR 3 A 2 \n");
       else  if (pos == 4)
-        pframe->len = strcpy(pframe->dt,":I2CR 2 A 2 \n");
+        pframe->len = strcpy(pframe->dt,":I2CR 4 A 2 \n");
       else  if (pos == 5)
         pframe->len = strcpy(pframe->dt,":I2CW C 01 05 0102030405\n");
       else  if (pos == 6)
@@ -1124,14 +1124,14 @@ int main()
     spi_master(spi_out,spi_miso,master_spi_if);
 
     //devices
-    mcp2515_master(mcp2515,1,SPI1_MCP2515_SS_MASK,master_spi_if);
+    mcp2515_master(mcp2515,1,SPI1_MCP2515_SS_MASK,tx_out[mcp2515_tx],master_spi_if);
 
     // RX interfaces
     irda_rx_v5(p_irda,10*us,rx[irda_rx]);
     command_pusher(rx[test_rx]);
 
     interrupt_manager(interrupt_port,1,int_if,0);
-    mcp2515_interrupt_manager(mcp2515[0],int_if[0],tx_out[mcp2515_tx],rx[mcp2515_rx]);
+    mcp2515_interrupt_manager(mcp2515[0],int_if[0],rx[mcp2515_rx]);
 
   //  i2c_custom(i2c,1,scl,sda,100);
     i2c_master_v2(i2c_master,tx_out[tx_i2c]);

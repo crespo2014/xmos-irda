@@ -148,8 +148,9 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
 /*
  * Add ss mask as input parameter
  * Talk to spi master,
+ * todo move tx task from interupt to this
  */
-[[distributable]] void mcp2515_master(server interface mcp2515_if mcp2515[n],size_t n,unsigned char ss_mask,client interface spi_master_if spi)
+[[distributable]] void mcp2515_master(server interface mcp2515_if mcp2515[n],size_t n,unsigned char ss_mask,server interface tx_if tx,client interface spi_master_if spi)
 {
   struct mcp2515_cnf_t obj;
   //RESET(frm,spi);
@@ -158,6 +159,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
   obj.T = 1*us;
   obj.ss_mask = ss_mask;
   READ(CAN_CTRL,spi,obj,obj.can_ctrl);
+  READ(CAN_INTF,spi,obj,obj.intflags);
   //check for operation mode
   if ((obj.can_ctrl & MODE_MASK) != MODE_CONFIGURE)
     printf("x%02X mcp2515 missing\n",obj.can_ctrl);
@@ -171,6 +173,7 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
   READ(CAN_CTRL,spi,obj,obj.can_ctrl);
   if ((obj.can_ctrl & MODE_MASK) != MODE_LOOPBACK)
      printf("mcp2515 set mode failed\n");
+  tx.cts();
   //
   while(1)
   {
@@ -189,6 +192,10 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
         break;
       case mcp2515[unsigned i].getIntFlag() -> unsigned char flag:
         READ(CAN_INTF,spi,obj,flag);
+        obj.intflags |= flag;
+        if (obj.intflags & (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I))
+          tx.cts();
+        // todo update tx flags and do cts
         break;
       case mcp2515[unsigned i].setInterruptEnable(unsigned char ie):
         WRITE(CAN_INTE,ie,spi,obj);
@@ -209,7 +216,56 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
       case mcp2515[unsigned i].pullBuffer(unsigned char rx_idx,char *buff):
         RD_RXB((rx_idx & 1) << 1,buff,spi,obj);
         break;
+      /*
+      * Send can bus packet.
+      * MSB - LSB u32 dest - if bit31 is 1 then this is a extended packet id
+      * data max 8 bytes
+      */
+      case tx.send(struct rx_u8_buff  * movable &pck):
+        // Check command id
+        if (pck->cmd_id == cmd_mcp2515_loopback)
+        {
+          obj.can_ctrl = (obj.can_ctrl & (~MODE_MASK)) | MODE_LOOPBACK;
+          WRITE(CAN_CTRL,obj.can_ctrl,spi,obj);
+          READ(CAN_CTRL,spi,obj,obj.can_ctrl);
+          if ((obj.can_ctrl & MODE_MASK) != MODE_LOOPBACK)
+            pck->cmd_id = cmd_mcp2515_setmode_nok;
+          tx.cts();
+        } else if (pck->cmd_id == cmd_can_tx)
+        {
+          if ( pck->len - pck->header_len < 5) break; // at least 5 bytes are needed to make a packet
+          unsigned char buff[TXB_NEXT];
+          CAN_TO_MCP2515(pck->dt + pck->header_len,pck->len - pck->header_len ,buff);    //
+          //
+          unsigned id;
+          if (obj.intflags & MCP2515_INT_TX0I)
+          {
+            id = 0;
+            obj.intflags &= (~MCP2515_INT_TX0I);
+          } else if (obj.intflags & MCP2515_INT_TX1I)
+          {
+            id = 1;
+            obj.intflags &= (~MCP2515_INT_TX1I);
+          }
+          else
+          {
+            id = 2;
+            obj.intflags &= (~MCP2515_INT_TX2I);
+          }
+          WRITE_BUFF(TXB_0 + TXB_SIDH + TXB_NEXT*id,buff,pck->len - pck->header_len +1,spi,obj);
+          // request to send
+          WRITE(TXB_0 + TXB_CTRL + TXB_NEXT*id,TXB_CTRL_TXREQ,spi,obj);
+          RTS(id,spi,obj);
+          if ((obj.intflags & (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I)))  //
+            tx.cts();   // reset the notification if there is any buffer available
+        }
+        // build a empty reply
+        pck->header_len = pck->len;
+        break;
+      case tx.ack():
+        break;
     }
+
   }
 }
 
@@ -217,31 +273,20 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
  * This task link the interrupt service with the mcp2515
  * todo oneshot and so modes
  */
-[[distributable]] void mcp2515_interrupt_manager(client interface mcp2515_if mcp2515,server interface interrupt_if int_src,server interface tx_if tx,client interface rx_frame_if router)
+[[distributable]] void mcp2515_interrupt_manager(client interface mcp2515_if mcp2515,server interface interrupt_if int_src,client interface rx_frame_if router)
 {
   struct rx_u8_buff tfrm;   // temporal frame
   struct rx_u8_buff * movable pframe = &tfrm;
   unsigned char rxtx_st;    // rx tx buffer status
   rxtx_st = (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I); // by default tx buffers are empty
   mcp2515.setInterruptEnable(MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I | MCP2515_INT_RX0I | MCP2515_INT_RX1I);   // enable all interrputs
-  tx.cts();
   while(1)
   {
     select
     {
       case int_src.onInterrupt():
         unsigned char intFlags = mcp2515.getIntFlag();
-        // is the tx buffer empty, do we need it
-        if (intFlags & (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I) )
-        {
-          if ((rxtx_st & (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I)) == 0)  //
-          {
-            tx.cts(); // it was not any buffer empty before, then signal
-          }
-//          rxtx_st |= (intFlags & (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I));  // update to known which buffer is empty
-        }
         rxtx_st |= intFlags;   // get all events, keeping previous ones
-
         while(rxtx_st & (MCP2515_INT_RX0I | MCP2515_INT_RX1I))
         {
           unsigned idx;
@@ -260,43 +305,12 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
           pframe->overflow = 0;
           pframe->len++;  //
           pframe->id = 0; // no id associated to this command
+          pframe->cmd_id = cmd_can_rx;
           pframe->src_rx = cmd_can_rx;
           router.push(pframe,cmd_tx); // send to command interface for translation
         }
         // clear all rx and tx interrupt flags
         mcp2515.ackInterrupt(MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I | MCP2515_INT_RX0I | MCP2515_INT_RX1I);
-        break;
-        /*
-         * Send can bus packet.
-         * MSB - LSB 32 bits dest - if bit31 is 1 then this is a extended packet id
-         * data max 8 bytes
-         */
-      case tx.send(struct rx_u8_buff  * movable &pck):
-        if ( pck->len - pck->header_len < 5) break; // at least 5 bytes are needed to make a packet
-        unsigned char buff[TXB_NEXT];
-        CAN_TO_MCP2515(pck->dt + pck->header_len,pck->len - pck->header_len ,buff);    //
-        //
-        unsigned id;
-        if (rxtx_st & MCP2515_INT_TX0I)
-        {
-          id = 0;
-        } else if (rxtx_st & MCP2515_INT_TX1I)
-          id = 1;
-        else id = 2;
-        mcp2515.pushBuffer(id,buff,pck->len - pck->header_len +1); // -4 for id + 5 for txb header
-        // clear tx buffer bit
-        if (id == 0)
-          rxtx_st &= (~MCP2515_INT_TX0I);
-        else if (id == 1)
-          rxtx_st &= (~MCP2515_INT_TX1I);
-        else
-          rxtx_st &= (~MCP2515_INT_TX2I);
-        if ((rxtx_st & (MCP2515_INT_TX0I | MCP2515_INT_TX1I | MCP2515_INT_TX2I)))  //
-          tx.cts();   // reset the notification if there is any buffer available
-        // build a empty reply
-        pck->header_len = pck->len;
-        break;
-      case tx.ack():
         break;
     }
   }

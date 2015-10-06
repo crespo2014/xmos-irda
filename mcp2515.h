@@ -269,6 +269,7 @@ struct mcp2515_cnf_t
   unsigned char cpha,cpol;
   unsigned char ss_mask;
   unsigned char can_ctrl,can_status,rxb_status;
+  unsigned char intflags;
 //  unsigned char rxb_ctrl[RXB_COUNT];
 //  unsigned char txb_ctrl[TXB_COUNT];
 //
@@ -320,6 +321,6 @@ interface mcp2515_if
      } \
   } while(0)
 
-[[distributable]] extern void mcp2515_master(server interface mcp2515_if mcp2515[n],size_t n,unsigned char ss_mask,client interface spi_master_if spi);
-[[distributable]] extern void mcp2515_interrupt_manager(client interface mcp2515_if mcp2515,server interface interrupt_if int_src,server interface tx_if tx,client interface rx_frame_if router);
+[[distributable]] extern void mcp2515_master(server interface mcp2515_if mcp2515[n],size_t n,unsigned char ss_mask,server interface tx_if tx,client interface spi_master_if spi);
+[[distributable]] extern void mcp2515_interrupt_manager(client interface mcp2515_if mcp2515,server interface interrupt_if int_src,client interface rx_frame_if router);
 #endif /* MCP2515_H_ */
