@@ -351,4 +351,30 @@ void static inline irda_0_send(struct irda_tx_0_t &irda,unsigned v,unsigned bitc
   }
 }
 
+/*
+ * Send 8bits serial data over irda
+ * From LSB to MSB
+ */
+void static inline irda_0_send_uart(struct irda_tx_0_t &irda,unsigned v)
+{
+  unsigned d = ~((v << 1) | (0x3<< 9));  //set 2x stop bit
+  irda_0_send(irda,d,11);
+}
+
+// serial over irda shold invert all bits. because 1 means 0, and 0 means 1.
+/*
+ * Pulse position modulation
+ * time different between pulse is the value transmitted.
+ * |---|-|---|
+ * 1T is 00
+ * 2T is 01
+ * 3T is 10
+ * 4T is 11
+ * wait for 1 and take time
+ * wait 0.
+ * wait for 1, get time differents /2 and send to channel
+ * More than 4T waiting for more data is end of frame
+ */
+
+
 #endif /* IRDA_H_ */

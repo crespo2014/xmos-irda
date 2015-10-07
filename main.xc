@@ -1177,10 +1177,14 @@ int main()
 struct irda_tx_0_t irda = { XS1_PORT_1G };
 int main()
 {
-  const char irda_KHz = 80;
+  const char irda_KHz = 40;
   const unsigned serial_bps = 9600;
   irda_0_init(irda,sec_ns/(irda_KHz*1000),30,sec_ns/serial_bps);
-  irda_0_send(irda,0x5555,8);
+  //irda_0_send(irda,0x5555,8);
+  irda_0_send_uart(irda,0x1);
+  irda_0_send(irda,1,1);
+//  irda_0_send_uart(irda,0x3);
+//  irda_0_send_uart(irda,0x4);
   return 0;
 }
 #endif
