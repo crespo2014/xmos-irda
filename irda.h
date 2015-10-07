@@ -374,6 +374,15 @@ void static inline irda_0_send_uart(struct irda_tx_0_t &irda,unsigned v)
  * wait 0.
  * wait for 1, get time differents /2 and send to channel
  * More than 4T waiting for more data is end of frame
+ wait 1.
+ read
+ count zero
+ push to channel 30ns
+ sample at 4ns for 8 ns bit size. Start bit + 4bit = 40ns
+ +40ns pause to process. 
+ 010XXX data  40ns
+ 010000 pausa 40ns
+ 
  */
 
 [[distributable]] extern void irda_tx(struct irda_tx_0_t &irda,server interface tx_if tx);
