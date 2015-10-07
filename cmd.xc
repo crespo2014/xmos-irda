@@ -226,6 +226,7 @@ unsigned decode_ascii_frame(const struct rx_u8_buff  &cmd,struct rx_u8_buff  &re
 /*
  * Dispatch the packet
  * or send back to user if something went wrong
+ * If the packet is for the command interface itself then do it
  */
 void dispatch_packet(struct rx_u8_buff  * movable &packet,client interface rx_frame_if rx)
 {
@@ -241,13 +242,18 @@ void dispatch_packet(struct rx_u8_buff  * movable &packet,client interface rx_fr
     rx.push(packet,mcp2515_tx);
     break;
   case cmd_info:
-    packet->len = strcpy(packet->dt,":StartKit ");
-    packet->len+= strcpy(packet->dt + packet->len," v1.0\n");
+    packet->dt[0] = ':';
+    packet->len = 1;
+    packet->len += u8ToHex(packet->id,packet->dt + packet->len);
+    packet->len = strcpy(packet->dt  + packet->len," StartKit v1.0\n");
     packet->header_len = 0;
     rx.push(packet,serial_tx);
     break;
   default:
-    packet->len = strcpy(packet->dt,":NOK\n");
+    packet->dt[0] = ':';
+    packet->len = 1;
+    packet->len += u8ToHex(packet->id,packet->dt + packet->len);
+    packet->len = strcpy(packet->dt + packet->len," NOK\n");
     packet->header_len = 0;
     rx.push(packet,serial_tx);
     break;

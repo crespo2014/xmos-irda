@@ -214,8 +214,9 @@ unsigned static inline hex_to_binary(const char str[],unsigned char buff[max],un
 /*
  * return bytes processed,
  * 0 if error ocurred
+ * n - numbers of byte converted sucessfully
  */
-unsigned hexBuffer_to_u8(const char str[],unsigned char buff[max],unsigned max)
+unsigned static inline hexBuffer_to_u8(const char str[],unsigned char buff[max],unsigned max)
 {
   unsigned v,len,pos;
   for (pos=0;pos<max;pos++)

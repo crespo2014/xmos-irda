@@ -16,6 +16,7 @@
 #define IRDA_H_
 
 #include "rxtx.h"
+#include "utils.h"
 
 /*
  * TODO
@@ -269,11 +270,85 @@ Philips (1111.....)
       tp += (2*IRDA_BIT_ticks); /* 2 zeroed pulses */ \
     } while(0)
 
-
  //extern void irda_32b_tx_comb(/*client interface tx_rx_if tx_if,*/out buffered port:32 tx);
 
 [[distributable]] extern void irda_tx_v5(clock clk,out buffered port:32 p32,server interface tx_if tx);
 [[combinable]] extern void irda_rx_v5(in port p,unsigned bitlen,client interface rx_frame_if router);
 [[distributable]] extern void irda_emulator(unsigned bitlen,out port p,server interface tx_if tx);
 extern void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx);
+
+/*
+ * Irda clocked port
+ * Use clock count to set 0,1
+ */
+struct irda_tx_1_t
+{
+    out port p;
+    clock clk;
+};
+/*
+ * Use a buffered port to generate the irda wave
+ */
+struct irda_tx_2_t
+{
+    out buffered port:32 p;
+    clock clk;
+};
+/*
+ * Timed irda tx
+ */
+struct irda_tx_0_t
+{
+    out port p;
+//    unsigned tp;
+    unsigned ton_ticks;   //
+    unsigned toff_ticks;
+    unsigned bitlen_ticks;
+    timer t;
+};
+
+/*
+ * Initialize the timed irda tx, base on freq
+ */
+void static inline irda_0_init(struct irda_tx_0_t &irda,unsigned T_ns,unsigned ton_percent,unsigned bitlen_ns)
+{
+  irda.ton_ticks = (T_ns*ton_percent)/(SYS_TIMER_T_ns*100);
+  irda.toff_ticks = (T_ns/SYS_TIMER_T_ns) - irda.ton_ticks;
+  irda.bitlen_ticks = bitlen_ns/SYS_TIMER_T_ns;
+}
+
+/*
+ * Send byte from lsb to msb
+ */
+void static inline irda_0_send(struct irda_tx_0_t &irda,unsigned v,unsigned bitcount)
+{
+  unsigned tp;
+  unsigned i = irda.bitlen_ticks;
+  irda.t :> tp;
+  while (bitcount--)
+  {
+    if ((v & 1) == 0)  // generated pulse in reversal mode
+    {
+      while(1)
+      {
+        irda.t when timerafter(tp) :> void;
+        if (i < irda.ton_ticks) break;
+        i-= irda.ton_ticks;
+        irda.p <: 1;
+        tp += irda.ton_ticks;
+        irda.t when timerafter(tp) :> void;
+        irda.p <: 0;
+        if (i < irda.toff_ticks) break;
+        i-= irda.toff_ticks;
+        tp += irda.toff_ticks;
+      }
+      tp += i;  // wait remaining part
+    }
+    else
+      tp += irda.bitlen_ticks;
+    v >>= 1;
+    irda.t when timerafter(tp) :> void;   // wait for next transition
+  }
+}
+
 #endif /* IRDA_H_ */
