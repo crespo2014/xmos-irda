@@ -333,6 +333,7 @@ void static inline irda_0_send(struct irda_tx_0_t &irda,unsigned v,unsigned bitc
       {
         if (i < irda.ton_ticks) break;
         i-= irda.ton_ticks;
+        irda.t when timerafter(tp) :> void;
         irda.p <: 1;
         tp += irda.ton_ticks;
         irda.t when timerafter(tp) :> void;
