@@ -376,5 +376,6 @@ void static inline irda_0_send_uart(struct irda_tx_0_t &irda,unsigned v)
  * More than 4T waiting for more data is end of frame
  */
 
+[[distributable]] extern void irda_tx(struct irda_tx_0_t &irda,server interface tx_if tx);
 
 #endif /* IRDA_H_ */

@@ -500,3 +500,26 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
     }
   }
 }
+
+[[distributable]] void irda_tx(struct irda_tx_0_t &irda,server interface tx_if tx)
+{
+  while(1)
+  {
+    select
+    {
+      case tx.send(struct rx_u8_buff  * movable &pck):
+        if (pck->len - pck->header_len == 5)
+        {
+          unsigned v= 0;
+          for (int i=1;i< pck->len;++i)
+          {
+            v = (v << 8) | pck->dt[pck->header_len + i];
+          }
+          irda_0_send(irda,v,pck->dt[pck->header_len]);
+        }
+        break;
+      case tx.ack():
+        break;
+    }
+  }
+}
