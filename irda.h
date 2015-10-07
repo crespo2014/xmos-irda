@@ -323,12 +323,12 @@ void static inline irda_0_init(struct irda_tx_0_t &irda,unsigned T_ns,unsigned t
 void static inline irda_0_send(struct irda_tx_0_t &irda,unsigned v,unsigned bitcount)
 {
   unsigned tp;
-  unsigned i = irda.bitlen_ticks;
   irda.t :> tp;
   while (bitcount--)
   {
     if ((v & 1) == 0)  // generated pulse in reversal mode
     {
+      unsigned i = irda.bitlen_ticks;
       while(1)
       {
         irda.t when timerafter(tp) :> void;

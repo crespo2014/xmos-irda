@@ -1060,7 +1060,7 @@ int main()
 
 #endif
 
-#if 1
+#if 0
 
 // SPI Master
 out port spi_out = XS1_PORT_4C;
@@ -1172,6 +1172,18 @@ int main()
 }
 #endif
 
+
+#if 1
+struct irda_tx_0_t irda = { XS1_PORT_1G };
+int main()
+{
+  const char irda_KHz = 80;
+  const unsigned serial_bps = 9600;
+  irda_0_init(irda,sec_ns/(irda_KHz*1000),30,sec_ns/serial_bps);
+  irda_0_send(irda,0x5555,8);
+  return 0;
+}
+#endif
 /* todo.
  * analog to digital converter plus interface via serial port
  * linux opengl frontend

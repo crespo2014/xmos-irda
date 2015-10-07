@@ -16,6 +16,12 @@
 #define us  100        // 1 usecond
 #define ns  (1/SYS_TIMER_T_ns)
 
+// Convert seconds to mili micro nano
+#define sec_ms  1000
+#define sec_us  1000000
+#define sec_ns  1000000000
+
+
 /*
  * Read a hex number.
  * return over 255 if there is an error.
