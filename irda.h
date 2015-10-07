@@ -326,7 +326,7 @@ void static inline irda_0_send(struct irda_tx_0_t &irda,unsigned v,unsigned bitc
   irda.t :> tp;
   do
   {
-    if ((v & 1) == 0)  // generated pulse in reversal mode
+    if (v & 1)
     {
       unsigned i = irda.bitlen_ticks;
       while(1)
