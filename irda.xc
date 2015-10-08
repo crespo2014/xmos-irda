@@ -555,6 +555,7 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
  * - cells
  * 12bits cells + 4 bits as remaining
  *
+ * data is read as lsb to msb, and send as well
  */
 void ppm_rx_task(struct ppm_rx_t &ppm)
 {
@@ -562,9 +563,9 @@ void ppm_rx_task(struct ppm_rx_t &ppm)
   while(1)
   {
     ppm.p when pinseq(1):> v;
-    ppm.debug <: v;
+    //ppm.debug <: bitrev(v);
     ppm.p :> v;
-    ppm.debug <: v;
+    ppm.debug <: bitrev(v);
     //v = partin(ppm.p,16);
     //ppm.debug <: v;
   }

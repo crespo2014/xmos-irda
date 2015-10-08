@@ -1200,18 +1200,21 @@ void send(struct ppm_tx_t &ppm)
   timer t;
   unsigned tp;
   t :> tp;
-  while (v<3)
+  tp += (50*us);
+  t when timerafter(tp) :> void;
+  while (v[0]<3)
   {
-    tp += (100*us);
-    t when timerafter(tp) :> void;
     ppm_send(ppm,v,1);
     v[0]++;
   }
+  t :> tp;
+  tp += (1*us);
+  t when timerafter(tp) :> void;
 }
 
 int main()
 {
-  char dt[] = { 0xE4, 0x32 };
+  char dt[] = { 0x0, 0x32 };
   ppm_tx_init(ppmTX,8);
   ppm_rx_init(ppmRX,8);
   par

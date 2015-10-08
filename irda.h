@@ -15,6 +15,7 @@
 #ifndef IRDA_H_
 #define IRDA_H_
 
+#include <xclib.h>
 #include "rxtx.h"
 #include "utils.h"
 
@@ -325,7 +326,7 @@ struct ppm_rx_t
 
 struct ppm_tx_t
 {
-    out buffered port:32 p;  //only 14 bits are read each time
+    out buffered port:8 p;  //only 14 bits are read each time
     clock clk;
     timer t;
 };
@@ -410,6 +411,7 @@ void static inline ppm_rx_init(struct ppm_rx_t &ppm,unsigned bitlen_ns)
 {
   configure_clock_xcore(ppm.clk,(bitlen_ns/XCORE_CLK_T_ns)/2);     // dividing clock ticks
   configure_in_port(ppm.p,ppm.clk);
+  set_port_shift_count(ppm.p,16);   // received only 16 bits at the time
   start_clock(ppm.clk);
 }
 
@@ -418,6 +420,7 @@ void static inline ppm_tx_init(struct ppm_tx_t &ppm,unsigned bitlen_ns)
   configure_clock_xcore(ppm.clk,(bitlen_ns/XCORE_CLK_T_ns));     // dividing clock ticks
   configure_out_port(ppm.p,ppm.clk,0);
   start_clock(ppm.clk);
+  set_port_shift_count(ppm.p,20);
 }
 /*
  * 0 - separator
@@ -426,22 +429,31 @@ void static inline ppm_tx_init(struct ppm_tx_t &ppm,unsigned bitlen_ns)
  *  0 - data start
  *  4x? * data
  *
+ *  Half byte send each time 16 bits
+ *  10
+ *  2 celds max 5 bits 10 <0..3>
+ *  remaining 0
+ *
+ *  25bits  x2 50bits per byte 1 byte = 400ns
  */
 void static inline ppm_send(struct ppm_tx_t &ppm,const char data[n],unsigned n)
 {
   unsigned v;
-  partout(ppm.p,8,0x2);   // 0 1 00 00 00   SOF
   for (unsigned i =0 ;i< n;i++)
   {
     v = 0x100 | data[i];
     do
     {
-      unsigned tv = v & 0x3;
-      partout(ppm.p,8,0x2 | (0x8 << tv));
+      unsigned tv = 0x5; // 10 1 from msb to lsb
+      tv = (tv << ((v & 0x3) +2)) | 1;  // 0 is 1 space plus space for 1
       v >>= 2;
+      tv = (tv << ((v & 0x3) +2)) | 1;
+      v >>= 2;
+      tv = (tv << 6) | 1;   // end of byte
+      tv = bitrev(tv) >> clz(tv);
+      ppm.p <: tv;     //give enough space
     } while (v != 1);
   }
-  partout(ppm.p,9,0x82); // 010 00 00 1 EOF
 }
 
 [[distributable]] extern void irda_tx(struct irda_tx_0_t &irda,server interface tx_if tx);
