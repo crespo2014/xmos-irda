@@ -435,10 +435,11 @@ void static inline ppm_send(struct ppm_tx_t &ppm,const char data[n],unsigned n)
     do
     {
       unsigned tv = v & 0x3;
-      partout(ppm.p,4+tv,0x2 | (0x8 << tv));
+      partout(ppm.p,8,0x2 | (0x8 << tv));
       v >>= 2;
     } while (v != 1);
   }
+  partout(ppm.p,9,0x82); // 010 00 00 1 EOF
 }
 
 [[distributable]] extern void irda_tx(struct irda_tx_0_t &irda,server interface tx_if tx);

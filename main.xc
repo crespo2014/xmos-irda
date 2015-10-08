@@ -1173,7 +1173,7 @@ int main()
 #endif
 
 
-#if 1
+#if 0
 struct irda_tx_0_t irda = { XS1_PORT_1G };
 int main()
 {
@@ -1186,6 +1186,17 @@ int main()
   irda_0_send(irda,1,1);
 //  irda_0_send_uart(irda,0x3);
 //  irda_0_send_uart(irda,0x4);
+  return 0;
+}
+#endif
+
+#if 1
+struct ppm_tx_t ppm = {XS1_PORT_1G ,XS1_CLKBLK_1};
+int main()
+{
+  char dt[] = { 0xE4, 0x32 };
+  ppm_tx_init(ppm,8);
+  ppm_send(ppm,dt,1);
   return 0;
 }
 #endif
