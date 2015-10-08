@@ -1192,7 +1192,7 @@ int main()
 
 #if 1
 struct ppm_tx_t ppmTX = {XS1_PORT_1G ,XS1_CLKBLK_1};
-struct ppm_rx_t ppmRX = {XS1_PORT_1H ,XS1_CLKBLK_2,XS1_PORT_32A};
+struct ppm_rx_t ppmRX = {XS1_PORT_1H ,XS1_CLKBLK_2,XS1_PORT_8A};
 
 void send(struct ppm_tx_t &ppm)
 {

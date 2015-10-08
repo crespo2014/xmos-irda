@@ -559,14 +559,14 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
  */
 void ppm_rx_task(struct ppm_rx_t &ppm)
 {
-  unsigned v;
+  unsigned char v1;
   while(1)
   {
-    ppm.p when pinseq(1):> v;
-    //ppm.debug <: bitrev(v);
-    ppm.p :> v;
-    ppm.debug <: bitrev(v);
-    //v = partin(ppm.p,16);
-    //ppm.debug <: v;
+    ppm.p when pinseq(1):> v1;   // read 0x8000
+    do
+    {
+      ppm.p :> v1;
+      ppm.debug <: v1;
+    } while (v1);
   }
 }

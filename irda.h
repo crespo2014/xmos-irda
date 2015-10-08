@@ -317,7 +317,7 @@ struct irda_tx_0_t
  */
 struct ppm_rx_t
 {
-    in buffered port:32 p;  //only 14 bits are read each time
+    in buffered port:8 p;  //only 14 bits are read each time
     clock clk;
     out port debug;         // 8bit por to output the value
     //streaming chanend c;
@@ -409,9 +409,9 @@ void static inline irda_0_send_uart(struct irda_tx_0_t &irda,unsigned v)
   */
 void static inline ppm_rx_init(struct ppm_rx_t &ppm,unsigned bitlen_ns)
 {
-  configure_clock_xcore(ppm.clk,(bitlen_ns/XCORE_CLK_T_ns)/2);     // dividing clock ticks
+  configure_clock_xcore(ppm.clk,(bitlen_ns/XCORE_CLK_T_ns)>>1);     // dividing clock ticks
   configure_in_port(ppm.p,ppm.clk);
-  set_port_shift_count(ppm.p,16);   // received only 16 bits at the time
+  //set_port_shift_count(ppm.p,16);   // received only 16 bits at the time
   start_clock(ppm.clk);
 }
 
@@ -420,7 +420,6 @@ void static inline ppm_tx_init(struct ppm_tx_t &ppm,unsigned bitlen_ns)
   configure_clock_xcore(ppm.clk,(bitlen_ns/XCORE_CLK_T_ns));     // dividing clock ticks
   configure_out_port(ppm.p,ppm.clk,0);
   start_clock(ppm.clk);
-  set_port_shift_count(ppm.p,20);
 }
 /*
  * 0 - separator
@@ -435,25 +434,34 @@ void static inline ppm_tx_init(struct ppm_tx_t &ppm,unsigned bitlen_ns)
  *  remaining 0
  *
  *  25bits  x2 50bits per byte 1 byte = 400ns
+ *
+ *  A frame start with a pulse to synchronize 8bits read with the rx
+ *  rx will read data until 0 is read from input.
+ *  always a bit will start a cell of 8 bits
  */
 void static inline ppm_send(struct ppm_tx_t &ppm,const char data[n],unsigned n)
 {
   unsigned v;
+  unsigned char bit_tbl[4] = { 0x5,0x9,0x11,0x21}; //send from lsb to msb
+  ppm.p <: (unsigned char)1;      // start frame
   for (unsigned i =0 ;i< n;i++)
   {
     v = 0x100 | data[i];
     do
     {
-      unsigned tv = 0x5; // 10 1 from msb to lsb
-      tv = (tv << ((v & 0x3) +2)) | 1;  // 0 is 1 space plus space for 1
+      //unsigned tv = bit_tbl[v & 0x3];
+      ppm.p <: (unsigned char)bit_tbl[v & 0x3];
+//      tv = (tv << ((v & 0x3) +2)) | 1;  // 0 is 1 space plus space for 1
+//      v >>= 2;
+//      tv = (tv << ((v & 0x3) +2)) | 1;
+//      v >>= 2;
+//      tv = (tv << 6) | 1;   // end of byte
+//      tv = bitrev(tv) >> clz(tv);
+          //give enough space
       v >>= 2;
-      tv = (tv << ((v & 0x3) +2)) | 1;
-      v >>= 2;
-      tv = (tv << 6) | 1;   // end of byte
-      tv = bitrev(tv) >> clz(tv);
-      ppm.p <: tv;     //give enough space
     } while (v != 1);
   }
+  ppm.p <: (unsigned char)0;
 }
 
 [[distributable]] extern void irda_tx(struct irda_tx_0_t &irda,server interface tx_if tx);
