@@ -326,7 +326,7 @@ struct ppm_rx_t
 
 struct ppm_tx_t
 {
-    out buffered port:8 p;  //only 14 bits are read each time
+    out buffered port:32 p;
     clock clk;
     timer t;
 };
@@ -440,21 +440,35 @@ void static inline ppm_tx_init(struct ppm_tx_t &ppm,unsigned bitlen_ns)
  *  always a bit will start a cell of 8 bits
  *
  *  use previous pulse to make space.
+ *  todo . use 0 as end of data. or new data.
+ *  data can be send without start of frame.
+ *  what to send
+ *  S = 1  recovere loss bit sifthing data
+ *  0 = 0010 0000
+ *  1 = 0001 0000
+ *  2 = 0000 1000
+ *  3 = 0000 0100
+ *  E = 0
  */
 void static inline ppm_send(struct ppm_tx_t &ppm,const char data[n],unsigned n)
 {
   unsigned v;
-  unsigned char bit_tbl[4] = { 0x20,0x10,0x08,0x04}; //send from lsb to msb
+  unsigned char bit_tbl[4] = { 0x10,0x08,0x04,0x02}; //send from lsb to msb
   ppm.p <: (unsigned char)0x80;      // start frame
   for (unsigned i =0 ;i< n;i++)
   {
-    v = 0x100 | data[i];
-    do
-    {
-      //unsigned tv = bit_tbl[v & 0x3];
-      ppm.p <: (unsigned char)bit_tbl[v & 0x3];
-      v >>= 2;
-    } while (v != 1);
+    // send from msb to lsb
+    unsigned d;
+    //v = 0x100 | data[]
+    v = data[i];
+    d = 1 | (bit_tbl[v & 0x3] << 25);
+    v >>= 2;
+    d |= (bit_tbl[v & 0x3] << 17);
+    v >>= 2;
+    d |= (bit_tbl[v & 0x3] << 9);
+    v >>= 2;
+    d |= (bit_tbl[v & 0x3]);
+    ppm.p <: d;
   }
   ppm.p <: (unsigned char)0;
 }
