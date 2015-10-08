@@ -565,7 +565,7 @@ void ppm_rx_task(struct ppm_rx_t &ppm)
     ppm.p when pinseq(1):> v1;   // read 0x8000
     do
     {
-      ppm.p :> v1;
+      v1 = partin(ppm.p,16);
       ppm.debug <: v1;
     } while (v1);
   }

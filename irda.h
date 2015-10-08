@@ -317,7 +317,7 @@ struct irda_tx_0_t
  */
 struct ppm_rx_t
 {
-    in buffered port:8 p;  //only 14 bits are read each time
+    in buffered port:32 p;  //only 14 bits are read each time
     clock clk;
     out port debug;         // 8bit por to output the value
     //streaming chanend c;
@@ -438,12 +438,14 @@ void static inline ppm_tx_init(struct ppm_tx_t &ppm,unsigned bitlen_ns)
  *  A frame start with a pulse to synchronize 8bits read with the rx
  *  rx will read data until 0 is read from input.
  *  always a bit will start a cell of 8 bits
+ *
+ *  use previous pulse to make space.
  */
 void static inline ppm_send(struct ppm_tx_t &ppm,const char data[n],unsigned n)
 {
   unsigned v;
-  unsigned char bit_tbl[4] = { 0x5,0x9,0x11,0x21}; //send from lsb to msb
-  ppm.p <: (unsigned char)1;      // start frame
+  unsigned char bit_tbl[4] = { 0x20,0x10,0x08,0x04}; //send from lsb to msb
+  ppm.p <: (unsigned char)0x80;      // start frame
   for (unsigned i =0 ;i< n;i++)
   {
     v = 0x100 | data[i];

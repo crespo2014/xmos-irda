@@ -1192,7 +1192,7 @@ int main()
 
 #if 1
 struct ppm_tx_t ppmTX = {XS1_PORT_1G ,XS1_CLKBLK_1};
-struct ppm_rx_t ppmRX = {XS1_PORT_1H ,XS1_CLKBLK_2,XS1_PORT_8A};
+struct ppm_rx_t ppmRX = {XS1_PORT_1H ,XS1_CLKBLK_2,XS1_PORT_16B};
 
 void send(struct ppm_tx_t &ppm)
 {
@@ -1202,11 +1202,12 @@ void send(struct ppm_tx_t &ppm)
   t :> tp;
   tp += (50*us);
   t when timerafter(tp) :> void;
-  while (v[0]<3)
-  {
-    ppm_send(ppm,v,1);
-    v[0]++;
-  }
+  ppm_send(ppm,v,1);
+//  while (v[0]<3)
+//  {
+//    ppm_send(ppm,v,1);
+//    v[0]++;
+//  }
   t :> tp;
   tp += (1*us);
   t when timerafter(tp) :> void;
