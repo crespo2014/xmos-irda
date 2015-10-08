@@ -501,6 +501,11 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
   }
 }
 
+/*
+ * irda port is always driven a 1,it drives to 0 when a signal is received
+ * Data need to be send inverted and it needs to start with a zero.
+ * To be checked by hardware
+ */
 [[distributable]] void irda_tx(struct irda_tx_0_t &irda,server interface tx_if tx)
 {
   while(1)
