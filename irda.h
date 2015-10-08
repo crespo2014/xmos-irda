@@ -453,13 +453,6 @@ void static inline ppm_send(struct ppm_tx_t &ppm,const char data[n],unsigned n)
     {
       //unsigned tv = bit_tbl[v & 0x3];
       ppm.p <: (unsigned char)bit_tbl[v & 0x3];
-//      tv = (tv << ((v & 0x3) +2)) | 1;  // 0 is 1 space plus space for 1
-//      v >>= 2;
-//      tv = (tv << ((v & 0x3) +2)) | 1;
-//      v >>= 2;
-//      tv = (tv << 6) | 1;   // end of byte
-//      tv = bitrev(tv) >> clz(tv);
-          //give enough space
       v >>= 2;
     } while (v != 1);
   }
