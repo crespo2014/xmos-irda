@@ -415,7 +415,7 @@ void static inline ppm_rx_init(struct ppm_rx_t &ppm,unsigned bitlen_ns)
 
 void static inline ppm_tx_init(struct ppm_tx_t &ppm,unsigned bitlen_ns)
 {
-  configure_clock_xcore(ppm.clk,(bitlen_ns/XCORE_CLK_T_ns)/2);     // dividing clock ticks
+  configure_clock_xcore(ppm.clk,(bitlen_ns/XCORE_CLK_T_ns));     // dividing clock ticks
   configure_out_port(ppm.p,ppm.clk,0);
   start_clock(ppm.clk);
 }

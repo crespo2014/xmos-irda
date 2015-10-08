@@ -542,6 +542,19 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
  * t + 220 debug outs 0x820A 0A 0A
  *
  * reading after that gives
+ * Counting spaces is not bad.
+ * Start + spaces
+ * bit + 1,2,3,4 spaces
+ * Max size is 5 bits
+ * 10 10x[1..4] - 10x[1..4]
+ * 1 Byte 8bits 4x2bits blocks -> 20bits block + 2 bits start
+ *
+ * I need max 16 bits to send data
+ * 10 - start
+ * 10 [0..3] cell 5 bits cell
+ * - cells
+ * 12bits cells + 4 bits as remaining
+ *
  */
 void ppm_rx_task(struct ppm_rx_t &ppm)
 {

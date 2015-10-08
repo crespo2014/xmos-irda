@@ -1196,7 +1196,7 @@ struct ppm_rx_t ppmRX = {XS1_PORT_1H ,XS1_CLKBLK_2,XS1_PORT_32A};
 
 void send(struct ppm_tx_t &ppm)
 {
-  unsigned char v = 0;
+  unsigned char v[] = {0};
   timer t;
   unsigned tp;
   t :> tp;
@@ -1204,8 +1204,8 @@ void send(struct ppm_tx_t &ppm)
   {
     tp += (100*us);
     t when timerafter(tp) :> void;
-    ppm_send(ppm,&v,1);
-    v++;
+    ppm_send(ppm,v,1);
+    v[0]++;
   }
 }
 
