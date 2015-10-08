@@ -1191,12 +1191,34 @@ int main()
 #endif
 
 #if 1
-struct ppm_tx_t ppm = {XS1_PORT_1G ,XS1_CLKBLK_1};
+struct ppm_tx_t ppmTX = {XS1_PORT_1G ,XS1_CLKBLK_1};
+struct ppm_rx_t ppmRX = {XS1_PORT_1H ,XS1_CLKBLK_2,XS1_PORT_32A};
+
+void send(struct ppm_tx_t &ppm)
+{
+  unsigned char v = 0;
+  timer t;
+  unsigned tp;
+  t :> tp;
+  while (v<3)
+  {
+    tp += (100*us);
+    t when timerafter(tp) :> void;
+    ppm_send(ppm,&v,1);
+    v++;
+  }
+}
+
 int main()
 {
   char dt[] = { 0xE4, 0x32 };
-  ppm_tx_init(ppm,8);
-  ppm_send(ppm,dt,1);
+  ppm_tx_init(ppmTX,8);
+  ppm_rx_init(ppmRX,8);
+  par
+  {
+    ppm_rx_task(ppmRX);
+    send(ppmTX);
+  }
   return 0;
 }
 #endif

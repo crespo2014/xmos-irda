@@ -318,6 +318,8 @@ struct ppm_rx_t
 {
     in buffered port:32 p;  //only 14 bits are read each time
     clock clk;
+    out port debug;         // 8bit por to output the value
+    //streaming chanend c;
     timer t;
 };
 
@@ -443,5 +445,6 @@ void static inline ppm_send(struct ppm_tx_t &ppm,const char data[n],unsigned n)
 }
 
 [[distributable]] extern void irda_tx(struct irda_tx_0_t &irda,server interface tx_if tx);
+extern void ppm_rx_task(struct ppm_rx_t &ppm);
 
 #endif /* IRDA_H_ */

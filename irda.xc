@@ -530,3 +530,29 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
     }
   }
 }
+/*
+ * Reading at when pinseq(1) gives 0x8000 0000  beacuse buffer was full.
+ * pulse at t 0
+ * t + 4ns stop waiting on port
+ * t + 28ns waiting on port
+ * t + 40ns debug port output 0x8000 0000
+ * t + 130ns read done
+ * t + 190  debug port outs 0x8282 8280
+ * t + 210 waiting on port
+ * t + 220 debug outs 0x820A 0A 0A
+ *
+ * reading after that gives
+ */
+void ppm_rx_task(struct ppm_rx_t &ppm)
+{
+  unsigned v;
+  while(1)
+  {
+    ppm.p when pinseq(1):> v;
+    ppm.debug <: v;
+    ppm.p :> v;
+    ppm.debug <: v;
+    //v = partin(ppm.p,16);
+    //ppm.debug <: v;
+  }
+}
