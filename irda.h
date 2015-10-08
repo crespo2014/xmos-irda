@@ -458,16 +458,13 @@ void static inline ppm_send(struct ppm_tx_t &ppm,const char data[n],unsigned n)
   for (unsigned i =0 ;i< n;i++)
   {
     // send from msb to lsb
-    unsigned d;
-    //v = 0x100 | data[]
-    v = data[i];
-    d = 1 | (bit_tbl[v & 0x3] << 25);
-    v >>= 2;
-    d |= (bit_tbl[v & 0x3] << 17);
-    v >>= 2;
-    d |= (bit_tbl[v & 0x3] << 9);
-    v >>= 2;
-    d |= (bit_tbl[v & 0x3]);
+    unsigned d = 0;
+    v = 0x100 | data[i];
+    do {
+      d = (d << 8) | bit_tbl[v & 0x3];
+      v >>= 2;
+    } while (v != 1);
+    d = (d << 1) | 1;
     ppm.p <: d;
   }
   ppm.p <: (unsigned char)0;
