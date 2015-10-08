@@ -452,14 +452,12 @@ void static inline ppm_tx_init(struct ppm_tx_t &ppm,unsigned bitlen_ns)
  */
 void static inline ppm_send(struct ppm_tx_t &ppm,const char data[n],unsigned n)
 {
-  unsigned v;
   unsigned char bit_tbl[4] = { 0x10,0x08,0x04,0x02}; //send from lsb to msb
-  ppm.p <: (unsigned char)0x80;      // start frame
   for (unsigned i =0 ;i< n;i++)
   {
     // send from msb to lsb
     unsigned d = 0;
-    v = 0x100 | data[i];
+    unsigned v = 0x100 | data[i];
     do {
       d = (d << 8) | bit_tbl[v & 0x3];
       v >>= 2;
