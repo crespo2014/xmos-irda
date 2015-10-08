@@ -308,6 +308,27 @@ struct irda_tx_0_t
 };
 
 /*
+ * pulse position modulation
+ * sampling a 2T.
+ * Pulse-space-(bit at pos 0,1,2,3)
+ * Pulse-6 spaces is end of frame
+ * Pulse-5x 0 + pulse start frame or byte
+ */
+struct ppm_rx_t
+{
+    in buffered port:32 p;  //only 14 bits are read each time
+    clock clk;
+    timer t;
+};
+
+struct ppm_tx_t
+{
+    out buffered port:32 p;  //only 14 bits are read each time
+    clock clk;
+    timer t;
+};
+
+/*
  * Initialize the timed irda tx, base on freq
  */
 void static inline irda_0_init(struct irda_tx_0_t &irda,unsigned T_ns,unsigned ton_percent,unsigned bitlen_ns)
@@ -382,8 +403,43 @@ void static inline irda_0_send_uart(struct irda_tx_0_t &irda,unsigned v)
  +40ns pause to process. 
  010XXX data  40ns
  010000 pausa 40ns
- 
+  */
+void static inline ppm_rx_init(struct ppm_rx_t &ppm,unsigned bitlen_ns)
+{
+  configure_clock_xcore(ppm.clk,(bitlen_ns/XCORE_CLK_T_ns)/2);     // dividing clock ticks
+  configure_in_port(ppm.p,ppm.clk);
+  start_clock(ppm.clk);
+}
+
+void static inline ppm_tx_init(struct ppm_tx_t &ppm,unsigned bitlen_ns)
+{
+  configure_clock_xcore(ppm.clk,(bitlen_ns/XCORE_CLK_T_ns)/2);     // dividing clock ticks
+  configure_out_port(ppm.p,ppm.clk,0);
+  start_clock(ppm.clk);
+}
+/*
+ * 0 - separator
+ * 1 - pulse
+ *  6x0 start frame
+ *  0 - data start
+ *  4x? * data
+ *
  */
+void static inline ppm_send(struct ppm_tx_t &ppm,const char data[n],unsigned n)
+{
+  unsigned v;
+  partout(ppm.p,8,0x2);   // 0 1 00 00 00   SOF
+  for (unsigned i =0 ;i< n;i++)
+  {
+    v = 0x100 | data[i];
+    do
+    {
+      unsigned tv = v & 0x3;
+      partout(ppm.p,4+tv,0x2 | (0x8 << tv));
+      v >>= 2;
+    } while (v != 1);
+  }
+}
 
 [[distributable]] extern void irda_tx(struct irda_tx_0_t &irda,server interface tx_if tx);
 
