@@ -95,17 +95,7 @@ void getHexBuffer(const unsigned char *d,unsigned len,char * &str)
 
 
 
-void printbuff(const char* d,unsigned len)
-{
-  while (len--)
-  {
-    if (*d < ' ')
-      printf("\\x%X",*d);
-    else
-      printf("%c",*d);
-    d++;
-  }
-}
+
 
 
 

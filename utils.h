@@ -8,6 +8,8 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
+#include <stdio.h>
+
 #define XCORE_CLK_T_ns         4    // produced clock T
 #define SYS_TIMER_T_ns  10   //set to 100 for testing
 
@@ -314,8 +316,30 @@ static inline unsigned strcpy_2(char dest[],const char src[])
   return {(preffix[len] == 0 &&  str[len] == ' '),len};
 }
 
-// print a ascii buffer
-extern void printbuff(const char* d,unsigned len);
+void static inline  printbuff(const char* d,unsigned len)
+{
+  while (len--)
+  {
+    if (*d < ' ')
+      printf("\\x%X",*d);
+    else
+      printf("%c",*d);
+    d++;
+  }
+}
 
+void static inline print_buff(const char* buff,unsigned len)
+{
+  while (len--)
+    printf("%02X ",*buff++);
+  printf("\n");
+}
+
+void static inline print_ascii_buff(const char* buff,unsigned len)
+{
+  while (len--)
+    printf("%c",*buff++);
+  printf("\n");
+}
 
 #endif /* UTILS_H_ */

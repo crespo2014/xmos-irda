@@ -531,7 +531,7 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
   }
 }
 /*
- * Reading at when pinseq(1) gives 0x8000 0000  beacuse buffer was full.
+ * Reading at when pinseq(1) gives 0x8000 0000  because buffer was full.
  * pulse at t 0
  * t + 4ns stop waiting on port
  * t + 28ns waiting on port
@@ -541,13 +541,10 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
  * t + 210 waiting on port
  * t + 220 debug outs 0x820A 0A 0A
  *
- * reading after that gives
- * Counting spaces is not bad.
- * Start + spaces
- * bit + 1,2,3,4 spaces
- * Max size is 5 bits
- * 10 10x[1..4] - 10x[1..4]
- * 1 Byte 8bits 4x2bits blocks -> 20bits block + 2 bits start
+ * read 32bits at the time (2 cells)
+ * data coming from lsb to msb
+ *
+ * TX 32bits * 8 ns = 1b/256ns = 0.00390625*10^9bytes/sec = 3.7Mbytes/sec
  *
  * I need max 16 bits to send data
  * 10 - start
@@ -557,16 +554,57 @@ void irda_send(unsigned data,unsigned char bitcount,client interface tx_if tx)
  *
  * data is read as lsb to msb, and send as well
  */
-void ppm_rx_task(struct ppm_rx_t &ppm)
+void ppm_rx_task(struct ppm_rx_t &ppm,streaming chanend c)
 {
   unsigned v1;
   while(1)
   {
-    ppm.p when pinseq(1):> v1;   // read 0x8000
+    ppm.p when pinseq(1):> void;   // read 0x8000
     do
     {
-      v1 = partin(ppm.p,16);
-      ppm.debug <: v1;
+      ppm.p :> v1;
+      unsigned char d2 = clz(v1);
+      unsigned char d1 = clz(v1 << 16);
+      c <: (unsigned char)clz(v1 << 16);
+      c <: (unsigned char)d2;
     } while (v1);
+  }
+}
+
+/*
+ * receiving 0 signal end of data
+ */
+void ppm_rx_decode(streaming chanend c,out port p)
+{
+  unsigned char buff[32];
+  unsigned len;
+  unsigned data;
+  unsigned char v;
+  len = 0;
+  data = 1;
+  while(1)
+  {
+    select {
+      case c :> v:
+        p <: v;
+      if (v > 10)
+      {
+        if (len) print_buff(buff,len);
+        len = 0;
+        data = 1;
+        break;
+      }
+      data = (data << 2) | (v>>1);
+      if (data & 0x100)
+      {
+        if (len < sizeof(buff))
+        {
+          buff[len] = data;
+          len++;
+          data = 1;
+        }
+      }
+      break;
+    }
   }
 }

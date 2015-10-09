@@ -21,19 +21,7 @@
 #include "utils.h"
 
 
-void print_buff(const char* buff,unsigned len)
-{
-  while (len--)
-    printf("%02X ",*buff++);
-  printf("\n");
-}
 
-void print_ascii_buff(const char* buff,unsigned len)
-{
-  while (len--)
-    printf("%c",*buff++);
-  printf("\n");
-}
 /*
 out port p_1G = XS1_PORT_1G;
 
@@ -1194,34 +1182,38 @@ int main()
 struct ppm_tx_t ppmTX = {XS1_PORT_1G ,XS1_CLKBLK_1};
 struct ppm_rx_t ppmRX = {XS1_PORT_1H ,XS1_CLKBLK_2,XS1_PORT_16B};
 
+out port d = XS1_PORT_8C;
+
 void send(struct ppm_tx_t &ppm)
 {
-  unsigned char v[] = {0b11100100};
+  unsigned char v[] = {0b11100100,2,3,4};
   timer t;
   unsigned tp;
   t :> tp;
   tp += (50*us);
   t when timerafter(tp) :> void;
-  ppm_send(ppm,v,1);
+  ppm_send(ppm,v,4);
 //  while (v[0]<3)
 //  {
 //    ppm_send(ppm,v,1);
 //    v[0]++;
 //  }
   t :> tp;
-  tp += (1*us);
+  tp += (10*us);
   t when timerafter(tp) :> void;
 }
 
 int main()
 {
   char dt[] = { 0x0, 0x32 };
+  streaming chan c;
   ppm_tx_init(ppmTX,8);
   ppm_rx_init(ppmRX,8);
   par
   {
-    ppm_rx_task(ppmRX);
+    ppm_rx_task(ppmRX,c);
     send(ppmTX);
+    ppm_rx_decode(c,d);
   }
   return 0;
 }

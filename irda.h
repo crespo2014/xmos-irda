@@ -320,7 +320,6 @@ struct ppm_rx_t
     in buffered port:32 p;  //only 14 bits are read each time
     clock clk;
     out port debug;         // 8bit por to output the value
-    //streaming chanend c;
     timer t;
 };
 
@@ -411,6 +410,7 @@ void static inline ppm_rx_init(struct ppm_rx_t &ppm,unsigned bitlen_ns)
 {
   configure_clock_xcore(ppm.clk,(bitlen_ns/XCORE_CLK_T_ns)>>1);     // dividing clock ticks
   configure_in_port(ppm.p,ppm.clk);
+  // read 32 bits and split in two parts
   //set_port_shift_count(ppm.p,16);   // received only 16 bits at the time
   start_clock(ppm.clk);
 }
@@ -465,10 +465,11 @@ void static inline ppm_send(struct ppm_tx_t &ppm,const char data[n],unsigned n)
     d = (d << 1) | 1;
     ppm.p <: d;
   }
-  ppm.p <: (unsigned char)0;
+  ppm.p <: 0;
 }
 
 [[distributable]] extern void irda_tx(struct irda_tx_0_t &irda,server interface tx_if tx);
-extern void ppm_rx_task(struct ppm_rx_t &ppm);
+extern void ppm_rx_task(struct ppm_rx_t &ppm,streaming chanend c);
+extern void ppm_rx_decode(streaming chanend c,out port p);
 
 #endif /* IRDA_H_ */

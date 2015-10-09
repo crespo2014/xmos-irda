@@ -110,7 +110,7 @@ void fastRX_v7(streaming chanend ch,in buffered port:8 p,clock clk,out port d1)
  * 1byte = 9 * 192 = 1728ns = 0.5Mbytes sec = 4Mbits/s
  *
  * Upper limit is
- * 192ns per bit, 1728ns per byte, 578703.7bytes/sec 556.1403Kb/sec 5Mbyte/sec
+ * 192ns per bit, 1728ns per byte, 578703.7bytes/sec 0.65Kb/sec 0.5Mbyte/sec
  *
  * 1920ns per byte 520.833bytes/sec
  */
