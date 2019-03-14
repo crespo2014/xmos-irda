@@ -23,6 +23,11 @@
 #define sec_us  1000000
 #define sec_ns  1000000000
 
+// tick to frequency, remember div by 2 to get clock transition
+#define Hz_tick  (KHz_tick * 1000)
+#define KHz_tick (MHz_tick*1000)
+#define MHz_tick (1000/SYS_TIMER_T_ns)
+
 
 /*
  * Read a hex number.
