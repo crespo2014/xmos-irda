@@ -33,9 +33,10 @@
  * Read a hex number.
  * return over 255 if there is an error.
  */
+#if 0
 extern unsigned readHexChar(const char *&str);
 extern unsigned readHexByte(const char* &str);
-extern unsigned getHexChar(unsigned num);
+
 //extern unsigned getHexByte(unsigned char num);
 extern void getHexBuffer(const unsigned char *d,unsigned len,char * &str);
 /*
@@ -43,7 +44,9 @@ extern void getHexBuffer(const unsigned char *d,unsigned len,char * &str);
  */
 extern unsigned readHexBuffer(const char* &str,unsigned char* buff,unsigned max);
 extern unsigned read32BitsHex(const char* &str);
+#endif
 
+extern unsigned getHexChar(unsigned num);
 // todo read hex buffer util space or enter
 
 static inline void getHex_u8(unsigned num, char* dest)
@@ -165,7 +168,7 @@ static inline unsigned readHex_u32(const char* str,unsigned char &len)
   if (str[len] != ' ') len = 0;
   return {d,len};
 }
-
+#if 0
 static inline void u8To2Hex(unsigned char num,char * &str)
 {
   *str = getHexChar(num >> 4);
@@ -173,6 +176,7 @@ static inline void u8To2Hex(unsigned char num,char * &str)
   *str = getHexChar(num & 0x0F);
   str++;
 }
+#endif
 
 /*
  * Convert number to 2 hex characters

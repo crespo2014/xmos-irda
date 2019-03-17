@@ -1178,7 +1178,7 @@ int main()
 }
 #endif
 
-#if 1
+#if 0
 struct ppm_tx_t ppmTX = {XS1_PORT_1G ,XS1_CLKBLK_1};
 struct ppm_rx_t ppmRX = {XS1_PORT_1H ,XS1_CLKBLK_2,XS1_PORT_16B};
 
@@ -1223,4 +1223,39 @@ int main()
  * linux opengl frontend
  * command interface to parse i2c irda and spi command interface
  */
+
+#if 1
+
+out port spi_p = XS1_PORT_4A;
+in port spi_int_p = XS1_PORT_1C;
+in port spi_mosi_p = XS1_PORT_1D;
+
+void mcp2515_manager(client interface mcp2515_ui_if mcp2515)
+{
+    while(1)
+    {
+        select
+        {
+        case mcp2515.onData():
+            mcp2515.recv();
+            break;
+        }
+    }
+}
+
+int main()
+{
+    interface spi_if spi;
+    interface mcp2515_spi_if mcp2515;
+    interface mcp2515_ui_if mcp2515_ui;
+    par {
+        spi_4b_1b(spi, spi_p, spi_mosi_p);
+        mcp2515_spi(mcp2515, spi, spi_int_p);
+        [[distributable]]  mcp2515_ui_srv(mcp2515_ui, mcp2515);
+        mcp2515_manager(mcp2515_ui);
+    }
+    return 0;
+}
+
+#endif
 
