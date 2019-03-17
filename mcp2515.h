@@ -12,64 +12,97 @@
 
 #include "spi_custom.h"
 #include "rxtx.h"
+#include "spi_if.h"
 
+// All registers
+
+#define TX_RTSCTRL  0x0D    //TxnRts Pin control and status register
 #define BFP_CTRL    0x0C
 
-#define RXF_0       0x00    // first filter
+#define RXF_0       0x00    // RX filter registers
 #define RXF_NEXT    0x04
 #define RXF_COUNT   6
-#define RXF_SIDH    0
-#define RXF_SIDL    1
-#define RXF_EID8    2
-#define RXF_EID0    3
 
-#define RXM_0     0x20
+#define RXM_0     0x20      // RX mask
 #define RXM_NEXT  0x04
 #define RXM_COUNT 2
-#define RXM_SIDH  0
-#define RXM_SIDL  1
-#define RXM_EID8  2
-#define RXM_EID0  3
 
-#define CNF1      0x24
+#define CNF1      0x24  //configuration
 #define CNF2      0x29
 #define CNF3      0x28
 #define TEC       0x1C
 #define REC       0x1D
 #define EFLG      0x2D
-#define CAN_INTE  0x2B
-#define CAN_INTF  0x2C
-#define CAN_CTRL  0x0F
-#define CAN_STAT  0x0E
+#define CAN_INTE  0x2B  // interrupt enable
+#define CAN_INTF  0x2C  // interrupt flag
+#define CAN_CTRL  0x0F  // control reg
+#define CAN_STAT  0x0E  // status
 
-
-
+// rx buffers
 #define RXB_0      0x60
 #define RXB_COUNT  2
 #define RXB_NEXT   0x10
-#define RXB_CTRL   0
-#define RXB_SIDH   1    //SID10 .. SID3  (RO)
-#define RXB_SIDL   2    //SID2 .. SID0 SRR IDE X EID17 EID16
-#define RXB_EID8   3    //EID15 .. EID8
-#define RXB_EID0   4    // EID7 .. EID0
-#define RXB_DLC    5
-#define RXB_DATA   6
-#define RXB_DATA_MAX 8
-#define RXB_MAX_OFFSET  (RXB_DATA + RXB_DATA_MAX)
 
+// transmit buffer
 #define TXB_0         0x30  // first buffer
 #define TXB_COUNT     3     // max 3 tx buffers
 #define TXB_NEXT      0x10  // position of next buffer
-#define TXB_CTRL      0     // offset
-#define TXB_SIDH      1     // offset from SID10 .. SID3 R/W
-#define TXB_SIDL      2     // SID2 SID1 SID0 X EXIDE x EID17 EID16
-#define TXB_EID8      3     // EID15 .. EID8 R/W
-#define TXB_EID0      4     // EID7 .. EID0
-#define TXB_DLC       5     // X RTR X X DLC3 ..DLC0 DATA LENGTH CODE
-#define TXB_DATA      6
-#define TXB_DATA_MAX  8
+
+
+// all offsets
+#define RXF_SIDH_OFFSET    0
+#define RXF_SIDL_OFFSET    1
+#define RXF_EID8_OFFSET    2
+#define RXF_EID0_OFFSET    3
+
+#define RXM_SIDH_OFFSET  0
+#define RXM_SIDL_OFFSET  1
+#define RXM_EID8_OFFSET  2
+#define RXM_EID0_OFFSET  3
+
+#define RXB_CTRL_OFFSET   0
+#define RXB_SIDH_OFFSET   1    //SID10 .. SID3  (RO)
+#define RXB_SIDL_OFFSET   2    //SID2 .. SID0 SRR IDE X EID17 EID16
+#define RXB_EID8_OFFSET   3    //EID15 .. EID8
+#define RXB_EID0_OFFSET   4    // EID7 .. EID0
+#define RXB_DLC_OFFSET    5
+#define RXB_DATA_OFFSET   6
+#define RXB_DATA_MAX 8
+#define RXB_MAX_OFFSET  (RXB_DATA + RXB_DATA_MAX)
+
+#define TXB_CTRL_OFFSET      0     // offset
+#define TXB_SIDH_OFFSET      1     // offset from SID10 .. SID3 R/W
+#define TXB_SIDL_OFFSET      2     // SID2 SID1 SID0 X EXIDE x EID17 EID16
+#define TXB_EID8_OFFSET      3     // EID15 .. EID8 R/W
+#define TXB_EID0_OFFSET      4     // EID7 .. EID0
+#define TXB_DLC_OFFSET       5     // X RTR X X DLC3 ..DLC0 DATA LENGTH CODE
+#define TXB_DATA_OFFSET      6
+#define TXB_DATA_MAX  8     // maximun data size
 #define TXB_MAX_OFFSET   (TXB_DATA + TXB_DATA_MAX)
 
+// all bits
+
+//Interrupt enable bits
+#define CAN_INT_MERRE   0x80
+#define CAN_INT_WAKIE   0x40
+#define CAN_INT_ERRIE   0x20
+#define CAN_INT_TX2IE   0x10
+#define CAN_INT_TX1IE   0x08
+#define CAN_INT_TX0IE   0x04
+#define CAN_INT_RX1IE   0x02
+#define CAN_INT_RX0IE   0x01
+
+//Interrupt flagged bits
+#define CAN_INT_MERRF   0x80
+#define CAN_INT_WAKIF   0x40
+#define CAN_INT_ERRIF   0x20
+#define CAN_INT_TX2IF   0x10
+#define CAN_INT_TX1IF   0x08
+#define CAN_INT_TX0IF   0x04
+#define CAN_INT_RX1IF   0x02
+#define CAN_INT_RX0IF   0x01
+
+// flags
 #define TXB_CTRL_ABTF    (1<<6)
 #define TXB_CTRL_MLOA    (1<<5)
 #define TXB_CTRL_TXERR   (1<<4)
@@ -77,7 +110,7 @@
 #define TXB_CTRL_TXP1    (1<<1)
 #define TXB_CTRL_TXP0    (1<<0)
 
-#define TX_RTSCTRL        0x0D    //TxnRts Pin control and status register
+
 #define TX_RTSCTRL_B2RTS  (1<<5)  // Reads state of TX2RTS pin when in Digital Input mode
                                   // Reads as 0 when pin is in Request-to-Send mode
 #define TX_RTSCTRL_B1RTS  (1<<4)  // Reads state of TX1RTS pin when in Digital Input mode
@@ -211,6 +244,7 @@
 #define MODE_CONFIGURE  (0x4 << 5)
 #define MODE_MASK       (0x7 << 5)
 
+// SPI commands
 #define SPI_RESET       0xC0
 #define SPI_READ        0x03
 #define SPI_RD_RXB      0x90
@@ -310,4 +344,65 @@ interface mcp2515_if
 
 [[distributable]] extern void mcp2515_master(server interface mcp2515_if mcp2515[n],size_t n,unsigned char ss_mask,server interface tx_if tx,client interface spi_master_if spi);
 [[distributable]] extern void mcp2515_interrupt_manager(client interface mcp2515_if mcp2515,server interface interrupt_if int_src,client interface rx_frame_if router);
+
+interface mcp2515_spi_if
+{
+    void reset();
+    unsigned char read(unsigned char address);
+    unsigned char read_rx_buffer(unsigned char address);
+    void write(unsigned char address, unsigned char value);
+    void load_tx_buffer(unsigned char buffer, unsigned char data);
+    void rts(unsigned char buffers);
+    unsigned char read_status();
+    unsigned char rx_status();
+    void bit_modify(unsigned char address, unsigned char mask, unsigned char value);
+};
+
+/*
+ * Return value will be the tx buffer used for this packet
+ */
+struct mcp215_msg {
+    unsigned exid;    // if == 0 then id is used
+    unsigned char data[14];
+    unsigned char count;
+    bool oneshoot;    // if packet fail to send do not resend.
+    unsigned char txBuff; // out, tx buffer used for this frame
+};
+
+interface mcp2515_rx_if
+{
+    [[clears_notification]] void recv(struct mcp215_msg& msg);
+    [[notification]] slave void onData();
+};
+
+interface mcp2515_tx_if
+{
+    [[clears_notification]]  void send(struct mcp215_msg& msg);
+    [[notification]] slave void onCTS(); // clear to send
+    void rts();       // request to send
+};
+
+interface mcp2515_admin_if
+{
+    void enableInterrupt(unsigned char bitmask);
+    void reset();
+    unsigned char readReg(address);
+};
+
+// interrupt interface
+interface mcp2515_int_if
+{
+    [[notification]] slave void onInt();
+    [[clears_notification]] void clear();
+};
+
+[[distributable]] extern void mcp2515_spi(server interface mcp2515_spi_if mcp2515, client interface spi_if spi);
+
+[[distributable]] extern void mcp2515(
+        server interface mcp2515_rx_if rx,
+        server interface mcp2515_tx_if tx,
+        server interface mcp2515_admin_if admin,
+        client interface mcp2515_int_if interrupt,
+        client interface mcp2515_spi_if spi);
+
 #endif /* MCP2515_H_ */

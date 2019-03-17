@@ -19,17 +19,17 @@
  * 2T wait at the end of the transmition
  */
 
-interface spi_4b_1b
+interface spi_if
 {
     void setFreq(unsigned khz);
     void wr(unsigned char value);
-    char wr_rd(unsigned char value);
+    unsigned char wr_rd(unsigned char value);
     unsigned char rd();
     // enable the device, use to invoque bulk operations
     void start();
     void end();
 };
 
-[[distributable]] extern void spi_4b(server interface spi_4b_1b spi_if, out port p4b, in port mosi);
+[[distributable]] extern void spi_4b_1b(server interface spi_if spi, out port p4b, in port mosi);
 
 #endif /* SPI_IF_H_ */

@@ -317,3 +317,134 @@ static inline void MCP2515_READ_RXB(unsigned char index,struct spi_frm &frm)
   }
 }
 
+void mcp2515_spi(server interface mcp2515_spi_if mcp2515, client interface spi_if spi)
+{
+    while(1)
+    {
+        select
+        {
+        case mcp2515.reset():
+            spi.wr(SPI_RESET);
+            break;
+        case mcp2515.read(unsigned char address) -> unsigned char ret:
+            spi.start();
+            spi.wr(SPI_READ);
+            spi.wr(address);
+            ret = spi.rd();
+            spi.end();
+            break;
+        case mcp2515.read_rx_buffer(unsigned char address) -> unsigned char ret:
+            spi.start();
+            spi.wr(SPI_RD_RXB + address & 3);
+            ret = spi.rd();
+            spi.end();
+            break;
+
+        case mcp2515.write(unsigned char address, unsigned char value):
+            spi.start();
+            spi.wr(SPI_WRITE);
+            spi.wr(address);
+            spi.wr(value);
+            spi.end();
+            break;
+
+        case mcp2515.load_tx_buffer(unsigned char address, unsigned char value):
+            spi.start();
+            spi.wr(SPI_LOAD_TXB + address & 3);
+            spi.wr(value);
+            spi.end();
+            break;
+
+        case mcp2515.rts(unsigned char buffers):
+            spi.wr(SPI_RTS + buffers & 3);
+            break;
+
+        case mcp2515.read_status() -> unsigned char ret:
+            spi.start();
+            spi.wr(SPI_RD_STATUS);
+            ret = spi.rd();
+            spi.end();
+            break;
+
+        case mcp2515.rx_status() -> unsigned char ret:
+            spi.start();
+            spi.wr(SPI_RXB_STATUS);
+            ret = spi.rd();
+            spi.end();
+            break;
+
+        case mcp2515.bit_modify(unsigned char address, unsigned char mask, unsigned char value):
+            spi.start();
+            spi.wr(SPI_BIT_UPDATE);
+            spi.wr(address);
+            spi.wr(mask);
+            spi.wr(value);
+            spi.end();
+            break;
+
+        }
+    }
+}
+
+[[distributable]] void mcp2515(
+        server interface mcp2515_rx_if rx,
+        server interface mcp2515_tx_if tx,
+        server interface mcp2515_admin_if admin,
+        client interface mcp2515_int_if interrupt,
+        client interface mcp2515_spi_if spi)
+{
+    // interrupt flags
+    unsigned char IntFlag = 0;
+
+    while(1)
+    {
+        select
+        {
+        case admin.enableInterrupt(unsigned char bitmask):
+            mcp2515_spi.write(CAN_INTE, bitmask);
+            break;
+        case admin.reset():
+            mcp2515_spi.reset();
+            break;
+        case admin.readReg(address) -> unsigned char ret:
+            ret = mcp2515_spi.read(address);
+            break;
+        case interrupt.onInt():
+            unsigned char flag = mcp2515_spi.read(CAN_INTF);
+            IntFlag |= flag;
+            interrupt.clear();
+            if (flag & (CAN_INT_TX0IF | CAN_INT_TX1IF | CAN_INT_TX2IF))
+                tx.onCTS();
+            if (flag & (CAN_INT_RX1IF | CAN_INT_RX0IF))
+                rx.onData();
+            mcp2515_spi.bit_modify(CAN_INTF, flag & (CAN_INT_TX0IF | CAN_INT_TX1IF | CAN_INT_TX2IF | CAN_INT_RX1IF | CAN_INT_RX0IF), 0);
+            break;
+        case rx.recv(struct mcp215_msg& msg):
+            unsigned char buffer;
+            if (IntFlag & CAN_INT_RX0IF)
+            {
+                buffer = 0;
+                IntFlag &= ~CAN_INT_RX0IF;
+            }
+            else if (IntFlag & CAN_INT_RX1IF)
+            {
+                buffer = 1;
+                IntFlag &= ~CAN_INT_RX1IF;
+            }
+            else
+            {
+                msg.count = 0;
+                break;
+            }
+            break;
+        case tx.send(struct mcp215_msg& msg):
+            unsigned char buffer;
+            if (IntFlag & (CAN_INT_TX0IF | CAN_INT_TX1IF | CAN_INT_TX2IF))
+            {
+
+            }
+            break;
+
+        }
+    }
+}
