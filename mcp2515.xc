@@ -436,7 +436,6 @@ void mcp2515_spi(server interface mcp2515_spi_if mcp2515, client interface spi_i
                 msg.count = 0;
                 break;
             }
-
             break;
         case tx.send(struct mcp215_msg& msg):
             unsigned char buffer;
